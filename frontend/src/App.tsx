@@ -65,6 +65,7 @@ import { GhostVisits } from "./ui/GhostVisits";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { type HopProofPick, HopProofStrip } from "./ui/HopProofStrip";
+import { MatchVerdict } from "./ui/MatchVerdict";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
 import { PassStackMovie } from "./ui/PassStackMovie";
@@ -1922,6 +1923,14 @@ export default function App() {
                   frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                   playing={view.playing}
                   hasCatalogMotion={hasCatalogMotion}
+                />
+              )}
+              {candidatesFile && load.status === "ready" && (
+                <MatchVerdict
+                  candidates={candidatesFile.candidates}
+                  catalogPmRa={load.data.target.pm_ra}
+                  catalogPmDec={load.data.target.pm_dec}
+                  targetName={load.data.target.name ?? targetName}
                 />
               )}
               <div className="transport">
