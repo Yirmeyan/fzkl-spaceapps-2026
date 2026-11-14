@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:42 ET — From: Nic — Kind: Shipped
+
+**Item 2 merged** (#31). **Item 3 PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/33 — any-position end-to-end (`resolve` / coords → exposures → frames det 2 + `/api/spectrum` in parallel; empty list / 404 / 503+Retry; `?ra=&dec=` boot).
+
 ### 2026-11-14 15:35 ET — From: Nic — Kind: Response
 
 **Item 1 production check** (https://fzkl-spaceapps-2026.pages.dev):

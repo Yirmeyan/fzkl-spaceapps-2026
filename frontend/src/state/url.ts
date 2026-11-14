@@ -62,8 +62,12 @@ export function readViewFromUrl(search = window.location.search): ViewState {
   const q = new URLSearchParams(search);
   const mode = (q.get("mode") as ComposeMode | null) ?? DEFAULT_VIEW.mode;
   const validModes: ComposeMode[] = ["single", "stack", "difference", "track"];
+  const ra = optFloat(q.get("ra"));
+  const dec = optFloat(q.get("dec"));
+  // Tommy item 3: ?ra=&dec= opens any position without a preset key.
+  const fromSky = ra != null && dec != null;
   return {
-    targetKey: q.get("target") || DEFAULT_VIEW.targetKey,
+    targetKey: fromSky ? "custom" : q.get("target") || DEFAULT_VIEW.targetKey,
     pass: optInt(q.get("pass")),
     detector: optInt(q.get("detector")),
     frameIndex: Math.max(0, num(q.get("frame"), 0)),
@@ -73,12 +77,35 @@ export function readViewFromUrl(search = window.location.search): ViewState {
     diffPassA: num(q.get("a"), DEFAULT_VIEW.diffPassA),
     diffPassB: num(q.get("b"), DEFAULT_VIEW.diffPassB),
     showHelp: q.get("help") === "1",
-    query: q.get("q") || "",
+    query: q.get("q") || (fromSky ? `${ra}, ${dec}` : ""),
     waveUm: optFloat(q.get("wave")),
     waveTolUm: Math.min(0.5, Math.max(0.005, num(q.get("wtol"), DEFAULT_VIEW.waveTolUm))),
     contrast: Math.min(8, Math.max(0.25, num(q.get("contrast"), DEFAULT_VIEW.contrast))),
     colorMap: q.get("cmap") === "gray" ? "gray" : "heat",
   };
+}
+
+/** Optional sky position extras from the address bar (item 3 / 4). */
+export function readSkyFromUrl(search = window.location.search): TargetExtras | null {
+  const q = new URLSearchParams(search);
+  const ra = optFloat(q.get("ra"));
+  const dec = optFloat(q.get("dec"));
+  if (ra == null || dec == null) return null;
+  return {
+    ra,
+    dec,
+    epoch: optFloat(q.get("epoch")) ?? 2000,
+    pm_ra: optFloat(q.get("pm_ra")),
+    pm_dec: optFloat(q.get("pm_dec")),
+  };
+}
+
+export interface TargetExtras {
+  ra: number;
+  dec: number;
+  epoch: number;
+  pm_ra: number | null;
+  pm_dec: number | null;
 }
 
 export function writeViewToUrl(state: ViewState, replace = true): void {

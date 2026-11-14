@@ -25,6 +25,7 @@ import {
   ApiError,
   fetchBundle,
   fetchExposures,
+  fetchSpectrum,
   loadFramesProgressive,
   resolveName,
 } from "./data/client";
@@ -43,7 +44,7 @@ import { KNOWN_TARGETS, TARGET_MISSION_TIP, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
 import { fetchSpectrumFile, type SpectrumPoint } from "./spectrum/spectrumPoints";
 import { wavelengthHue } from "./spectrum/waveHue";
-import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
+import { readSkyFromUrl, readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
 import { type DetectorBand, DetectorDial } from "./ui/DetectorDial";
 import { FrameCaption } from "./ui/FrameCaption";
@@ -87,7 +88,7 @@ function uiModeFromView(mode: ComposeMode, blink: boolean): UiMode {
 type LoadState =
   | { status: "idle" }
   | { status: "loading"; message: string; loaded?: number; total?: number }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string; retryable?: boolean }
   | { status: "ready"; data: DecodedBundle; source: "sample" | "live" };
 
 function parseCoordinateQuery(raw: string): Target | null {
@@ -113,6 +114,7 @@ export default function App() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
+  const [spectrumWaiting, setSpectrumWaiting] = useState(false);
   const [displayPx, setDisplayPx] = useState(560);
   const [splitVisits, setSplitVisits] = useState(false);
   const [ghostVisits, setGhostVisits] = useState(false);
@@ -201,12 +203,28 @@ export default function App() {
   const loadFromService = useCallback(
     async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
       setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
+      setSpectrumPoints(null);
+      setSpectrumWaiting(true);
+      // Spectrum in parallel with exposures/frames (chart waits separately, images do not).
+      const spectrumTask = fetchSpectrum(target, {}, signal)
+        .then((res) => {
+          if (!signal.aborted) setSpectrumPoints(res.points);
+        })
+        .catch(() => {
+          if (!signal.aborted) setSpectrumPoints(null);
+        })
+        .finally(() => {
+          if (!signal.aborted) setSpectrumWaiting(false);
+        });
+
       const { target: t, grid, exposures } = await fetchExposures(target, {}, signal);
       if (signal.aborted) return;
       if (exposures.length === 0) {
+        setSpectrumWaiting(false);
         setLoad({
           status: "error",
-          message: "SPHEREx has no images here yet. Try Barnard's Star sample.",
+          message: "SPHEREx has not observed this place yet. Try another name or Barnard's Star.",
+          retryable: true,
         });
         return;
       }
@@ -324,8 +342,13 @@ export default function App() {
         }),
         source: "live",
       });
+      await spectrumTask;
       const known = targetByKey(targetKey);
-      applyPresetDefaults(targetKey, known?.label ?? t.name ?? targetKey);
+      if (targetKey !== "custom") {
+        applyPresetDefaults(targetKey, known?.label ?? t.name ?? targetKey);
+      } else {
+        setTimelineOpen(true);
+      }
     },
     [patchView],
   );
@@ -472,9 +495,19 @@ export default function App() {
     void (async () => {
       try {
         if (view.targetKey === "custom" && view.query) {
-          const coords = parseCoordinateQuery(view.query);
+          const sky = readSkyFromUrl();
+          const coords = sky ?? parseCoordinateQuery(view.query);
           if (coords) {
-            await loadFromService(coords, ac.signal);
+            await loadFromService(
+              {
+                ra: coords.ra,
+                dec: coords.dec,
+                epoch: "epoch" in coords && coords.epoch != null ? coords.epoch : 2000,
+                pm_ra: "pm_ra" in coords ? (coords.pm_ra ?? null) : null,
+                pm_dec: "pm_dec" in coords ? (coords.pm_dec ?? null) : null,
+              },
+              ac.signal,
+            );
             return;
           }
           const target = await resolveName(view.query, ac.signal);
@@ -484,13 +517,28 @@ export default function App() {
         await loadKnownTarget(view.targetKey || "barnard", ac.signal);
       } catch (err) {
         if (ac.signal.aborted) return;
-        const message =
-          err instanceof ApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : "Failed to load data";
-        setLoad({ status: "error", message });
+        if (err instanceof ApiError) {
+          if (err.status === 404 || err.code === "not_found") {
+            setLoad({
+              status: "error",
+              message: "Unknown name, try coordinates.",
+              retryable: true,
+            });
+            return;
+          }
+          if (err.status === 503) {
+            setLoad({
+              status: "error",
+              message: err.message || "Archive busy. Try again in a moment.",
+              retryable: true,
+            });
+            return;
+          }
+          setLoad({ status: "error", message: err.message, retryable: true });
+          return;
+        }
+        const message = err instanceof Error ? err.message : "Failed to load data";
+        setLoad({ status: "error", message, retryable: true });
       }
     })();
     return () => ac.abort();
@@ -1155,16 +1203,79 @@ export default function App() {
       patchView({ targetKey: "custom", query: raw });
       await loadFromService(target, ac.signal);
     } catch (err) {
+      if (err instanceof ApiError && (err.status === 404 || err.code === "not_found")) {
+        setLoad({
+          status: "error",
+          message: "Unknown name, try coordinates.",
+          retryable: true,
+        });
+        return;
+      }
+      if (err instanceof ApiError && err.status === 503) {
+        setLoad({
+          status: "error",
+          message: err.message || "Archive busy. Try again in a moment.",
+          retryable: true,
+        });
+        return;
+      }
       const message =
         err instanceof ApiError
-          ? err.code === "not_found"
-            ? "No object is known under this name."
-            : err.message
+          ? err.message
           : err instanceof Error
             ? err.message
             : "Search failed";
-      setLoad({ status: "error", message });
+      setLoad({ status: "error", message, retryable: true });
     }
+  }
+
+  function retryLoad() {
+    // Re-trigger the targetKey effect by bumping query whitespace, then trim back.
+    const q = view.query;
+    patchView({ query: q });
+    const ac = new AbortController();
+    void (async () => {
+      try {
+        if (view.targetKey === "custom" && view.query) {
+          const sky = readSkyFromUrl();
+          const coords = sky ?? parseCoordinateQuery(view.query);
+          if (coords) {
+            await loadFromService(
+              {
+                ra: coords.ra,
+                dec: coords.dec,
+                epoch: "epoch" in coords && coords.epoch != null ? coords.epoch : 2000,
+                pm_ra: "pm_ra" in coords ? (coords.pm_ra ?? null) : null,
+                pm_dec: "pm_dec" in coords ? (coords.pm_dec ?? null) : null,
+              },
+              ac.signal,
+            );
+            return;
+          }
+          setLoad({ status: "loading", message: `Looking up “${view.query}”…` });
+          const target = await resolveName(view.query, ac.signal);
+          await loadFromService(target, ac.signal);
+          return;
+        }
+        await loadKnownTarget(view.targetKey || "barnard", ac.signal);
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 404 || err.code === "not_found")) {
+          setLoad({
+            status: "error",
+            message: "Unknown name, try coordinates.",
+            retryable: true,
+          });
+          return;
+        }
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : "Retry failed";
+        setLoad({ status: "error", message, retryable: true });
+      }
+    })();
   }
 
   const targetName =
@@ -1419,7 +1530,16 @@ export default function App() {
                 )}
               </div>
             )}
-            {load.status === "error" && <div className="status-banner error">{load.message}</div>}
+            {load.status === "error" && (
+              <div className="status-banner error">
+                <span>{load.message}</span>
+                {load.retryable && (
+                  <button type="button" className="ghost" onClick={retryLoad}>
+                    Retry
+                  </button>
+                )}
+              </div>
+            )}
 
             {spotStacks && load.status === "ready" && (
               <SpotTheMover
@@ -1947,6 +2067,7 @@ export default function App() {
               <Charts
                 frames={filtered}
                 spectrumPoints={spectrumPoints ?? undefined}
+                spectrumWaiting={spectrumWaiting}
                 highlightDetector={view.detector}
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                 onSelectFrame={(index) => {

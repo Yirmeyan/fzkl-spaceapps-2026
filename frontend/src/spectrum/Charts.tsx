@@ -5,6 +5,8 @@ interface ChartsProps {
   frames: DecodedFrame[];
   /** Optional photometry-only points (index spectrum file / GET /api/spectrum). */
   spectrumPoints?: SpectrumPoint[];
+  /** Live /api/spectrum still in flight (images may already be ready). */
+  spectrumWaiting?: boolean;
   /** Detector currently on the stage: those points are drawn brighter. */
   highlightDetector?: number | null;
   activeIndex: number;
@@ -21,11 +23,18 @@ function passColor(pass: number): string {
 export function Charts({
   frames,
   spectrumPoints: spectrumPointsProp,
+  spectrumWaiting = false,
   highlightDetector = null,
   activeIndex,
   onSelectFrame,
 }: ChartsProps) {
-  if (frames.length === 0 && !(spectrumPointsProp && spectrumPointsProp.length > 0)) return null;
+  if (
+    frames.length === 0 &&
+    !(spectrumPointsProp && spectrumPointsProp.length > 0) &&
+    !spectrumWaiting
+  ) {
+    return null;
+  }
 
   const points = spectrumPointsProp ?? spectrumPointsFromFrames(frames);
   // Null flux: no marker. Null wavelength (outside): skip from the plot.
@@ -49,11 +58,15 @@ export function Charts({
         <p className="chart-empty">
           Brightness vs infrared color (µm).
           {activeWave != null ? ` Watching ${activeWave.toFixed(2)} µm.` : ""}
-          {saturatedEverywhere
-            ? " This target saturates SPHEREx here. No flux number; the movie still works."
-            : ` ${withFlux.length} points · one color per visit · hollow = flagged (still good).`}
+          {spectrumWaiting && !(spectrumPointsProp && spectrumPointsProp.length > 0)
+            ? " Measuring spectrum…"
+            : saturatedEverywhere
+              ? " This target saturates SPHEREx here. No flux number; the movie still works."
+              : ` ${withFlux.length} points · one color per visit · hollow = flagged (still good).`}
         </p>
-        {saturatedEverywhere ? (
+        {spectrumWaiting && withFlux.length === 0 ? (
+          <p className="chart-empty">Waiting for /api/spectrum. Images keep loading.</p>
+        ) : saturatedEverywhere ? (
           <p className="chart-saturated">
             Too bright for a flux number here. The images still work. Try Epsilon Indi B for a full
             infrared spectrum.
