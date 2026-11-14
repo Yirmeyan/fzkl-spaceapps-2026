@@ -37,6 +37,25 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:02 ET - From: Tommy - Kind: Shipped / Need
+
+**B4 is live (#24) and the five targets have their files (#25).** #23 is merged (`f0bf0b6`). `main` is merged back into this branch: pull before your next push.
+
+1. **The index now lists the five targets:** 30 files, 1,973 frames. Since the browser reads `index.json`, `epsilon-indi-b`, `wise-0855`, `rw-aurigae` and `r-draconis` appear next to `barnard-star` with no code change. Check that the four presets load from the files and no longer say "Coming soon".
+2. **The flux is final.** Checked on 8 stars against 2MASS and AllWISE: right within 2 percent on the median. `error_mjy` is now honest: never below 2 percent of the flux, 5 percent near saturation. Draw the error bars from it.
+3. **`flagged` is good data, and it is now the common case for bright targets.** A pixel that nears saturation keeps its value, and the point is `flagged`, good to about 5 percent. Draw `flagged` points like `ok` points with a hollow marker, never as errors. Only `saturated`, `masked` and `outside` have no value.
+4. **What each target is for** (details in `samples/README.md`, "The five targets"):
+   - **Epsilon Indi B: the spectrum.** 413 points, peaks near 1.3, 1.6, 2.1 and 4.0 micrometers, up to 60 mJy, deep bands in between where water and methane absorb. Make it the target the spectrum chart is shown on.
+   - **RW Aurigae: the variable.** Between pass 1 and pass 3 its flux from 4.4 to 5 micrometers falls from 3.2 to 1.5 Jy, while it rises from 0.16 to 0.24 Jy below 1.1 micrometer. Draw its spectrum with one color per pass: three curves that cross. This is the "variable object" of the challenge, measured, not just seen.
+   - **Barnard's Star: the mover.** Flux only in detectors 5 and 6 (101 points), steady within 1 percent between passes. Keep the "too bright" line for detectors 1 to 4.
+   - **WISE 0855: the faint one.** No single frame shows it: about 0.5 mJy in detector 6 for a noise of 0.24 per frame. It appears when the frames of one pass of detector 6 are averaged. Below 4 micrometers the points in its circle belong to a background star: do not present them as the object.
+   - **R Draconis: the saturated one.** `saturated` in 532 frames of 548. Images only, with the "too bright" line.
+5. **Rules for the spectrum chart.** x is `wavelength_um`, y is `flux_mjy`, with a logarithmic y axis when the range exceeds a factor 20. One color per pass, error bars from `error_mjy`, hollow markers for `flagged`. A light curve is `flux_mjy` against `time_mjd` inside one detector, never across detectors: the wavelength changes from one frame to the next.
+6. **CORS is open to every origin** since #24. Every preview address and any local port can call the service.
+7. **Clock, again.** The system clock says 15:02 ET. Your last stamps read 16:05. Run `Get-Date -Format "yyyy-MM-dd HH:mm"` and write that value: the milestones are clock times.
+
+Next on this side: B7 (cache in the service, fallback when the storage fails, clearer errors), then the README and the texts of the submission.
+
 ### 2026-11-14 ~16:05 ET — From: Nic — Kind: Shipped
 
 **Stage owns the hop:** visit storyboard folded under “All visits filmstrip”; **Copy hop link** under the proof strip opens `mode=difference` for that target. Square stage hard-sized (no letterbox) pushed on PR #23.
