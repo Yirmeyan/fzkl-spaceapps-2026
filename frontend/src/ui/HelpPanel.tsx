@@ -8,7 +8,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
   return (
     <aside className="help-panel" role="dialog" aria-label="How to use this tool">
       <header>
-        <h2>Three-minute classroom demo</h2>
+        <h2>See the star move in one minute</h2>
         <button type="button" className="ghost" onClick={onClose} aria-label="Close help">
           Close
         </button>
@@ -18,19 +18,23 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
           Open <strong>Barnard's Star</strong> — the fastest-moving nearby star.
         </li>
         <li>
-          Press <strong>Play movie</strong>. You are walking through infrared “colors” the eye cannot
-          see.
+          Press <strong>Play movie</strong>. You walk through infrared “colors” the eye cannot see.
         </li>
         <li>
           Press <strong>Blink visits</strong>. The star jumps north between Visit 1 and Visit 3 while
           background stars stay put. That jump is real motion through space.
         </li>
         <li>
-          Try <strong>Show the move</strong> (difference). A bright/dark pair means “it moved.”
+          Try <strong>Show the move</strong>. A bright/dark pair means “it moved.”
         </li>
         <li>
-          Use <strong>Fullscreen</strong> for the whole class. Technical numbers live under{" "}
-          <strong>Details for teachers</strong>.
+          Use <strong>Fullscreen</strong> when showing others. Numbers live under{" "}
+          <strong>Technical details</strong> if you want them.
+        </li>
+        <li>
+          Keys: <strong>Space</strong> play/pause · <strong>B</strong> blink · <strong>D</strong>{" "}
+          difference · <strong>F</strong> fullscreen · <strong>?</strong> this help ·{" "}
+          <strong>Esc</strong> back.
         </li>
       </ol>
       <p className="help-foot">

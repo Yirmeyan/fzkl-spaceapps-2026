@@ -430,6 +430,67 @@ export default function App() {
     patchView({ mode: "stack", playing: false });
   }
 
+  // Keyboard shortcuts — ignore while typing in fields.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) {
+        return;
+      }
+      if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+        e.preventDefault();
+        patchView({ showHelp: !view.showHelp });
+        return;
+      }
+      if (e.key === "Escape") {
+        if (document.fullscreenElement) {
+          void document.exitFullscreen();
+          return;
+        }
+        if (view.showHelp) {
+          patchView({ showHelp: false });
+          return;
+        }
+        if (blinkPasses) {
+          setBlinkPasses(false);
+          patchView({ pass: null });
+        }
+        return;
+      }
+      if (e.key === " " || e.key === "k" || e.key === "K") {
+        e.preventDefault();
+        if (view.mode !== "single") {
+          setUiMode("watch");
+        }
+        setBlinkPasses(false);
+        patchView({ playing: !view.playing, mode: "single" });
+        return;
+      }
+      if (e.key === "b" || e.key === "B") {
+        e.preventDefault();
+        if (blinkPasses) {
+          setBlinkPasses(false);
+          patchView({ pass: null, mode: "single" });
+        } else {
+          setUiMode("compare");
+        }
+        return;
+      }
+      if (e.key === "d" || e.key === "D") {
+        e.preventDefault();
+        setUiMode("difference");
+        return;
+      }
+      if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        void toggleFullscreen();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view.playing, view.mode, view.showHelp, blinkPasses, passes, patchView]);
+
   async function toggleFullscreen() {
     const el = stageRef.current;
     if (!el) return;
@@ -506,14 +567,14 @@ export default function App() {
           <p className="eyebrow">NASA Space Apps 2026 · FZKL</p>
           <h1 className="brand">SPHEREx Explorer</h1>
           <p className="tagline">
-            Watch a real star drift across the infrared sky — built so a classroom can see it in
-            under a minute.
+            Watch a real star drift across the infrared sky — clear enough for anyone, no astronomy
+            degree required.
           </p>
         </div>
         <div className="top-actions">
           <HealthBadge />
           <button type="button" className="ghost" onClick={() => patchView({ showHelp: !view.showHelp })}>
-            How to demo
+            Quick guide
           </button>
         </div>
       </header>
@@ -586,9 +647,14 @@ export default function App() {
               <p className="stage-kicker">Now viewing</p>
               <h2 className="stage-title">{targetName}</h2>
             </div>
-            <button type="button" className="primary" onClick={() => void toggleFullscreen()}>
-              Fullscreen
-            </button>
+            <div className="stage-actions">
+              <p className="kbd-hint" title="Keyboard shortcuts">
+                Space · B · D · F · ?
+              </p>
+              <button type="button" className="primary" onClick={() => void toggleFullscreen()}>
+                Fullscreen
+              </button>
+            </div>
           </div>
 
           <div className="stage-measure" ref={measureRef}>
@@ -945,9 +1011,9 @@ export default function App() {
             open={showAdvanced}
             onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}
           >
-            <summary>Details for teachers</summary>
+            <summary>Technical details</summary>
             {display && load.status === "ready" && display.meta ? (
-              <TeacherDetails
+              <AdvancedDetails
                 target={load.data.target}
                 grid={load.data.grid}
                 frame={display.meta}
@@ -971,7 +1037,7 @@ export default function App() {
   );
 }
 
-function TeacherDetails({
+function AdvancedDetails({
   target,
   grid,
   frame,
