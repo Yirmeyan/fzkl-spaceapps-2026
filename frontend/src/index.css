@@ -1609,8 +1609,15 @@ select {
   font-weight: 600;
 }
 
-.match-verdict-copy {
+.match-verdict-actions {
   justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.match-verdict-copy {
   padding: 0.25rem 0.55rem;
   font-size: 0.72rem;
   border-radius: 6px;
@@ -1623,6 +1630,11 @@ select {
 .match-verdict-copy:hover {
   border-color: var(--warm);
   color: #fff;
+}
+
+.match-verdict-postcard {
+  border-color: color-mix(in srgb, var(--warm) 45%, var(--line));
+  color: #fdba74;
 }
 
 @keyframes match-verdict-in {

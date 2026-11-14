@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Blink hop afterimage** — while visits blink, the previous visit lingers as a double exposure so the star hop is undeniable in one glance (still one viewport; Controls folded by default).
+**Sky postcard** — one tap saves a branded PNG of the cutout plus measured vs catalog, ready for a judge slide or chat share (still one viewport).
 
 ## Backlog (phenomenal)
 
