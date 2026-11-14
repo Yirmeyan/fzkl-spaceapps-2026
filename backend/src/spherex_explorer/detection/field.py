@@ -50,6 +50,13 @@ _CROWDING_SHARE = 0.3
 # ten times larger.
 _GLARE_CONTRAST = 10.0
 _GLARE_REACH = 12.0
+# A visit of fewer frames than this in a detector cannot clean itself of the accident of
+# one exposure: nothing is looked for in it, and nothing is measured.
+_FEWEST_FRAMES = 3
+# A position is measured where the stack of a visit shows the source this clearly, no
+# less. Under it, the center of light follows the noise.
+_SEEN = 4.0
+_SEEN_REACH = 2
 # How many times the frames of a visit are split in two to measure an uncertainty.
 _SPLITS = 8
 _FEWEST_TO_SPLIT = 4
@@ -80,6 +87,9 @@ _SAME_MOTION = 2.5
 # When the straight line had to be forgiven a bad fit, the motion counts for less: the
 # forgiveness itself rests on a few measurements only.
 _ALWAYS_TRUSTED = 60
+# What a fit leaves over is, by chance alone, about as large as its count of leftovers.
+# It is a bad fit when it exceeds that count by this many times its own scatter.
+_BEYOND_CHANCE = 2.0
 _VISITS_FOR_PARALLAX = 3
 _LEFTOVERS_FOR_PARALLAX = 4
 _CLEAR_PARALLAX = 3.0
@@ -145,6 +155,8 @@ class Motion:
 
     Rates are in pixels per day, toward increasing x and y, with one uncertainty for
     both. The shift is the motion over the days between the first and the last sighting.
+    `checked` tells that the positions were more than the fit needed, so that the path
+    itself could be checked: two visits in one detector draw a line whatever happened.
     The parallax, in pixels, is the swing of a nearby object with the seasons. It is
     None when it was not fitted: fewer than three visits, or no date to draw it from.
     """
@@ -156,6 +168,7 @@ class Motion:
     shift_y: float
     days: float
     significance: float
+    checked: bool = False
     parallax: float | None = None
     parallax_error: float | None = None
 
@@ -342,7 +355,14 @@ def _find(
     by_detector: dict[int, list[_Peak]] = {}
     found: list[_Peak] = []
     for detector in sorted({key[0] for key in piles}):
-        stacks = [pile.stack for key, pile in piles.items() if key[0] == detector]
+        stacks = [
+            pile.stack
+            for key, pile in piles.items()
+            if key[0] == detector and pile.values.shape[0] >= _FEWEST_FRAMES
+        ]
+        if not stacks:
+            by_detector[detector] = []
+            continue
         with all_nan_allowed():
             together = np.nanmean(stacks, axis=0)
         seen = _refined(together, peaks(signal_to_noise(together), DETECTION_THRESHOLD))
@@ -400,13 +420,20 @@ def _positions(
     height, width = snr.shape
     row = np.clip(np.rint(np.nan_to_num(found_y)).astype(int), 0, height - 1)
     column = np.clip(np.rint(np.nan_to_num(found_x)).astype(int), 0, width - 1)
-    padded = np.pad(pile.overflow, _HEART)
-    side = 2 * _HEART + 1
-    bright = np.array(
-        [padded[r : r + side, c : c + side].max() for r, c in zip(row, column, strict=True)]
-    )
+
+    def highest_around(image: np.ndarray, reach: int) -> np.ndarray:
+        padded = np.pad(np.nan_to_num(image, nan=-np.inf), reach, constant_values=-np.inf)
+        side = 2 * reach + 1
+        return np.array(
+            [padded[r : r + side, c : c + side].max() for r, c in zip(row, column, strict=True)]
+        )
+
+    seen = highest_around(snr, _SEEN_REACH)
+    found_x = np.where(seen >= _SEEN, found_x, np.nan)
+    found_y = np.where(seen >= _SEEN, found_y, np.nan)
+    bright = highest_around(pile.overflow, _HEART)
     floor = np.where(bright >= _BRIGHT_SHARE, _BRIGHT_POSITION, _POSITION_FLOOR)
-    faint = _FAINT_POSITION / np.maximum(np.nan_to_num(snr[row, column]), 1.0)
+    faint = _FAINT_POSITION / np.maximum(seen, 1.0)
     if frames < _FEWEST_TO_SPLIT:
         return found_x, found_y, np.hypot(floor, faint)
 
@@ -631,10 +658,13 @@ def _path(
     found, spread, missed, freedom = fitted
 
     # Does the source follow the path? A center pushed back and forth by the spike of a
-    # neighbor does not, and its motion is as unsure as the path fits badly. That
-    # forgiveness rests on a few leftovers only, and the motion counts for less.
-    scale = stretch if freedom < 2 else max(1.0, float(np.sqrt(missed / freedom)))
-    forgiven = freedom >= 2 and scale > 1.0
+    # neighbor does not. When the path fits worse than chance allows, the motion is as
+    # unsure as the fit is bad, and that forgiveness itself rests on a few leftovers.
+    scale, forgiven = 1.0, False
+    if freedom < 2:
+        scale = stretch
+    elif missed > freedom + _BEYOND_CHANCE * np.sqrt(2 * freedom):
+        scale, forgiven = float(np.sqrt(missed / freedom)), True
     rate = found[:2]
     significance = float(np.sqrt(rate @ np.linalg.solve(spread[:2, :2], rate))) / scale
     if forgiven and freedom < _ALWAYS_TRUSTED:
@@ -648,6 +678,7 @@ def _path(
         shift_y=float(rate[1] * days),
         days=float(days),
         significance=significance,
+        checked=freedom >= 2,
         parallax=float(found[2]) if parallax else None,
         parallax_error=float(scale * np.sqrt(spread[2, 2])) if parallax else None,
     )
@@ -829,7 +860,7 @@ def measure_field(frames: Sequence[FieldFrame], wobble: Wobble | None = None) ->
             if pile is None:
                 continue
             time[d, v] = pile.time_mjd.mean()
-            if count:
+            if count and pile.values.shape[0] >= _FEWEST_FRAMES:
                 x[:, d, v], y[:, d, v], error[:, d, v] = _positions(pile, start_x, start_y, rng)
                 x[hidden, d, v] = np.nan
                 y[hidden, d, v] = np.nan
