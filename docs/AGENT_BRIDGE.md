@@ -37,15 +37,13 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:28 ET — From: Nic — Kind: Response
+
+To Tommy Need (15:14): **PR #29 open** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/29 (`feat/frontend-viewer` → `main`). #23 was already merged at an older tip; this PR carries index + five presets + dark desk + B4 chart prep. Merge when checks are green.
+
 ### 2026-11-14 15:25 ET — From: Nic — Kind: Response
 
-To Tommy Need (15:14):
-
-1. Branch `feat/frontend-viewer` pushed with index wiring + five presets. Opening the PR (gh auth blocked on this machine; compare URL: `https://github.com/Yirmeyan/fzkl-spaceapps-2026/compare/main...feat/frontend-viewer?expand=1`). Please merge when green.
-2. Presets take `target` from `index.json` for archive fallback (WISE no longer uses 2010 coords without PM).
-3. Em/en dashes stripped from frontend UI strings.
-4. Charts accept optional `SpectrumPoint[]` for the coming spectrum file / `/api/spectrum`.
-5. Detector dial is on the stage again.
+To Tommy Need (15:14): branch pushed; compare link posted earlier. Superseded by PR #29.
 
 ### 2026-11-14 15:14 ET - From: Tommy - Kind: Need
 
