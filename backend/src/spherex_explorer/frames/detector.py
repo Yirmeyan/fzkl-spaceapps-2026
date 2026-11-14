@@ -8,8 +8,8 @@ as NumPy does. FITS counts them from 1: the shift is applied inside.
 from dataclasses import dataclass
 
 import numpy as np
-from astropy.io import fits
 
+from spherex_explorer.archive.fits import Header
 from spherex_explorer.errors import UpstreamError
 
 _WHAT = "the coordinates of IMAGE"
@@ -18,14 +18,14 @@ _WHAT = "the coordinates of IMAGE"
 _REFINEMENTS = 3
 
 
-def _number(header: fits.Header, keyword: str, default: float | None = None) -> float:
+def _number(header: Header, keyword: str, default: float | None = None) -> float:
     value = header.get(keyword, default)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise UpstreamError(f"{keyword} of {_WHAT} is missing or is not a number")
     return float(value)
 
 
-def _polynomial(header: fits.Header, prefix: str) -> tuple[tuple[int, int, float], ...]:
+def _polynomial(header: Header, prefix: str) -> tuple[tuple[int, int, float], ...]:
     """Terms (p, q, coefficient) of one SIP polynomial. Empty when the header has none."""
     if f"{prefix}_ORDER" not in header:
         return ()
@@ -61,7 +61,7 @@ class DetectorWcs:
     bp: tuple[tuple[int, int, float], ...]
 
     @classmethod
-    def from_header(cls, header: fits.Header) -> "DetectorWcs":
+    def from_header(cls, header: Header) -> "DetectorWcs":
         kinds = (str(header.get("CTYPE1", "")).strip(), str(header.get("CTYPE2", "")).strip())
         if kinds not in (("RA---TAN-SIP", "DEC--TAN-SIP"), ("RA---TAN", "DEC--TAN")):
             raise UpstreamError(f"{_WHAT} use a projection this service does not know: {kinds}")

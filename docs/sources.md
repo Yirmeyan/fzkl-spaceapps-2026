@@ -27,7 +27,7 @@ Versions are locked in `backend/uv.lock`, which also lists the transitive depend
 | [Uvicorn](https://uvicorn.dev/) | ASGI server | BSD-3-Clause |
 | [httpx2](https://github.com/pydantic/httpx2) | HTTP client: calls to the archive, and the tests | BSD-3-Clause |
 | [NumPy](https://numpy.org/) | Arrays of pixels | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 |
-| [Astropy](https://www.astropy.org/) | Reading of FITS headers and decompression of the flags. In the tests, the reference the reader is compared with | BSD-3-Clause |
+| [Astropy](https://www.astropy.org/) | Decompression of the flags. In the tests, the reference that the reader of the files and of their headers is compared with | BSD-3-Clause |
 | [pytest](https://docs.pytest.org/en/latest/) | Tests | MIT |
 | [Ruff](https://docs.astral.sh/ruff) | Lint and format | MIT |
 | [Hatchling](https://github.com/pypa/hatch) | Build backend | MIT |
