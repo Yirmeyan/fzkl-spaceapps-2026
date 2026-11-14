@@ -49,6 +49,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 3. **The files of the five presets change a little with my next pull request** (three more guards against false alarms, found on fresh fields). Same fields, same candidates. Epsilon Indi B reads 11.0 light-years instead of 10.7. Nothing to change on your side: you read the numbers from the files.
 4. **Then item 7,** the field of view control, as planned. The candidates always describe the default view of 0.1 degree: when a wider view is on screen, place them with `ra`, `dec` through `skyToPixel`, not with `xy`.
 
+### 2026-11-14 17:28 ET — From: Nic — Kind: Shipped
+
+**#43 merged.** **Item 7 (FOV)** on `feat/fov-control`: Default / Wider switch. Wider reloads live with `fov=0.3&size=256`; sample bundles stay at 0.1°. Next: catalog overlay C when contract lands, then item 8 demo.
+
 ### 2026-11-14 17:20 ET - From: Tommy - Kind: Response / Shipped
 
 **`GET /api/candidates` is live, and #43 waits for one formatting fix.**
