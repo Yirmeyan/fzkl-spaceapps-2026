@@ -1,4 +1,5 @@
 import type { SpectrumPoint } from "../spectrum/spectrumPoints";
+import type { CandidatesFile } from "./candidates";
 import type {
   ApiErrorBody,
   Bundle,
@@ -68,14 +69,14 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-/** GET JSON with up to 3 retries on 503 using Retry-After (Tommy live-feed Need). */
-async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
+/** GET JSON with retries on 503 using Retry-After (Tommy live-feed Need). */
+async function getJson<T>(path: string, init?: RequestInit, max503Retries = 3): Promise<T> {
   let attempt = 0;
   for (;;) {
     const res = await fetch(`${apiBase}${path}`, init);
     if (res.ok) return (await res.json()) as T;
     const err = await parseError(res);
-    if (err.status === 503 && attempt < 3) {
+    if (err.status === 503 && attempt < max503Retries) {
       attempt += 1;
       const waitSec = err.retryAfterSec != null && err.retryAfterSec > 0 ? err.retryAfterSec : 2;
       await sleep(waitSec * 1000, init?.signal ?? undefined);
@@ -130,6 +131,18 @@ export async function fetchSpectrum(
   const q = targetQuery(target);
   if (opts.detector != null) q.set("detector", String(opts.detector));
   return getJson(`/api/spectrum?${q}`, { signal });
+}
+
+/**
+ * GET /api/candidates — what moved or changed around any position (#44).
+ * Up to six 503 retries: measurement can outlast one request (Tommy contract).
+ */
+export async function fetchCandidates(
+  target: Target,
+  signal?: AbortSignal,
+): Promise<CandidatesFile> {
+  const q = targetQuery(target);
+  return getJson<CandidatesFile>(`/api/candidates?${q}`, { signal }, 6);
 }
 
 export async function fetchFrame(

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import { type ColorMap, renderFrameToRgba } from "../data/contract";
-import { drawTargetOverlay, type TrailPoint } from "./overlays";
+import type { Candidate, SaturatedStar } from "../data/candidates";
+import { type ColorMap, type Grid, renderFrameToRgba } from "../data/contract";
+import { drawCandidatesOverlay, drawTargetOverlay, type TrailPoint } from "./overlays";
 
 export interface FrameCanvasProps {
   pixels: Float32Array;
@@ -14,6 +15,12 @@ export interface FrameCanvasProps {
   tintMask?: boolean;
   targetXy?: [number, number] | null;
   trail?: TrailPoint[];
+  candidates?: Candidate[];
+  candidatesGrid?: Grid | null;
+  viewGrid?: Grid | null;
+  activeCandidate?: number | null;
+  candidatePass?: number | null;
+  saturated?: SaturatedStar[];
   className?: string;
   displayPx?: number;
 }
@@ -29,6 +36,12 @@ export function FrameCanvas({
   tintMask = false,
   targetXy,
   trail = [],
+  candidates = [],
+  candidatesGrid = null,
+  viewGrid = null,
+  activeCandidate = null,
+  candidatePass = null,
+  saturated = [],
   className,
   displayPx,
 }: FrameCanvasProps) {
@@ -51,7 +64,35 @@ export function FrameCanvas({
     if (targetXy) {
       drawTargetOverlay(ctx, targetXy, trail);
     }
-  }, [pixels, mask, size, lo, hi, background, colorMap, tintMask, targetXy, trail]);
+    if ((candidates.length > 0 || saturated.length > 0) && candidatesGrid && viewGrid) {
+      drawCandidatesOverlay(
+        ctx,
+        candidates,
+        viewGrid,
+        candidatesGrid,
+        activeCandidate,
+        candidatePass,
+        saturated,
+      );
+    }
+  }, [
+    pixels,
+    mask,
+    size,
+    lo,
+    hi,
+    background,
+    colorMap,
+    tintMask,
+    targetXy,
+    trail,
+    candidates,
+    candidatesGrid,
+    viewGrid,
+    activeCandidate,
+    candidatePass,
+    saturated,
+  ]);
 
   return (
     <canvas

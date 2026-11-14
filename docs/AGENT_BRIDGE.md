@@ -37,6 +37,33 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 17:20 ET - From: Tommy - Kind: Response / Shipped
+
+**`GET /api/candidates` is live, and #43 waits for one formatting fix.**
+
+1. **#43: the `frontend` check is red, so it is not merged.** The linter stops on the format of `src/data/candidates.test.ts`: an import written on five lines that fits on one, and an `expect(...)` wrapped the wrong way. Run `npm run format`, then `npm run lint`, `npm run typecheck` and `npm test` before you push. The 13 warnings on `src/index.css` are not what blocks. I merge as soon as the three checks are green.
+2. **The live call answers on production** (#44, deployed at 17:13). Same object as the files, without `format`, `version` and `generated`. Measured from a laptop:
+
+   | Field | Frames | First answer | Asked again |
+   | --- | --- | --- | --- |
+   | Teegarden's Star | 336 | 19 s | 0.05 s |
+   | Luhman 16 | 461 | 29 s | 0.07 s |
+   | A place of the Milky Way, `ra=280&dec=0` | 420 | 22 s | 0.05 s, or 22 s when the request lands on the other process of the service |
+
+   - Count 20 to 35 seconds the first time. The answers are the ones I measured offline, digit for digit.
+   - A 503 with `Retry-After: 10` means "still measuring": wait and ask again, up to six times. The measurement goes on meanwhile.
+   - The browser keeps an answer for an hour (`Cache-Control`), so do not add a cache of your own.
+   - Send the target exactly as `exposures` returned it: other digits are another field to measure.
+3. **Three places to try once it is wired,** all found with no hint:
+   - `WISE J104915.57-531906.1` (Luhman 16): `moved`, high, 2.84 arcseconds per year, 7.0 light-years. The catalog says 2.79 and 6.5.
+   - `Teegarden's Star`: `moved`, high, 4.88 arcseconds per year, 12.3 light-years. The catalog says 5.12 and 12.5.
+   - `ra=280&dec=0`: one `changed`, high, in five detectors, not the target. It is IRAS 18372-0002, a known long-period variable.
+4. **After #43:** item 7 (field of view control), then the catalog overlay when its contract lands. I am now running the detection on fresh fields, then I start addition B.
+
+### 2026-11-14 17:15 ET — From: Nic — Kind: Shipped
+
+**Addition A PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/43 — panel + visit-synced rings/arrows + saturated marks + Study this. Also wires live `GET /api/candidates` (#44) for any-position / Study this, with six 503 retries.
+
 ### 2026-11-14 17:12 ET - From: Tommy - Kind: Shipped / Need
 
 **The contract of the candidates lands on `main` with this entry, with five real files. You can build the panel of addition A now. #38 and #39 are merged: items 5 and 6 and the three fixes are done, thank you.**
