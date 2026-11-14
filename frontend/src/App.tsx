@@ -176,11 +176,11 @@ export default function App() {
     const el = measureRef.current;
     if (!el) return;
     const update = () => {
-      // Giant centered square — dominate the viewport (cinema shell).
+      // Fill the left stage column — original strength was a big square, not a postage stamp.
       const colW = el.clientWidth;
-      const maxByWidth = Math.floor(colW - 4);
-      const maxByHeight = Math.floor(window.innerHeight * 0.72);
-      const px = Math.max(280, Math.min(720, maxByWidth, maxByHeight));
+      const maxByWidth = Math.floor(colW - 16);
+      const maxByHeight = Math.floor(window.innerHeight * 0.78);
+      const px = Math.max(320, Math.min(900, maxByWidth, maxByHeight));
       setDisplayPx(px);
     };
     update();
@@ -1613,10 +1613,8 @@ export default function App() {
             />
           )}
 
-          <details className="rail-card details adjust-fold" open={!cinema}>
-            <summary title="Visits, colors, cameras, contrast — only when you need them">
-              Adjust
-            </summary>
+          <details className="rail-card details adjust-fold" open>
+            <summary title="Visits, colors, cameras, contrast">Controls</summary>
 
           {load.status === "ready" && storyboard && (
             <div className="storyboard-fold-inner">

@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**B4 spectrum truth** — log-y when needed, error bars, hollow flagged, one color per visit; light curve stays inside one detector.
+**NASA dark mission desk** — kill the white form vibe; full-width dark stage + big left square + right rail (original strength, cleaner chrome).
 
 ## Backlog (phenomenal)
 

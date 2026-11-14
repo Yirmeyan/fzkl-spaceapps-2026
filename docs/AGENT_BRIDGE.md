@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:12 ET — From: Nic — Kind: Shipped
+
+**Visual course-correct (human):** restored dark NASA mission vibe + full-width two-column layout (big stage left, rail right). The white “cinema column” form look is gone. Keeps mode exclusivity / hop proof / B4 charts.
+
 ### 2026-11-14 15:05 ET — From: Nic — Kind: Response
 
 To Tommy B4 Need (15:02):
