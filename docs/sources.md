@@ -31,6 +31,19 @@ Versions are locked in `backend/uv.lock`, which also lists the transitive depend
 
 Licenses come from the metadata of each installed package, except Hatchling and uv, taken from their repositories.
 
+## Frontend dependencies
+
+Versions are locked in `frontend/package-lock.json`.
+
+| Package | Use | License |
+| --- | --- | --- |
+| [React](https://react.dev/) | UI | MIT |
+| [Vite](https://vite.dev/) | Dev server and bundler | MIT |
+| [TypeScript](https://www.typescriptlang.org/) | Types | Apache-2.0 |
+| [Biome](https://biomejs.dev/) | Lint and format | MIT OR Apache-2.0 |
+| [Vitest](https://vitest.dev/) | Tests | MIT |
+| [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) and [Syne](https://fonts.google.com/specimen/Syne), via Google Fonts | Interface typography | OFL-1.1 |
+
 ## Continuous integration
 
 GitHub Actions used by the workflows in `.github/workflows/`. Each one is pinned to a commit.
@@ -39,3 +52,6 @@ GitHub Actions used by the workflows in `.github/workflows/`. Each one is pinned
 | --- | --- | --- |
 | [actions/checkout](https://github.com/actions/checkout) | Fetches the repository in the workflow | MIT |
 | [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) | Installs uv in the workflow | MIT |
+| [actions/setup-node](https://github.com/actions/setup-node) | Installs Node.js for the frontend job | MIT |
+| [actions/upload-pages-artifact](https://github.com/actions/upload-pages-artifact) | Packages the static site for Pages | MIT |
+| [actions/deploy-pages](https://github.com/actions/deploy-pages) | Publishes the site to GitHub Pages | MIT |

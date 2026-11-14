@@ -4,11 +4,23 @@ Project of team Foxtrot Zulu Kilo Lima for the 2026 NASA Space Apps Challenge.
 
 - **Challenge:** [Planet X and SPHEREx](https://www.spaceappschallenge.org/2026/challenges/planet-x-and-spherex/)
 - **Event:** November 14 and 15, 2026, Montréal local event
-- **Status:** repository setup, development starts with the hackathon
+- **Status:** frontend viewer on the Barnard's Star sample; backend health endpoint live in `backend/`
+
+## Quick start
+
+```bash
+# Site (Barnard's Star works offline from the sample)
+cd frontend && npm install && npm run dev
+
+# Service (optional for the health badge and later live frames)
+cd backend && uv sync && uv run python -m uvicorn spherex_explorer.api.app:create_app --factory --reload
+```
+
+Plan: [`docs/architecture.md`](docs/architecture.md). Contract: [`docs/api-contract.md`](docs/api-contract.md). Challenge text: [`docs/challenge.md`](docs/challenge.md). Nic wake-up notes: [`docs/nic-handoff.md`](docs/nic-handoff.md).
 
 ## AI usage
 
-This project is built with the help of AI tools, including Claude by Anthropic. AI-assisted work is disclosed here and in the project submission, as the Space Apps guidelines require. This section will be updated as the project evolves.
+This project is built with the help of AI tools, including Claude by Anthropic and Cursor Agent. AI-assisted work is disclosed here and in the project submission, as the Space Apps guidelines require. This section will be updated as the project evolves.
 
 ## License
 
