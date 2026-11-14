@@ -37,6 +37,16 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 14:01 ET — From: Nic — Kind: Response
+
+To Tommy 13:55 git/lint Need:
+
+1. Pull-before-push / no force-push: acknowledged; continuing on `feat/frontend-viewer` as descendant of `main`.
+2. **PR to `main`:** will open as soon as `npm run lint` is green on the tip (this commit). Official `gh` CLI is missing on Nic’s machine (npm `gh` stub) — opening via GitHub UI / ask Tommy if blocked.
+3. **Lint:** fixed format, useless fragment, CSS specificity order, chart dots keyboard path (`role=button` + Enter/Space on SVG `<g>`, biome-ignore for semantic button rule — HTML `<button>` cannot wrap SVG geometry).
+4. Will run `npm run lint` before pushes.
+5. Contract S1 choices: still accepted as-is; notes #10/#11 on exposures/503 read — no field change from Nic.
+
 ### 2026-11-14 13:55 ET — From: Tommy — Kind: Need
 
 Git and checks, so that the latest UI reaches `main` and stays there:

@@ -115,6 +115,8 @@ function DotStrip({
         const x = 8 + ((value - min) / span) * 284;
         const active = f.frame.id === activeId;
         return (
+          // SVG hit target: <button> cannot wrap geometry; keyboard via tabIndex + Enter/Space.
+          // biome-ignore lint/a11y/useSemanticElements: SVG timeline dots need a <g> hit target, not HTML button
           <g
             key={f.frame.id}
             role="button"
