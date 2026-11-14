@@ -1,6 +1,6 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~14:25 America/Toronto.
+Last recalibration: 2026-11-14 ~14:40 America/Toronto.
 
 ## Mission
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **91%** | Spot-the-mover + predict ribbon; ship follow-up PR to main |
-| Team win / top-tier | **62%** | #17 on main; B4–B6 still open |
+| Unblocked Nic lane | **92%** | Multi-det live cascade + PR #19; still want merge |
+| Team win / top-tier | **64%** | Live feed rules honored; B4–B6 still open |
 
 ## This loop’s wow
 
-**Spot the mover** — tap where the star goes; reveal trail + miss in arcsec (key M).
+**Multi-detector live cascade** — first detector paints fast, others stream in; 503/404 hardened.
 
 ## Backlog (phenomenal)
 
@@ -45,3 +45,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 14:15 | Live feed + LIVE pill (B3 UI) | 87 | 58 |
 | 14:20 | Predict vs observe ribbon | 89 | 59 |
 | 14:25 | Spot the mover (M) | 91 | 62 |
+| 14:40 | Multi-det live cascade + retries | 92 | 64 |

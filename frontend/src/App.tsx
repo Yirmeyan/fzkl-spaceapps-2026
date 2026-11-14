@@ -167,81 +167,120 @@ export default function App() {
         return;
       }
 
-      // Tommy bridge: WISE 0855 needs det 6 first; otherwise det 2; concurrency ≤ 12.
+      // Tommy bridge: prefer det 2 (det 6 for WISE 0855), then other detectors one at a time.
       const preferDet = targetKey === "wise0855" || /wise\s*0855/i.test(t.name ?? "") ? 6 : 2;
-      const preferred = exposures.filter((e) => e.detector === preferDet);
-      const queue =
-        preferred.length > 0
-          ? preferred
-          : exposures.filter((e) => e.detector === exposures[0]!.detector);
-
-      const frames: Frame[] = new Array(queue.length);
-      let loaded = 0;
-      setLoad({
-        status: "loading",
-        message: `Live SPHEREx — pulling frames…`,
-        loaded: 0,
-        total: queue.length,
+      const byDet = new Map<number, typeof exposures>();
+      for (const e of exposures) {
+        const list = byDet.get(e.detector) ?? [];
+        list.push(e);
+        byDet.set(e.detector, list);
+      }
+      const detOrder = [...byDet.keys()].sort((a, b) => {
+        if (a === preferDet) return -1;
+        if (b === preferDet) return 1;
+        return a - b;
       });
+      const priorExposures: typeof exposures = [];
+      const priorFrames: Frame[] = [];
+      let loadedTotal = 0;
+      const grandTotal = exposures.length;
 
-      await loadFramesProgressive(
-        queue,
-        t,
-        grid,
-        (frame, index) => {
-          frames[index] = frame;
-          loaded += 1;
-          if (loaded === queue.length || loaded === 1 || loaded % 8 === 0) {
-            const present = frames.filter(Boolean) as Frame[];
-            const partial: Bundle = {
-              format: "spherex-explorer/bundle",
-              version: 1,
-              generated: new Date().toISOString(),
-              target: t,
-              grid,
-              exposures: queue,
-              frames: present,
-            };
-            startTransition(() => {
-              setLoad({
-                status: "ready",
-                data: decodeBundle(partial),
-                source: "live",
-              });
-            });
-          }
-          setLoad((prev) =>
-            prev.status === "loading"
-              ? {
-                  ...prev,
-                  loaded,
-                  total: queue.length,
-                  message: `Live SPHEREx — ${loaded}/${queue.length} frames`,
-                }
-              : prev,
-          );
-        },
-        { concurrency: 12, signal },
-      );
-
-      const finalBundle: Bundle = {
-        format: "spherex-explorer/bundle",
-        version: 1,
-        generated: new Date().toISOString(),
-        target: t,
-        grid,
-        exposures: queue,
-        frames: frames.filter(Boolean) as Frame[],
+      const publishLive = (exps: typeof exposures, frames: Frame[]) => {
+        const partial: Bundle = {
+          format: "spherex-explorer/bundle",
+          version: 1,
+          generated: new Date().toISOString(),
+          target: t,
+          grid,
+          exposures: exps,
+          frames,
+        };
+        startTransition(() => {
+          setLoad({ status: "ready", data: decodeBundle(partial), source: "live" });
+        });
       };
-      setLoad({ status: "ready", data: decodeBundle(finalBundle), source: "live" });
-      patchView({
-        targetKey,
-        frameIndex: 0,
-        pass: null,
-        detector: null,
-        query: t.name ?? `${t.ra}, ${t.dec}`,
+
+      for (let di = 0; di < detOrder.length; di++) {
+        if (signal.aborted) return;
+        const det = detOrder[di]!;
+        const queue = byDet.get(det)!;
+        const batchFrames: (Frame | undefined)[] = new Array(queue.length);
+        let batchLoaded = 0;
+
+        if (di === 0) {
+          setLoad({
+            status: "loading",
+            message: `Live SPHEREx — detector ${det}…`,
+            loaded: 0,
+            total: grandTotal,
+          });
+        }
+
+        await loadFramesProgressive(
+          queue,
+          t,
+          grid,
+          (frame, index) => {
+            batchFrames[index] = frame;
+            batchLoaded += 1;
+            loadedTotal += 1;
+            const present = batchFrames.filter(Boolean) as Frame[];
+            const got = new Set(present.map((f) => f.id));
+            const kept = queue.filter((e) => got.has(e.id));
+            const exps = [...priorExposures, ...kept];
+            const frames = [...priorFrames, ...present];
+            const shouldPaint =
+              di === 0
+                ? batchLoaded === 1 || batchLoaded % 8 === 0 || batchLoaded === queue.length
+                : batchLoaded === queue.length || batchLoaded % 12 === 0;
+            if (shouldPaint) publishLive(exps, frames);
+            setLoad((prev) =>
+              prev.status === "loading"
+                ? {
+                    ...prev,
+                    loaded: loadedTotal,
+                    total: grandTotal,
+                    message: `Live SPHEREx — D${det} ${batchLoaded}/${queue.length} · ${loadedTotal}/${grandTotal}`,
+                  }
+                : prev,
+            );
+          },
+          { concurrency: 12, signal },
+        );
+
+        const finalized = batchFrames.filter(Boolean) as Frame[];
+        const got = new Set(finalized.map((f) => f.id));
+        const kept = queue.filter((e) => got.has(e.id));
+        priorExposures.push(...kept);
+        priorFrames.push(...finalized);
+        publishLive(priorExposures, priorFrames);
+
+        if (di === 0) {
+          patchView({
+            targetKey,
+            frameIndex: 0,
+            pass: null,
+            detector: det,
+            query: t.name ?? `${t.ra}, ${t.dec}`,
+          });
+          setSearchInput(t.name ?? `${t.ra}, ${t.dec}`);
+        }
+      }
+
+      patchView({ detector: null });
+      setLoad({
+        status: "ready",
+        data: decodeBundle({
+          format: "spherex-explorer/bundle",
+          version: 1,
+          generated: new Date().toISOString(),
+          target: t,
+          grid,
+          exposures: priorExposures,
+          frames: priorFrames,
+        }),
+        source: "live",
       });
-      setSearchInput(t.name ?? `${t.ra}, ${t.dec}`);
     },
     [patchView],
   );

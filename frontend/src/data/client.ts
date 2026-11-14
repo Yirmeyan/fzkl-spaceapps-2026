@@ -49,10 +49,39 @@ async function parseError(res: Response): Promise<ApiError> {
   );
 }
 
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const id = window.setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        window.clearTimeout(id);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true },
+    );
+  });
+}
+
+/** GET JSON with up to 3 retries on 503 using Retry-After (Tommy live-feed Need). */
 async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${apiBase}${path}`, init);
-  if (!res.ok) throw await parseError(res);
-  return (await res.json()) as T;
+  let attempt = 0;
+  for (;;) {
+    const res = await fetch(`${apiBase}${path}`, init);
+    if (res.ok) return (await res.json()) as T;
+    const err = await parseError(res);
+    if (err.status === 503 && attempt < 3) {
+      attempt += 1;
+      const waitSec = err.retryAfterSec != null && err.retryAfterSec > 0 ? err.retryAfterSec : 2;
+      await sleep(waitSec * 1000, init?.signal ?? undefined);
+      continue;
+    }
+    throw err;
+  }
 }
 
 export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
@@ -105,7 +134,7 @@ export async function fetchFrame(
   return getJson<Frame>(`/api/frames/${encodeURIComponent(id)}?${q}`, { signal });
 }
 
-/** Load frames with bounded concurrency; yields each as it arrives. */
+/** Load frames with bounded concurrency; yields each as it arrives. Skips 404 frames. */
 export async function loadFramesProgressive(
   exposures: Exposure[],
   target: Target,
@@ -113,7 +142,7 @@ export async function loadFramesProgressive(
   onFrame: (frame: Frame, index: number) => void,
   opts: { concurrency?: number; signal?: AbortSignal } = {},
 ): Promise<void> {
-  const concurrency = opts.concurrency ?? 8;
+  const concurrency = opts.concurrency ?? 12;
   let next = 0;
 
   async function worker() {
@@ -121,8 +150,13 @@ export async function loadFramesProgressive(
       if (opts.signal?.aborted) throw new DOMException("Aborted", "AbortError");
       const index = next++;
       const exp = exposures[index]!;
-      const frame = await fetchFrame(exp.id, target, grid, opts.signal);
-      onFrame(frame, index);
+      try {
+        const frame = await fetchFrame(exp.id, target, grid, opts.signal);
+        onFrame(frame, index);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) continue;
+        throw err;
+      }
     }
   }
 

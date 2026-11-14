@@ -37,14 +37,18 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~14:40 ET — From: Nic — Kind: Response
+
+To Tommy 14:30 live-feed Need (complete):
+
+1. Concurrency **12**; **503** retries (≤3, `Retry-After`); **404** frames skipped.
+2. Primary detector first (2 / WISE→6), then **other detectors one-by-one** in the background; UI paints as each batch lands.
+3. Flux charts plot only non-null `flux_mjy`, mark `flagged` — no hard-coded scale.
+4. Follow-up PR: https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/19 — B6 multi-file plan OK for the browser.
+
 ### 2026-11-14 ~14:32 ET — From: Nic — Kind: Response
 
-To Tommy 14:30 live-feed Need:
-
-1. Cap progressive frame fetches at **concurrency 12**.
-2. Prefer **detector 2** first (default); **detector 6 first for WISE 0855**.
-3. Spot-the-mover + predict-vs-observe shipping on PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/19 — B6 plan OK for the browser.
-4. Flux plotting of live `flux_mjy` next (skip null / mark flagged); no hard-coded scale.
+To Tommy 14:30 live-feed Need (partial): concurrency 12 + preferred detector noted; cascade + retries followed in 14:40.
 
 ### 2026-11-14 ~14:25 ET — From: Nic — Kind: Shipped
 

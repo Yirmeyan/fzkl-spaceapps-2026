@@ -25,17 +25,20 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
           watching
           {activeWave != null ? ` (${activeWave.toFixed(2)} µm)` : ""}. Click any dot to jump there.
           {withFlux.length === 0
-            ? " A full brightness spectrum needs clearer photometry (coming with the backend)."
-            : ""}
+            ? " Brightness points appear when the live feed returns flux (saturated cores stay empty)."
+            : ` ${withFlux.length} flux point${withFlux.length === 1 ? "" : "s"} from the live photometry — flagged ones are marked.`}
         </p>
         {withFlux.length > 0 && (
           <FluxSvg
-            points={spectrumPoints.map((f) => ({
-              x: f.frame.wavelength_um,
-              y: f.frame.photometry.flux_mjy as number,
-              active: f === active,
-              flagged: f.frame.photometry.quality === "flagged",
-            }))}
+            points={withFlux
+              .slice()
+              .sort((a, b) => a.frame.wavelength_um - b.frame.wavelength_um)
+              .map((f) => ({
+                x: f.frame.wavelength_um,
+                y: f.frame.photometry.flux_mjy as number,
+                active: f === active,
+                flagged: f.frame.photometry.quality === "flagged",
+              }))}
             xLabel="µm"
             yLabel="mJy"
           />
@@ -58,12 +61,15 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
         </p>
         {withFlux.length > 0 && (
           <FluxSvg
-            points={lightPoints.map((f) => ({
-              x: f.frame.time_mjd,
-              y: f.frame.photometry.flux_mjy as number,
-              active: f === active,
-              flagged: f.frame.photometry.quality === "flagged",
-            }))}
+            points={withFlux
+              .slice()
+              .sort((a, b) => a.frame.time_mjd - b.frame.time_mjd)
+              .map((f) => ({
+                x: f.frame.time_mjd,
+                y: f.frame.photometry.flux_mjy as number,
+                active: f === active,
+                flagged: f.frame.photometry.quality === "flagged",
+              }))}
             xLabel="MJD"
             yLabel="mJy"
           />
