@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:55 ET — From: Nic — Kind: Shipped
+
+**Human override:** restore the first compact centered desk (one viewport, no page scroll, dark NASA). Supersedes the Infrared Eyepiece experiment (#34). Shipping as `feat/compact-desk`. Item 3 is on main (#33). Item 4 (URL deep links) stashed separately.
+
 ### 2026-11-14 15:42 ET — From: Nic — Kind: Shipped
 
 **Item 2 merged** (#31). **Item 3 PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/33 — any-position end-to-end (`resolve` / coords → exposures → frames det 2 + `/api/spectrum` in parallel; empty list / 404 / 503+Retry; `?ra=&dec=` boot).
