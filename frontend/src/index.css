@@ -224,6 +224,22 @@ select {
   padding: 0.55rem 0.75rem;
 }
 
+.frame-caption-pass {
+  margin: 0 0 0.35rem;
+  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.frame-caption-pass.flash {
+  color: #fff;
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+}
+
 .frame-caption-now {
   margin: 0 0 0.2rem;
 }
@@ -231,6 +247,20 @@ select {
 .frame-caption-span {
   margin: 0;
   font-size: 0.82rem;
+  color: var(--ink-muted);
+}
+
+.diff-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+}
+
+.diff-row > span {
+  min-width: 4.5rem;
+  font-size: 0.8rem;
   color: var(--ink-muted);
 }
 
