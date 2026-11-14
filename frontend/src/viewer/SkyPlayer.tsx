@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { type ColorMap, renderFrameToRgba } from "../data/contract";
 import type { DecodedFrame } from "../data/decode";
+import { drawTargetOverlay, type TrailPoint } from "./overlays";
 
 export interface SkyPlayerProps {
   frames: DecodedFrame[];
@@ -12,6 +13,8 @@ export interface SkyPlayerProps {
   size: number;
   colorMap?: ColorMap;
   scale?: number;
+  /** Mean catalog position per pass (motion trail). */
+  trail?: TrailPoint[];
   className?: string;
   onFrameIndexChange?: (index: number) => void;
 }
@@ -31,6 +34,7 @@ export function SkyPlayer({
   size,
   colorMap = "heat",
   scale = 4,
+  trail = [],
   className,
   onFrameIndexChange,
 }: SkyPlayerProps) {
@@ -39,6 +43,8 @@ export function SkyPlayer({
   const cacheRef = useRef<(ImageData | null)[]>([]);
   const indexRef = useRef(frameIndex);
   const cacheKeyRef = useRef("");
+  const trailRef = useRef(trail);
+  trailRef.current = trail;
   const onChangeRef = useRef(onFrameIndexChange);
   onChangeRef.current = onFrameIndexChange;
 
@@ -79,16 +85,7 @@ export function SkyPlayer({
 
     const f = frames[index];
     if (!f) return;
-    const [tx, ty] = f.frame.target_xy;
-    ctx.strokeStyle = "rgba(255, 176, 64, 0.95)";
-    ctx.lineWidth = 1;
-    const r = 4;
-    ctx.beginPath();
-    ctx.moveTo(tx - r, ty);
-    ctx.lineTo(tx + r, ty);
-    ctx.moveTo(tx, ty - r);
-    ctx.lineTo(tx, ty + r);
-    ctx.stroke();
+    drawTargetOverlay(ctx, f.frame.target_xy, trailRef.current);
   }
 
   // Still frame: one blit, then stop. Never leave a timer running while paused.
@@ -98,7 +95,7 @@ export function SkyPlayer({
     blit(frameIndex);
     onChangeRef.current?.(frameIndex);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, frameIndex, cacheKey]);
+  }, [playing, frameIndex, cacheKey, trail]);
 
   // Playback: setInterval only (no rAF). Notify React so the date caption updates.
   useEffect(() => {

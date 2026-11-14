@@ -3,73 +3,102 @@ import type { DecodedFrame } from "../data/decode";
 interface ChartsProps {
   frames: DecodedFrame[];
   activeIndex: number;
+  onSelectFrame?: (index: number) => void;
 }
 
-/** Simple SVG spectrum (wavelength vs flux) and light curve (time vs flux). */
-export function Charts({ frames, activeIndex }: ChartsProps) {
+/**
+ * Spectrum strip = which near-IR wavelength each SPHEREx frame samples.
+ * Flux plots appear only when photometry is non-null (not for saturated Barnard D2).
+ */
+export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
   if (frames.length === 0) return null;
 
   const withFlux = frames.filter((f) => f.frame.photometry.flux_mjy != null);
   const spectrumPoints = [...frames].sort((a, b) => a.frame.wavelength_um - b.frame.wavelength_um);
   const lightPoints = [...frames].sort((a, b) => a.frame.time_mjd - b.frame.time_mjd);
+  const active = frames[activeIndex];
+  const activeWave = active?.frame.wavelength_um;
 
   return (
     <div className="charts">
       <section className="chart-panel">
-        <h3>Spectrum</h3>
-        {withFlux.length === 0 ? (
-          <p className="chart-empty">
-            No flux yet — this target saturates on detector 2. Wavelengths still mark each frame (
-            {frames[0]!.frame.wavelength_um.toFixed(3)}–
-            {frames[frames.length - 1]!.frame.wavelength_um.toFixed(3)} µm). Photometry arrives with
-            backend step B4.
-          </p>
-        ) : (
+        <h3>Wavelength (what Play walks through)</h3>
+        <p className="chart-empty">
+          SPHEREx has no filter wheel: each frame is a different near-IR wavelength. The moving
+          highlight is the <strong>current λ</strong>
+          {activeWave != null ? ` (${activeWave.toFixed(3)} µm)` : ""}. That is the “spectrum”
+          scrolling — not a classic flux curve yet
+          {withFlux.length === 0
+            ? " (Barnard's Star saturates on D2, so flux is null until backend B4)."
+            : "."}
+        </p>
+        {withFlux.length > 0 && (
           <FluxSvg
             points={spectrumPoints.map((f) => ({
               x: f.frame.wavelength_um,
               y: f.frame.photometry.flux_mjy as number,
-              active: f === frames[activeIndex],
+              active: f === active,
               flagged: f.frame.photometry.quality === "flagged",
             }))}
             xLabel="µm"
             yLabel="mJy"
           />
         )}
-        <WavelengthStrip frames={spectrumPoints} activeId={frames[activeIndex]?.frame.id} />
+        <WavelengthStrip
+          frames={spectrumPoints}
+          activeId={active?.frame.id}
+          onPick={(id) => {
+            const idx = frames.findIndex((f) => f.frame.id === id);
+            if (idx >= 0) onSelectFrame?.(idx);
+          }}
+        />
       </section>
 
       <section className="chart-panel">
-        <h3>Light curve</h3>
-        {withFlux.length === 0 ? (
-          <p className="chart-empty">
-            Same story as the spectrum: saturated in the sample. Pass markers show when SPHEREx
-            revisited the field.
-          </p>
-        ) : (
+        <h3>Visits over time</h3>
+        <p className="chart-empty">
+          Dots are exposure times. Clusters = pass 1, 2, 3 (~months apart). Click a dot to jump.
+        </p>
+        {withFlux.length > 0 && (
           <FluxSvg
             points={lightPoints.map((f) => ({
               x: f.frame.time_mjd,
               y: f.frame.photometry.flux_mjy as number,
-              active: f === frames[activeIndex],
+              active: f === active,
               flagged: f.frame.photometry.quality === "flagged",
             }))}
             xLabel="MJD"
             yLabel="mJy"
           />
         )}
-        <PassTimeline frames={lightPoints} activeId={frames[activeIndex]?.frame.id} />
+        <PassTimeline
+          frames={lightPoints}
+          activeId={active?.frame.id}
+          onPick={(id) => {
+            const idx = frames.findIndex((f) => f.frame.id === id);
+            if (idx >= 0) onSelectFrame?.(idx);
+          }}
+        />
       </section>
     </div>
   );
 }
 
-function WavelengthStrip({ frames, activeId }: { frames: DecodedFrame[]; activeId?: string }) {
+function WavelengthStrip({
+  frames,
+  activeId,
+  onPick,
+}: {
+  frames: DecodedFrame[];
+  activeId?: string;
+  onPick?: (id: string) => void;
+}) {
   const min = frames[0]?.frame.wavelength_um ?? 0;
   const max = frames[frames.length - 1]?.frame.wavelength_um ?? 1;
   const span = max - min || 1;
   return (
     <svg className="strip" viewBox="0 0 300 28" role="img" aria-label="Wavelength timeline">
+      <title>Click a dot to jump to that wavelength</title>
       <line x1="8" y1="14" x2="292" y2="14" stroke="currentColor" strokeOpacity="0.35" />
       {frames.map((f) => {
         const x = 8 + ((f.frame.wavelength_um - min) / span) * 284;
@@ -79,9 +108,13 @@ function WavelengthStrip({ frames, activeId }: { frames: DecodedFrame[]; activeI
             key={f.frame.id}
             cx={x}
             cy={14}
-            r={active ? 4 : 2.5}
+            r={active ? 4.5 : 2.5}
             fill={active ? "var(--accent)" : "var(--ink-muted)"}
-          />
+            style={{ cursor: onPick ? "pointer" : undefined }}
+            onClick={() => onPick?.(f.frame.id)}
+          >
+            <title>{`${f.frame.wavelength_um.toFixed(3)} µm`}</title>
+          </circle>
         );
       })}
       <text x="8" y="26" className="strip-label">
@@ -94,7 +127,15 @@ function WavelengthStrip({ frames, activeId }: { frames: DecodedFrame[]; activeI
   );
 }
 
-function PassTimeline({ frames, activeId }: { frames: DecodedFrame[]; activeId?: string }) {
+function PassTimeline({
+  frames,
+  activeId,
+  onPick,
+}: {
+  frames: DecodedFrame[];
+  activeId?: string;
+  onPick?: (id: string) => void;
+}) {
   if (frames.length === 0) return null;
   const min = frames[0]!.frame.time_mjd;
   const max = frames[frames.length - 1]!.frame.time_mjd;
@@ -110,9 +151,13 @@ function PassTimeline({ frames, activeId }: { frames: DecodedFrame[]; activeId?:
             key={f.frame.id}
             cx={x}
             cy={14}
-            r={active ? 4 : 2.5}
+            r={active ? 4.5 : 2.5}
             fill={active ? "var(--accent)" : "var(--ink-muted)"}
-          />
+            style={{ cursor: onPick ? "pointer" : undefined }}
+            onClick={() => onPick?.(f.frame.id)}
+          >
+            <title>{`Pass ${f.exposure.pass} · ${f.frame.time_iso}`}</title>
+          </circle>
         );
       })}
     </svg>
