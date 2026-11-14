@@ -1,6 +1,11 @@
 import pytest
 
-from spherex_explorer.archive import InvalidExposure, exposure_from_key, key_from_id
+from spherex_explorer.archive import (
+    InvalidExposure,
+    detector_from_id,
+    exposure_from_key,
+    key_from_id,
+)
 
 KEY = (
     "qr3/level2/2026W33_2A/l2b-v27-2026-241/6/level2_2026W33_2A_0594_3D6_spx_l2b-v27-2026-241.fits"
@@ -62,3 +67,13 @@ def test_key_of_another_shape_is_refused(key):
 def test_identifier_of_another_shape_is_refused(identifier):
     with pytest.raises(InvalidExposure):
         key_from_id(identifier)
+
+
+def test_identifier_gives_its_detector():
+    assert detector_from_id("qr3.2026W33_2A_0594_3D6.l2b-v27-2026-241") == 6
+    assert detector_from_id("dr1.2025W34_2B_0090_4D2.l2b-v27-2026-229") == 2
+
+
+def test_detector_of_something_else_than_an_identifier_is_refused():
+    with pytest.raises(InvalidExposure):
+        detector_from_id("../../etc/passwd")

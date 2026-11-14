@@ -3,6 +3,7 @@
 from spherex_explorer.archive.exposure import (
     Exposure,
     InvalidExposure,
+    detector_from_id,
     exposure_from_key,
     key_from_id,
 )
@@ -29,6 +30,7 @@ __all__ = [
     "SiaResult",
     "WavelengthTable",
     "Window",
+    "detector_from_id",
     "exposure_from_key",
     "key_from_id",
     "parse_sia_response",

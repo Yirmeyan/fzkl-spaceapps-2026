@@ -19,7 +19,7 @@ from level2_file import (
     sky_cards,
     star,
 )
-from spherex_explorer.archive import Level2Reader
+from spherex_explorer.archive import Level2Reader, key_from_id
 from spherex_explorer.frames import Grid
 from spherex_explorer.photometry.aperture import APERTURE_RADIUS
 from spherex_explorer.pipeline import build_frame
@@ -129,6 +129,20 @@ def test_target_is_measured_on_the_original_pixels():
     inside = 1 - np.exp(-(APERTURE_RADIUS**2) / (2 * SIGMA**2))
     assert frame.photometry.quality == "ok"
     assert frame.photometry.flux_mjy == pytest.approx(inside * total, rel=0.03)
+
+
+def test_flux_is_corrected_for_the_light_outside_the_circle_detector_by_detector():
+    content = build_level2_file(image=sky_with(STAR), flags=no_flags())
+    target = Target(ra=STAR[0], dec=STAR[1])
+    fluxes = {}
+    for detector in (2, 3):
+        exposure_id = f"dr1.2025W34_2B_0090_4D{detector}.l2b-v27-2026-229"
+        reader = Level2Reader(FakeStorage({key_from_id(exposure_id): content}))
+        fluxes[detector] = asyncio.run(build_frame(reader, exposure_id, target, GRID)).photometry
+
+    # Same pixels, two detectors: only the share of the light their circle catches differs.
+    assert fluxes[3].flux_mjy / fluxes[2].flux_mjy == pytest.approx(0.982 / 0.976)
+    assert fluxes[3].error_mjy / fluxes[2].error_mjy == pytest.approx(0.982 / 0.976)
 
 
 def test_variance_is_read_under_the_circle_of_the_measurement_only():

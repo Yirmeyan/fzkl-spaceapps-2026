@@ -62,7 +62,7 @@ Every setting is an environment variable that starts with `SPX_`. Copy `.env.exa
 | --- | --- | --- |
 | `SPX_ENVIRONMENT` | `development` | Shown in logs only |
 | `SPX_LOG_LEVEL` | `INFO` | Level of the logs |
-| `SPX_ALLOWED_ORIGINS` | `http://localhost:5173` | Origins allowed to call the API from a browser, separated by commas |
+| `SPX_ALLOWED_ORIGINS` | `*` | Web pages allowed to call the API from a browser: `*` for every origin, or origins separated by commas |
 | `SPX_SIA_URL` | `https://irsa.ipac.caltech.edu/SIA` | Search service of the archive |
 | `SPX_SIA_COLLECTIONS` | `spherex_dr1,spherex_qr3` | Data releases searched. When two hold the same exposure, the first one wins |
 | `SPX_ARCHIVE_BUCKET` | `nasa-irsa-spherex` | Storage that holds the files. Exposures stored elsewhere are ignored |

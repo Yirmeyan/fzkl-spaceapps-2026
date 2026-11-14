@@ -64,6 +64,14 @@ def exposure_from_key(key: str, time_mjd: float) -> Exposure:
     )
 
 
+def detector_from_id(exposure_id: str) -> int:
+    """Detector of an exposure, from 1 to 6, as its identifier gives it."""
+    match = _ID.fullmatch(exposure_id)
+    if match is None:
+        raise InvalidExposure(f"not an exposure identifier: {exposure_id!r}")
+    return int(match["detector"])
+
+
 def key_from_id(exposure_id: str) -> str:
     """Key of the file of an exposure.
 
