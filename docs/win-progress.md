@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Any-position live path** — resolve/coords → exposures → frames (det 2) + `/api/spectrum` in parallel; empty/404/503+Retry. `?ra=&dec=` boots custom sky.
+**Infrared Eyepiece** — the stage becomes a telescope instrument: full-bleed λ aurora, vignette ring, living 0.75–5 µm spectral needle locked to the playing frame. Judges should feel they are looking through SPHEREx, not a web form.
 
 ## Backlog (phenomenal)
 

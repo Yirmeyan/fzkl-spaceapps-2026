@@ -54,6 +54,7 @@ import { HelpPanel } from "./ui/HelpPanel";
 import { type HopProofPick, HopProofStrip } from "./ui/HopProofStrip";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
+import { SpectralRuler } from "./ui/SpectralRuler";
 import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { type StoryboardCell, VisitStoryboard } from "./ui/VisitStoryboard";
@@ -1299,10 +1300,16 @@ export default function App() {
                 : "watch";
 
   const cinema = load.status === "ready";
+  const activeWaveUm = display?.meta?.frame.wavelength_um ?? null;
+  const appStyle =
+    activeWaveUm != null
+      ? ({ "--wave-hue": String(wavelengthHue(activeWaveUm)) } as CSSProperties)
+      : undefined;
 
   return (
-    <div className={cinema ? "app app--cinema" : "app"}>
+    <div className={cinema ? "app app--cinema app--eyepiece" : "app"} style={appStyle}>
       <div className="sky-wash" aria-hidden="true" />
+      <div className="sky-wash sky-wash--wave" aria-hidden="true" />
 
       {showBriefing && load.status === "ready" && (
         <MissionBriefing
@@ -1499,11 +1506,11 @@ export default function App() {
           {/* Invisible width probe: column width, not the square box (avoids circular sizing). */}
           <div className="stage-width-probe" ref={measureRef} aria-hidden="true" />
           <div
-            className={`stage-measure${splitStacks ? " is-wide" : " is-square"}`}
+            className={`stage-measure eyepiece-glass${splitStacks ? " is-wide" : " is-square"}${cinema ? " eyepiece-glass--live" : ""}`}
             style={
               {
-                ...(display?.meta?.frame.wavelength_um != null
-                  ? { "--wave-hue": String(wavelengthHue(display.meta.frame.wavelength_um)) }
+                ...(activeWaveUm != null
+                  ? { "--wave-hue": String(wavelengthHue(activeWaveUm)) }
                   : {}),
                 // Hard-size the square so we never letterbox a cutout in a wide band.
                 ...(!splitStacks
@@ -1511,11 +1518,7 @@ export default function App() {
                   : { width: "100%" }),
               } as CSSProperties
             }
-            data-wave={
-              display?.meta?.frame.wavelength_um != null
-                ? display.meta.frame.wavelength_um.toFixed(2)
-                : undefined
-            }
+            data-wave={activeWaveUm != null ? activeWaveUm.toFixed(2) : undefined}
           >
             {display?.meta?.frame.wavelength_um != null && (
               <p className="wave-aurora-chip" aria-live="polite">
@@ -1685,6 +1688,10 @@ export default function App() {
                 />
               )}
           </div>
+
+          {cinema && (
+            <SpectralRuler wavelengthUm={typeof activeWaveUm === "number" ? activeWaveUm : null} />
+          )}
 
           {hopProof && (
             <div className="hop-proof-wrap">
