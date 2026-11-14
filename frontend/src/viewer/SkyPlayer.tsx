@@ -12,6 +12,8 @@ export interface SkyPlayerProps {
   hi: number;
   size: number;
   colorMap?: ColorMap;
+  /** Tint pixels whose mask byte is not 0 (Tommy item 6). */
+  tintMask?: boolean;
   /** CSS display size in px (square). */
   displayPx?: number;
   trail?: TrailPoint[];
@@ -32,6 +34,7 @@ export function SkyPlayer({
   hi,
   size,
   colorMap = "heat",
+  tintMask = false,
   displayPx,
   trail = [],
   className,
@@ -47,7 +50,7 @@ export function SkyPlayer({
   const onChangeRef = useRef(onFrameIndexChange);
   onChangeRef.current = onFrameIndexChange;
 
-  const cacheKey = `${size}|${lo}|${hi}|${colorMap}|${frames.length}|${frames[0]?.frame.id ?? ""}|${frames[frames.length - 1]?.frame.id ?? ""}`;
+  const cacheKey = `${size}|${lo}|${hi}|${colorMap}|${tintMask}|${frames.length}|${frames[0]?.frame.id ?? ""}|${frames[frames.length - 1]?.frame.id ?? ""}`;
   const css = displayPx ?? size * 4;
 
   function ensureCtx(): CanvasRenderingContext2D | null {
@@ -68,7 +71,16 @@ export function SkyPlayer({
     }
     cacheKeyRef.current = cacheKey;
     cacheRef.current = frames.map((f) => {
-      const rgba = renderFrameToRgba(f.pixels, f.mask, size, lo, hi, f.frame.background, colorMap);
+      const rgba = renderFrameToRgba(
+        f.pixels,
+        f.mask,
+        size,
+        lo,
+        hi,
+        f.frame.background,
+        colorMap,
+        tintMask,
+      );
       const copy = new Uint8ClampedArray(rgba.length);
       copy.set(rgba);
       return new ImageData(copy, size, size);

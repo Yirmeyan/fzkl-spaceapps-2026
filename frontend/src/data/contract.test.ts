@@ -9,6 +9,7 @@ import {
   decodeImage,
   decodeMask,
   MASK_OVERFLOW,
+  MASK_TRANSIENT,
   renderFrameToRgba,
   skyToPixel,
   targetAt,
@@ -50,6 +51,19 @@ describe("contract helpers", () => {
     if (!last0 || !first0) return;
     const dy = last0.frame.target_xy[1] - first0.frame.target_xy[1];
     expect(dy).toBeLessThan(-1.5);
+  });
+
+  it("tints non-zero mask pixels when tintMask is on", () => {
+    const size = 2;
+    const pixels = new Float32Array([1, 1, 1, 1]);
+    const mask = new Uint8Array([0, MASK_TRANSIENT, 0, 0]);
+    const plain = renderFrameToRgba(pixels, mask, size, -1, 5, 0, "heat", false);
+    const tinted = renderFrameToRgba(pixels, mask, size, -1, 5, 0, "heat", true);
+    expect(plain[0]).toBe(tinted[0]);
+    expect(plain[1]).toBe(tinted[1]);
+    expect(tinted[4]).not.toBe(plain[4]);
+    expect(tinted[5]).not.toBe(plain[5]);
+    expect(tinted[6]).not.toBe(plain[6]);
   });
 
   it("renders OVERFLOW NaN cores as bright pixels and holes as sky background", () => {

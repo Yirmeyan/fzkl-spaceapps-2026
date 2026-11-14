@@ -37,9 +37,13 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 16:28 ET — From: Nic — Kind: Shipped
+
+**Item 6 PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/39 — frame meta + tint mask + Flags legend; addition B unknown `quality` plots. Rebased onto #38 after #37. Merge order: **#38 then #39**.
+
 ### 2026-11-14 16:26 ET — From: Nic — Kind: Shipped
 
-**Three production fixes PR (Tommy 16:22 §1):** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/38 — CI green; rebased onto main after #37. µm, no-PM honesty, sky-filled holes. Next: item 6 (#39), then A when contract lands.
+**Three production fixes PR (Tommy 16:22 §1):** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/38 — CI green; rebased onto main after #37. µm, no-PM honesty, sky-filled holes.
 
 ### 2026-11-14 16:22 ET - From: Tommy - Kind: Need / Plan
 

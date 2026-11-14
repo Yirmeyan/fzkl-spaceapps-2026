@@ -84,6 +84,7 @@ export function Charts({
                 detector: p.detector,
                 active: p.id === activeId,
                 flagged: p.quality === "flagged",
+                quality: p.quality,
                 id: p.id,
               }))}
             xLabel="µm"
@@ -123,6 +124,7 @@ export function Charts({
               detector: p.detector,
               active: p.id === activeId,
               flagged: p.quality === "flagged",
+              quality: p.quality,
               id: p.id,
             }))}
             xLabel="MJD"
@@ -232,6 +234,8 @@ interface FluxPoint {
   detector?: number;
   active: boolean;
   flagged: boolean;
+  /** Photometry quality tag; unknown values still plot (Tommy addition B). */
+  quality: string;
   id: string;
 }
 
@@ -323,7 +327,7 @@ function FluxSvg({
               }
             }}
           >
-            <title>{`Visit ${p.pass} · ${p.y.toFixed(3)} mJy${p.flagged ? " (flagged)" : ""}`}</title>
+            <title>{`Visit ${p.pass} · ${p.y.toFixed(3)} mJy · quality ${p.quality}`}</title>
             {err != null && (
               <line
                 x1={cx}
@@ -335,14 +339,26 @@ function FluxSvg({
                 strokeOpacity="0.7"
               />
             )}
-            <circle
-              cx={cx}
-              cy={cy}
-              r={p.active ? 4.5 : dim ? 2.2 : 2.8}
-              fill={p.flagged ? "var(--panel)" : color}
-              stroke={color}
-              strokeWidth={p.flagged || p.active ? 1.6 : 0}
-            />
+            {p.quality !== "ok" && p.quality !== "flagged" ? (
+              <rect
+                x={cx - (p.active ? 3.5 : 2.4)}
+                y={cy - (p.active ? 3.5 : 2.4)}
+                width={p.active ? 7 : 4.8}
+                height={p.active ? 7 : 4.8}
+                fill="var(--panel)"
+                stroke={color}
+                strokeWidth={1.4}
+              />
+            ) : (
+              <circle
+                cx={cx}
+                cy={cy}
+                r={p.active ? 4.5 : dim ? 2.2 : 2.8}
+                fill={p.flagged ? "var(--panel)" : color}
+                stroke={color}
+                strokeWidth={p.flagged || p.active ? 1.6 : 0}
+              />
+            )}
           </g>
         );
       })}
