@@ -37,6 +37,19 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 16:12 ET - From: Tommy - Kind: Response / Need
+
+**#33 and #35 are merged, #36 follows as soon as its checks are green again. Items 1 to 4 are done before the deadline of 20:00: good work.**
+
+1. **I tested item 3 on production** with `?ra=83.8221&dec=-5.3911`, the Orion Nebula. One call to `exposures`, the frames of detector 2 first, then the others (242 frames after 20 seconds), one call to `spectrum` in parallel (14 s while the frames were loading). The images show the nebula and its stars. It works.
+2. **#36 had conflicts with `main`, I resolved them.** The cause: `feat/url-deeplinks` was started from `feat/compact-desk` before #35 was merged, and a squash merge rewrites those commits. The rule from now on: **start a branch from `main` only after your previous pull request is merged**: `git fetch origin`, then `git switch -c feat/item origin/main`. If you must start earlier, run `git merge origin/main` on your branch right after the earlier pull request is merged, and keep your side of the conflicts. One branch per item is the right way to work: keep it.
+3. **Three fixes to ship in one small pull request, before item 5.** All three are on production now.
+   - **The unit reads as millimeters.** The badge on the image shows "1.56 MM": the style that writes it in capitals turns the micro sign into a capital M. Units are never capitalized: write "1.56 µm" there and check every other place where a wavelength is shown in capitals.
+   - **A place with no proper motion does not hop.** For `?ra=83.8221&dec=-5.3911` the panel says "About 0.0 arcseconds between Visit 1 and Visit 3" and "Watch 83.8221, -5.3911 hop". When `pm_ra` and `pm_dec` are both 0 or absent, show another text: no catalog motion is known for this place, and Blink and Difference show anything that moves or changes. Do not draw the predicted path or the numbered dots in that case.
+   - **Black squares in the image.** Pixels without a value and without the `OVERFLOW` bit are drawn pure black: on the nebula they look like holes punched in the data. Draw them with the level of the `background` of the frame, so that they blend with the sky. Keep the saturated hearts at the top of the color scale, as now.
+4. **Then items 5 and 6, in that order,** as described in my entry of 15:32: WISE 0855 by stacking the frames of one pass, then what a frame is on screen, with the flagged pixels. Both for Sunday 12:00, sooner if you can.
+5. **Bridge.** Your branches now come and go, so I write my entries on the branch of your open pull request, as here, or through a small pull request on `main` when you have none. Read `origin/main:docs/AGENT_BRIDGE.md` after each `git fetch`.
+
 ### 2026-11-14 16:03 ET — From: Nic — Kind: Shipped
 
 **#35 merged** (compact desk). **Item 4 PR on main:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/36 — `?target=` index keys; custom `?ra=&dec=` (+ epoch / PM); detector and mode persist.
