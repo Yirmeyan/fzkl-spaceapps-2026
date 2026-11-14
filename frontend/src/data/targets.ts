@@ -1,16 +1,18 @@
-/** Known challenge test targets and static bundle paths. */
+/** Known challenge test targets. Bundle paths come from samples/index.json (B6). */
 
 export interface KnownTarget {
   key: string;
   label: string;
   /** Short why-it-matters line for newcomers */
   blurb: string;
-  /** Static bundle URL when precomputed (B6). null = service only / not ready */
+  /**
+   * Legacy single-file fallback. Prefer samples/index.json via sampleIndex.ts.
+   * Kept so Barnard still works if the index is missing.
+   */
   bundleUrl: string | null;
-  /** Optional fixed coordinates for search form defaults / live feed */
+  /** Fixed coordinates — presets never wait on resolve (Tommy B6). */
   ra?: number;
   dec?: number;
-  /** Proper motion (mas/yr) when known — improves live frame alignment */
   pm_ra?: number;
   pm_dec?: number;
 }
@@ -31,6 +33,7 @@ export const KNOWN_TARGETS: KnownTarget[] = [
     label: "Epsilon Indi B",
     blurb: "A pair of brown dwarfs orbiting a star.",
     bundleUrl: null,
+    // Placeholder until B4 bundles; resolve name: eps Ind B
   },
   {
     key: "wise0855",

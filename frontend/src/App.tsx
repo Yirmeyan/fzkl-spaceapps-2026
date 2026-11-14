@@ -31,14 +31,23 @@ import {
 import type { Bundle, Frame, Grid, Target } from "./data/contract";
 import { computeDisplayLimits, mjdToDate } from "./data/contract";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
+import {
+  detectorBundleUrl,
+  fetchSampleIndex,
+  orderedDetectors,
+  sampleTargetByUiKey,
+} from "./data/sampleIndex";
 import { KNOWN_TARGETS, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
+import { wavelengthHue } from "./spectrum/waveHue";
 import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
+import { DetectorDial, type DetectorBand } from "./ui/DetectorDial";
 import { FrameCaption } from "./ui/FrameCaption";
 import { GhostVisits } from "./ui/GhostVisits";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
+import { HopProofStrip, type HopProofPick } from "./ui/HopProofStrip";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
 import { SpotTheMover } from "./ui/SpotTheMover";
@@ -70,12 +79,6 @@ function uiModeFromView(mode: ComposeMode, blink: boolean): UiMode {
   if (mode === "difference") return "difference";
   if (mode === "stack" || mode === "track") return "more";
   return "watch";
-}
-
-/** Map SPHEREx λ (µm) → CSS hue for the stage “infrared aurora”. */
-function wavelengthHue(um: number): number {
-  const t = Math.min(1, Math.max(0, (um - 0.75) / (5.0 - 0.75)));
-  return Math.round(210 - t * 200); // blue → amber → rose across the SPHEREx band
 }
 
 type LoadState =
@@ -171,13 +174,22 @@ export default function App() {
     const el = measureRef.current;
     if (!el) return;
     const update = () => {
-      const w = el.clientWidth;
-      setDisplayPx(Math.max(280, Math.min(960, Math.floor(w))));
+      // Frames are always square. Cap by column width and viewport height so the
+      // stage never letterboxes a cutout inside a wide black band.
+      const colW = el.clientWidth;
+      const maxByWidth = Math.floor(colW - 8);
+      const maxByHeight = Math.floor(window.innerHeight * 0.46);
+      const px = Math.max(200, Math.min(520, maxByWidth, maxByHeight));
+      setDisplayPx(px);
     };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
   const loadFromService = useCallback(
@@ -335,6 +347,68 @@ export default function App() {
         );
         return;
       }
+
+      // B6: samples/index.json → preferred detector first, then others in background.
+      try {
+        const index = await fetchSampleIndex(signal);
+        const entry = sampleTargetByUiKey(index, key);
+        if (entry && entry.detectors.length > 0) {
+          const order = orderedDetectors(key, entry);
+          const first = order[0]!;
+          setLoad({
+            status: "loading",
+            message: `Loading ${known.label} — detector ${first.detector}…`,
+          });
+          const firstBundle = await fetchBundle(detectorBundleUrl(first.file), signal);
+          if (signal.aborted) return;
+          let merged = decodeBundle(firstBundle);
+          setLoad({ status: "ready", data: merged, source: "sample" });
+          patchView({
+            targetKey: key,
+            frameIndex: 0,
+            pass: null,
+            detector: first.detector,
+            query: known.label,
+          });
+          setSearchInput(known.label);
+
+          for (let i = 1; i < order.length; i++) {
+            if (signal.aborted) return;
+            const det = order[i]!;
+            const nextBundle = await fetchBundle(detectorBundleUrl(det.file), signal);
+            if (signal.aborted) return;
+            const next = decodeBundle(nextBundle);
+            merged = {
+              target: merged.target,
+              grid: merged.grid,
+              exposures: [...merged.exposures, ...next.exposures],
+              frames: [...merged.frames, ...next.frames],
+              limits: computeDisplayLimits([
+                ...merged.frames.map((f) => ({
+                  pixels: f.pixels,
+                  background: f.frame.background,
+                  noise: f.frame.noise,
+                  mask: f.mask,
+                })),
+                ...next.frames.map((f) => ({
+                  pixels: f.pixels,
+                  background: f.frame.background,
+                  noise: f.frame.noise,
+                  mask: f.mask,
+                })),
+              ]),
+            };
+            startTransition(() => {
+              setLoad({ status: "ready", data: merged, source: "sample" });
+            });
+          }
+          patchView({ detector: null });
+          return;
+        }
+      } catch {
+        // Fall through to legacy single bundle or archive.
+      }
+
       if (!known.bundleUrl) {
         if (canLive) {
           setLoad({ status: "loading", message: `Loading ${known.label} from SPHEREx archive…` });
@@ -354,7 +428,7 @@ export default function App() {
         }
         setLoad({
           status: "error",
-          message: `${known.label} needs a bundle or coordinates. Try Barnard's Star.`,
+          message: `${known.label} needs a sample bundle or coordinates. Try Barnard's Star.`,
         });
         return;
       }
@@ -532,7 +606,29 @@ export default function App() {
   const blinkA = passes[0] ?? null;
   const blinkB = passes.length >= 2 ? passes[passes.length - 1]! : null;
   const detectors = load.status === "ready" ? uniqueDetectors(load.data.frames) : [];
+  const detectorBands: DetectorBand[] = useMemo(() => {
+    if (load.status !== "ready") return [];
+    return detectors.map((d) => {
+      const frames = load.data.frames.filter((f) => f.exposure.detector === d);
+      const waves = frames.map((f) => f.frame.wavelength_um);
+      return {
+        detector: d,
+        waveMin: Math.min(...waves),
+        waveMax: Math.max(...waves),
+        frames: frames.length,
+      };
+    });
+  }, [load, detectors]);
   const uiMode = uiModeFromView(view.mode, blinkPasses);
+  const overlayActive = ghostVisits || splitVisits || spotMover;
+
+  /** Blend / side-by-side / spot / blink must never stack — leftover flags cause broken stage visuals. */
+  function clearPresentationOverlays() {
+    setBlinkPasses(false);
+    setGhostVisits(false);
+    setSplitVisits(false);
+    setSpotMover(false);
+  }
 
   useEffect(() => {
     if (!blinkPasses || view.mode !== "single" || blinkA == null || blinkB == null) return;
@@ -546,13 +642,14 @@ export default function App() {
   }, [blinkPasses, view.mode, blinkA, blinkB, patchView]);
 
   function setUiMode(next: UiMode) {
-    setBlinkPasses(false);
+    // Every top-level mode starts clean: no blend/split/spot/blink leftovers.
+    clearPresentationOverlays();
     if (next === "watch") {
       patchView({ mode: "single", pass: null, frameIndex: 0, playing: false });
       return;
     }
     if (next === "compare") {
-      patchView({ mode: "single", playing: false, frameIndex: 0 });
+      patchView({ mode: "single", pass: null, playing: false, frameIndex: 0 });
       setBlinkPasses(true);
       return;
     }
@@ -561,12 +658,15 @@ export default function App() {
         mode: "difference",
         pass: null,
         playing: false,
+        frameIndex: 0,
+        waveUm: null,
         diffPassA: passes[0] ?? 1,
         diffPassB: passes[passes.length - 1] ?? 3,
       });
       return;
     }
-    patchView({ mode: "stack", playing: false });
+    // More views — start on average stack with no visit lock leftovers.
+    patchView({ mode: "stack", playing: false, frameIndex: 0, pass: null });
   }
 
   // Keyboard shortcuts — ignore while typing in fields.
@@ -594,27 +694,27 @@ export default function App() {
           patchView({ showHelp: false });
           return;
         }
-        if (blinkPasses) {
-          setBlinkPasses(false);
-          patchView({ pass: null });
+        clearPresentationOverlays();
+        if (blinkPasses || overlayActive) {
+          patchView({ pass: null, mode: "single", playing: false });
         }
-        if (splitVisits) setSplitVisits(false);
         return;
       }
       if (e.key === " " || e.key === "k" || e.key === "K") {
         e.preventDefault();
+        clearPresentationOverlays();
         if (view.mode !== "single") {
-          setUiMode("watch");
+          patchView({ mode: "single", playing: !view.playing, frameIndex: 0 });
+        } else {
+          patchView({ playing: !view.playing, mode: "single" });
         }
-        setBlinkPasses(false);
-        patchView({ playing: !view.playing, mode: "single" });
         return;
       }
       if (e.key === "b" || e.key === "B") {
         e.preventDefault();
         if (blinkPasses) {
-          setBlinkPasses(false);
-          patchView({ pass: null, mode: "single" });
+          clearPresentationOverlays();
+          patchView({ pass: null, mode: "single", playing: false });
         } else {
           setUiMode("compare");
         }
@@ -636,27 +736,24 @@ export default function App() {
       }
       if (e.key === "s" || e.key === "S") {
         e.preventDefault();
-        setBlinkPasses(false);
-        setGhostVisits(false);
-        setSpotMover(false);
-        setSplitVisits((v) => !v);
-        patchView({ playing: false, mode: "single" });
+        const next = !splitVisits;
+        clearPresentationOverlays();
+        setSplitVisits(next);
+        patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
       }
       if (e.key === "g" || e.key === "G") {
         e.preventDefault();
-        setBlinkPasses(false);
-        setSplitVisits(false);
-        setSpotMover(false);
-        setGhostVisits((v) => !v);
-        patchView({ playing: false, mode: "single" });
+        const next = !ghostVisits;
+        clearPresentationOverlays();
+        setGhostVisits(next);
+        patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
       }
       if (e.key === "m" || e.key === "M") {
         e.preventDefault();
-        setBlinkPasses(false);
-        setSplitVisits(false);
-        setGhostVisits(false);
-        setSpotMover((v) => !v);
-        patchView({ playing: false, mode: "single" });
+        const next = !spotMover;
+        clearPresentationOverlays();
+        setSpotMover(next);
+        patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
       }
     }
     window.addEventListener("keydown", onKey);
@@ -671,6 +768,9 @@ export default function App() {
     patchView,
     demoPhase,
     splitVisits,
+    ghostVisits,
+    spotMover,
+    overlayActive,
   ]);
 
   async function toggleFullscreen() {
@@ -855,6 +955,101 @@ export default function App() {
     return { cells, limits, size: load.data.grid.size };
   }, [load, passes, forDifference, view.contrast]);
 
+  /** Always-on early | diff | late proof under the square (independent of overlay flags). */
+  const hopProof = useMemo(() => {
+    if (load.status !== "ready" || passes.length < 2 || !storyboard) return null;
+    const a = passes[0]!;
+    const b = passes[passes.length - 1]!;
+    const early = storyboard.cells.find((c) => c.pass === a);
+    const late = storyboard.cells.find((c) => c.pass === b);
+    if (!early || !late) return null;
+    const diff = differencePasses(forDifference, a, b);
+    const limits = applyContrast(
+      computeDisplayLimits([
+        {
+          pixels: early.pixels,
+          mask: early.mask,
+          background: 0,
+          noise: null,
+        },
+        {
+          pixels: late.pixels,
+          mask: late.mask,
+          background: 0,
+          noise: null,
+        },
+        {
+          pixels: diff.pixels,
+          mask: diff.mask,
+          background: 0,
+          noise: null,
+        },
+      ]),
+      view.contrast,
+    );
+    const earlyBead = trail.find((t) => t.pass === a);
+    const lateBead = trail.find((t) => t.pass === b);
+    return {
+      a,
+      b,
+      size: storyboard.size,
+      limits,
+      early: {
+        pixels: early.pixels,
+        mask: early.mask,
+        label: `Visit ${a}`,
+        sub: `${early.dateLabel} — jump to this visit`,
+      },
+      late: {
+        pixels: late.pixels,
+        mask: late.mask,
+        label: `Visit ${b}`,
+        sub: `${late.dateLabel} — jump to this visit`,
+      },
+      diff: {
+        pixels: diff.pixels,
+        mask: diff.mask,
+        label: "Diff",
+        sub: `Visit ${a} − Visit ${b} — bright/dark = motion`,
+      },
+      earlyXy: earlyBead ? ([earlyBead.x, earlyBead.y] as [number, number]) : null,
+      lateXy: lateBead ? ([lateBead.x, lateBead.y] as [number, number]) : null,
+    };
+  }, [load, passes, storyboard, forDifference, view.contrast, trail]);
+
+  const hopProofActive: HopProofPick | null = blinkPasses
+    ? null
+    : view.mode === "difference"
+      ? "diff"
+      : view.mode === "single" && view.pass === hopProof?.a
+        ? "early"
+        : view.mode === "single" && view.pass === hopProof?.b
+          ? "late"
+          : null;
+
+  function onHopProofPick(pick: HopProofPick) {
+    if (!hopProof) return;
+    clearPresentationOverlays();
+    if (pick === "diff") {
+      patchView({
+        mode: "difference",
+        pass: null,
+        playing: false,
+        frameIndex: 0,
+        waveUm: null,
+        diffPassA: hopProof.a,
+        diffPassB: hopProof.b,
+      });
+      return;
+    }
+    patchView({
+      mode: "single",
+      pass: pick === "early" ? hopProof.a : hopProof.b,
+      playing: false,
+      frameIndex: 0,
+    });
+  }
+
   async function onSearch(e: FormEvent) {
     e.preventDefault();
     const raw = searchInput.trim();
@@ -898,15 +1093,19 @@ export default function App() {
       : view.query || "Barnard's Star";
 
   const guideMode =
-    uiMode === "compare"
+    blinkPasses || uiMode === "compare"
       ? "blink"
-      : uiMode === "difference"
-        ? "difference"
-        : view.mode === "stack"
-          ? "stack"
-          : view.mode === "track"
-            ? "track"
-            : "watch";
+      : ghostVisits
+        ? "blend"
+        : splitVisits
+          ? "split"
+          : uiMode === "difference"
+            ? "difference"
+            : view.mode === "stack"
+              ? "stack"
+              : view.mode === "track"
+                ? "track"
+                : "watch";
 
   return (
     <div className="app">
@@ -1125,15 +1324,20 @@ export default function App() {
             </div>
           </div>
 
+          {/* Invisible width probe: column width, not the square box (avoids circular sizing). */}
+          <div className="stage-width-probe" ref={measureRef} aria-hidden="true" />
           <div
-            className="stage-measure"
-            ref={measureRef}
+            className={`stage-measure${splitStacks ? " is-wide" : " is-square"}`}
             style={
-              display?.meta?.frame.wavelength_um != null
-                ? ({
-                    "--wave-hue": String(wavelengthHue(display.meta.frame.wavelength_um)),
-                  } as CSSProperties)
-                : undefined
+              {
+                ...(display?.meta?.frame.wavelength_um != null
+                  ? { "--wave-hue": String(wavelengthHue(display.meta.frame.wavelength_um)) }
+                  : {}),
+                // Hard-size the square so we never letterbox a cutout in a wide band.
+                ...(!splitStacks
+                  ? { width: displayPx + 10, height: displayPx + 10 }
+                  : { width: "100%" }),
+              } as CSSProperties
             }
             data-wave={
               display?.meta?.frame.wavelength_um != null
@@ -1175,7 +1379,10 @@ export default function App() {
                   label: `Visit ${spotStacks.b}`,
                 }}
                 trail={trail}
-                onExit={() => setSpotMover(false)}
+                onExit={() => {
+                  clearPresentationOverlays();
+                  patchView({ mode: "single", playing: false });
+                }}
               />
             )}
 
@@ -1298,21 +1505,51 @@ export default function App() {
               )}
           </div>
 
-          {display && view.mode === "single" && display.kind === "single" && (
+          {hopProof && (
+            <HopProofStrip
+              size={hopProof.size}
+              lo={hopProof.limits.lo}
+              hi={hopProof.limits.hi}
+              colorMap={view.colorMap}
+              early={hopProof.early}
+              diff={hopProof.diff}
+              late={hopProof.late}
+              trail={trail}
+              earlyXy={hopProof.earlyXy}
+              lateXy={hopProof.lateXy}
+              active={hopProofActive}
+              onPick={onHopProofPick}
+            />
+          )}
+
+          {detectorBands.length > 1 && (
+            <DetectorDial
+              bands={detectorBands}
+              active={view.detector}
+              onPick={(detector) => {
+                // Detector filter applies to every mode; do not clear overlays —
+                // blend/diff stay valid, just recolored by camera.
+                patchView({ detector, frameIndex: 0, playing: false });
+              }}
+            />
+          )}
+
+          {display && view.mode === "single" && display.kind === "single" && !blinkPasses && (
             <>
-              <FrameCaption
-                frames={filtered}
-                frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                playing={view.playing}
-              />
+              {!overlayActive && (
+                <FrameCaption
+                  frames={filtered}
+                  frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                  playing={view.playing}
+                />
+              )}
               <div className="transport">
                 <button
                   type="button"
                   className="primary play-btn"
                   title="Step through infrared wavelengths for this visit (Space)"
                   onClick={() => {
-                    setBlinkPasses(false);
-                    setSplitVisits(false);
+                    clearPresentationOverlays();
                     patchView({ playing: !view.playing, mode: "single" });
                   }}
                 >
@@ -1322,13 +1559,12 @@ export default function App() {
                   type="button"
                   className={ghostVisits ? "active" : ""}
                   disabled={passes.length < 2}
-                  title="Overlay early and late visits so the moving star shimmers (G)"
+                  title="Overlay early and late visits so the moving star shimmers (G). Clears blink / side-by-side."
                   onClick={() => {
-                    setBlinkPasses(false);
-                    setSplitVisits(false);
-                    setSpotMover(false);
-                    setGhostVisits((v) => !v);
-                    patchView({ playing: false, mode: "single" });
+                    const next = !ghostVisits;
+                    clearPresentationOverlays();
+                    setGhostVisits(next);
+                    patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
                   }}
                 >
                   Blend visits
@@ -1337,29 +1573,30 @@ export default function App() {
                   type="button"
                   className={splitVisits ? "active" : ""}
                   disabled={passes.length < 2}
-                  title="Show early and late visits next to each other (S)"
+                  title="Show early and late visits next to each other (S). Clears blink / blend."
                   onClick={() => {
-                    setBlinkPasses(false);
-                    setGhostVisits(false);
-                    setSpotMover(false);
-                    setSplitVisits((v) => !v);
-                    patchView({ playing: false, mode: "single" });
+                    const next = !splitVisits;
+                    clearPresentationOverlays();
+                    setSplitVisits(next);
+                    patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
                   }}
                 >
                   Side-by-side
                 </button>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(filtered.length - 1, 0)}
-                  value={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                  onChange={(e) =>
-                    patchView({ frameIndex: Number(e.target.value), playing: false })
-                  }
-                  disabled={filtered.length === 0}
-                  aria-label="Scrub through frames"
-                  title="Drag to pick a frame by hand"
-                />
+                {!overlayActive && (
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.max(filtered.length - 1, 0)}
+                    value={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                    onChange={(e) =>
+                      patchView({ frameIndex: Number(e.target.value), playing: false })
+                    }
+                    disabled={filtered.length === 0}
+                    aria-label="Scrub through frames"
+                    title="Drag to pick a frame by hand"
+                  />
+                )}
               </div>
             </>
           )}
@@ -1380,10 +1617,10 @@ export default function App() {
               <i className="swatch heat" /> Brighter infrared
             </span>
             <span>
-              <i className="swatch cross" /> Predicted star position
+              <i className="swatch cross" /> Catalogue position (guide)
             </span>
             <span>
-              <i className="swatch bead" /> Visit 1 → 2 → 3 path
+              <i className="swatch bead" /> Catalogue path Visit 1 → 2 → 3
             </span>
           </div>
         </section>
@@ -1407,10 +1644,7 @@ export default function App() {
               trail={trail}
               activePass={view.pass}
               onPickPass={(pass) => {
-                setBlinkPasses(false);
-                setGhostVisits(false);
-                setSpotMover(false);
-                setSplitVisits(false);
+                clearPresentationOverlays();
                 patchView({ mode: "single", pass, frameIndex: 0, playing: false });
               }}
             />
@@ -1424,60 +1658,85 @@ export default function App() {
 
             {uiMode === "watch" && (
               <div className="control-block">
-                <p className="control-label">Which visit to play</p>
-                <div className="chip-row">
-                  <button
-                    type="button"
-                    className={view.pass == null ? "active" : ""}
-                    title="Include frames from every SPHEREx visit of this field"
-                    onClick={() => patchView({ pass: null, frameIndex: 0 })}
-                  >
-                    All visits
-                  </button>
-                  {passes.map((p) => (
+                {overlayActive ? (
+                  <>
+                    <p className="lead">
+                      {ghostVisits
+                        ? "Blend visits is on — early and late visits are overlaid."
+                        : splitVisits
+                          ? "Side-by-side is on — early and late visits are shown together."
+                          : "Challenge overlay is on."}{" "}
+                      Visit and color filters do not apply until you leave this view.
+                    </p>
                     <button
-                      key={p}
                       type="button"
-                      className={view.pass === p ? "active" : ""}
-                      title={`Show only Visit ${p} frames`}
-                      onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                      className="primary"
+                      onClick={() => {
+                        clearPresentationOverlays();
+                        patchView({ playing: false, mode: "single", pass: null });
+                      }}
                     >
-                      Visit {p}
+                      Back to movie
                     </button>
-                  ))}
-                </div>
-                <p className="control-label">Keep one infrared color?</p>
-                <div className="chip-row">
-                  <button
-                    type="button"
-                    className={view.waveUm == null ? "active" : ""}
-                    title="Use every infrared wavelength in the movie"
-                    onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
-                  >
-                    All colors
-                  </button>
-                  <button
-                    type="button"
-                    className={view.waveUm != null ? "active" : ""}
-                    disabled={!display || !("meta" in display) || !display.meta}
-                    title="Keep only frames near this frame’s wavelength (fairer blink)"
-                    onClick={() => {
-                      if (!display || !("meta" in display) || !display.meta) return;
-                      patchView({
-                        waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
-                        frameIndex: 0,
-                        playing: false,
-                      });
-                    }}
-                  >
-                    Lock this color
-                  </button>
-                </div>
-                <p className="micro">
-                  {view.waveUm == null
-                    ? `Playing ${filtered.length} frames across many infrared colors.`
-                    : `Locked near ${view.waveUm.toFixed(2)} µm · ${filtered.length} frames.`}
-                </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="control-label">Which visit to play</p>
+                    <div className="chip-row">
+                      <button
+                        type="button"
+                        className={view.pass == null ? "active" : ""}
+                        title="Include frames from every SPHEREx visit of this field"
+                        onClick={() => patchView({ pass: null, frameIndex: 0 })}
+                      >
+                        All visits
+                      </button>
+                      {passes.map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          className={view.pass === p ? "active" : ""}
+                          title={`Show only Visit ${p} frames`}
+                          onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                        >
+                          Visit {p}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="control-label">Keep one infrared color?</p>
+                    <div className="chip-row">
+                      <button
+                        type="button"
+                        className={view.waveUm == null ? "active" : ""}
+                        title="Use every infrared wavelength in the movie"
+                        onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
+                      >
+                        All colors
+                      </button>
+                      <button
+                        type="button"
+                        className={view.waveUm != null ? "active" : ""}
+                        disabled={!display || !("meta" in display) || !display.meta}
+                        title="Keep only frames near this frame’s wavelength"
+                        onClick={() => {
+                          if (!display || !("meta" in display) || !display.meta) return;
+                          patchView({
+                            waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
+                            frameIndex: 0,
+                            playing: false,
+                          });
+                        }}
+                      >
+                        Lock this color
+                      </button>
+                    </div>
+                    <p className="micro">
+                      {view.waveUm == null
+                        ? `Playing ${filtered.length} frames across many infrared colors.`
+                        : `Locked near ${view.waveUm.toFixed(2)} µm · ${filtered.length} frames.`}
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
@@ -1539,14 +1798,20 @@ export default function App() {
                   <button
                     type="button"
                     className={view.mode === "stack" ? "active" : ""}
-                    onClick={() => patchView({ mode: "stack", playing: false })}
+                    onClick={() => {
+                      clearPresentationOverlays();
+                      patchView({ mode: "stack", playing: false });
+                    }}
                   >
                     Average stack
                   </button>
                   <button
                     type="button"
                     className={view.mode === "track" ? "active" : ""}
-                    onClick={() => patchView({ mode: "track", playing: false })}
+                    onClick={() => {
+                      clearPresentationOverlays();
+                      patchView({ mode: "track", playing: false });
+                    }}
                   >
                     Keep star centered
                   </button>
@@ -1609,30 +1874,6 @@ export default function App() {
               </div>
             </div>
 
-            {detectors.length > 1 && showAdvanced && (
-              <div className="control-block soft">
-                <p className="control-label">Camera (detector)</p>
-                <div className="chip-row">
-                  <button
-                    type="button"
-                    className={view.detector == null ? "active" : ""}
-                    onClick={() => patchView({ detector: null, frameIndex: 0 })}
-                  >
-                    All
-                  </button>
-                  {detectors.map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      className={view.detector === d ? "active" : ""}
-                      onClick={() => patchView({ detector: d, frameIndex: 0 })}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {load.status === "ready" && view.mode === "single" && (
@@ -1644,7 +1885,7 @@ export default function App() {
                 frames={filtered}
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                 onSelectFrame={(index) => {
-                  setBlinkPasses(false);
+                  clearPresentationOverlays();
                   patchView({ frameIndex: index, playing: false, mode: "single" });
                 }}
               />

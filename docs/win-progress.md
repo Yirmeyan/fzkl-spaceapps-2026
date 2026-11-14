@@ -1,6 +1,6 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~15:20 America/Toronto.
+Last recalibration: 2026-11-14 ~15:50 America/Toronto.
 
 ## Mission
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **94%** | Compact picker + collapsed timeline; still polish |
-| Team win / top-tier | **78%** | B5 resolve live; B4/B6 still open |
+| Unblocked Nic lane | **97%** | Detector dial on stage; hop proof; mode hygiene |
+| Team win / top-tier | **82%** | B6 on main; FE consumes index; other targets await B4 |
 
 ## This loop’s wow
 
-**Less scroll, clearer stage** — compact picker when loaded; charts behind Infrared timeline.
+**Infrared detector dial** — B6’s six cameras as a stage dial (not buried in Technical); tap a band, aurora + frames switch.
 
 ## Backlog (phenomenal)
 
@@ -29,7 +29,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | P0 | Ghost overlay visits | **Shipping** |
 | P0b | Mission briefing / immersive first paint | **Shipping** |
 | P1 | A5 — ship to main/prod | **#17 + #19 on main** |
-| P2 | Predict-vs-observe PM ribbon | **Shipping** |
+| P2 | Predict-vs-observe PM ribbon | **Killed** (circular: both sides = catalogue) |
 | P3 | Spot-the-mover challenge | Demoted (key M only; not primary UI) |
 | P4 | Tommy live frames the hour they land | **Wired (Live feed)** |
 
@@ -53,3 +53,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 15:05 | Motion fingerprint SVG | 97 | 78 |
 | 15:15 | Presentation reset (clarity > bling) | 93 | 78 |
 | 15:20 | Compact picker + collapsed charts | 94 | 78 |
+| 15:50 | Kill circular predict; B6 index+det cascade | 95 | 82 |
+| 15:55 | Mode exclusivity + square stage (less scroll) | 96 | 82 |
+| 15:50 | Hop proof strip (Early · Diff · Late) | 96 | 82 |
+| 16:00 | Infrared detector dial on stage (B6) | 97 | 82 |

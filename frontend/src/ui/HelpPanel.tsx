@@ -29,8 +29,8 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
           or <strong>Show the move</strong> for a bright/dark difference pair.
         </li>
         <li>
-          The right panel summarizes how far it moved and whether the catalogue agrees. Hover any
-          button for a short tip.
+          The right panel summarizes the hop. Trust the bright core in the image; the orange path is
+          a catalogue guide. Hover any button for a short tip.
         </li>
       </ol>
       <p className="help-foot">

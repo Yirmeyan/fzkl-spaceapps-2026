@@ -398,11 +398,11 @@ select {
   color: #e8eef6;
   border-radius: calc(var(--radius) + 4px);
   border: 1px solid var(--stage-edge);
-  padding: 1rem 1rem 1.15rem;
+  padding: 0.85rem 1rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  min-height: 420px;
+  gap: 0.65rem;
+  min-height: 0;
   box-shadow: 0 24px 50px rgba(11, 18, 32, 0.28);
 }
 
@@ -992,6 +992,195 @@ select {
   color: #fdba74;
 }
 
+.detector-dial {
+  width: 100%;
+  max-width: 32rem;
+  margin: 0.15rem auto 0;
+  padding: 0.25rem 0 0;
+}
+
+.detector-dial-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.detector-dial-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #93a4b8;
+}
+
+.detector-dial-all {
+  padding: 0.15rem 0.55rem;
+  font-size: 0.72rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #c8d4e4;
+}
+
+.detector-dial-all.active {
+  border-color: #fdba74;
+  color: #fdba74;
+  background: rgba(253, 186, 116, 0.12);
+}
+
+.detector-dial-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(3.2rem, 1fr));
+  gap: 0.3rem;
+}
+
+.detector-dial-band {
+  --band-hue: 190;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.4rem 0.2rem 0.35rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e8eef6;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.detector-dial-band:hover {
+  border-color: hsla(var(--band-hue), 80%, 65%, 0.55);
+  background: hsla(var(--band-hue), 70%, 40%, 0.12);
+  transform: translateY(-1px);
+}
+
+.detector-dial-band.active {
+  border-color: hsla(var(--band-hue), 85%, 65%, 0.85);
+  background: hsla(var(--band-hue), 70%, 40%, 0.22);
+  box-shadow: 0 0 14px hsla(var(--band-hue), 80%, 50%, 0.28);
+}
+
+.detector-dial-swatch {
+  width: 1.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    hsla(var(--band-hue), 90%, 70%, 0.35),
+    hsla(var(--band-hue), 85%, 60%, 1),
+    hsla(var(--band-hue), 90%, 70%, 0.35)
+  );
+}
+
+.detector-dial-det {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.detector-dial-um {
+  font-size: 0.62rem;
+  color: #93a4b8;
+}
+
+.detector-dial-hint {
+  margin: 0.4rem 0 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #93a4b8;
+}
+
+.hop-proof {
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 0.35rem 0 0.15rem;
+}
+
+.hop-proof-kicker {
+  margin: 0 0 0.4rem;
+  text-align: center;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #93a4b8;
+}
+
+.hop-proof-strip {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.hop-proof-step {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.hop-proof-arrow {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-top: 2px solid rgba(253, 186, 116, 0.55);
+  border-right: 2px solid rgba(253, 186, 116, 0.55);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.hop-proof-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e8eef6;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hop-proof-cell:hover {
+  border-color: rgba(253, 186, 116, 0.55);
+  background: rgba(253, 186, 116, 0.08);
+  transform: translateY(-1px);
+}
+
+.hop-proof-cell.active {
+  border-color: #fdba74;
+  background: rgba(253, 186, 116, 0.14);
+  box-shadow: 0 0 0 1px rgba(253, 186, 116, 0.25);
+}
+
+.hop-proof-cell canvas {
+  border-radius: 4px;
+}
+
+.hop-proof-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #d7e0ec;
+}
+
+.hop-proof-hint {
+  margin: 0.4rem 0 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #93a4b8;
+}
+
 .split-visits {
   display: flex;
   flex-wrap: wrap;
@@ -1184,14 +1373,24 @@ select {
   color: #fff;
 }
 
+/* Full-column probe only — drives displayPx; never painted as the frame well. */
+.stage-width-probe {
+  width: 100%;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .stage-measure {
   --wave-hue: 190;
   position: relative;
-  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 280px;
+  min-height: 0;
+  padding: 0.3rem;
   background:
     radial-gradient(circle at 50% 42%, hsla(var(--wave-hue), 85%, 55%, 0.18), transparent 52%),
     radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.04), transparent 55%), #05080e;
@@ -1199,6 +1398,16 @@ select {
   overflow: hidden;
   transition: background 0.45s ease;
   box-shadow: inset 0 0 60px hsla(var(--wave-hue), 80%, 45%, 0.12);
+}
+
+.stage-measure.is-square {
+  /* Width/height set inline from displayPx — no side letterbox. */
+  flex-shrink: 0;
+}
+
+.stage-measure.is-wide {
+  width: 100%;
+  min-height: 0;
 }
 
 .wave-aurora-chip {
@@ -1519,6 +1728,15 @@ select {
   margin: 0 0 0.55rem;
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.chart-saturated {
+  margin: 0 0 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border-left: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  color: var(--text);
+  font-size: 0.86rem;
+  line-height: 1.4;
 }
 
 .strip,

@@ -37,6 +37,27 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~16:00 ET — From: Nic — Kind: Shipped
+
+**Infrared detector dial** on the stage (B6): six cameras with µm labels + aurora hue, not buried under Technical. Tap isolates one detector; All restores. On PR #23.
+
+### 2026-11-14 ~15:50 ET — From: Nic — Kind: Shipped
+
+**Hop proof strip** under the square: Early | Diff | Late thumbnails (always on when ≥2 visits). Tap jumps to that visit or difference mode and clears overlays. Presentation-first “one glance the star moved.” On PR #23.
+
+### 2026-11-14 ~15:55 ET — From: Nic — Kind: Shipped
+
+Mode exclusivity: entering Watch / Blink / Show the move / More (or Blend / Side-by-side / Spot) clears the other presentation overlays so leftover blend/blink flags cannot stack into a broken stage. Stage measure hugs square SPHEREx cutouts (cap by viewport height) to cut empty letterbox scroll. On PR #23.
+
+### 2026-11-14 ~15:45 ET — From: Nic — Kind: Response
+
+To Tommy B6 Need (14:45):
+
+1. Wiring `samples/index.json` — preferred detector first (2 / WISE→6), then other detectors in background; `npm run samples` copies into `public/samples`.
+2. Removed circular **Predict vs observe** (both sides were catalogue `target_xy` / `targetAt`). Honest copy: pixels = data, orange path = catalogue guide.
+3. Barnard saturation: empty flux chart replaced with a clear saturated message.
+4. On PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/23 — other four targets stay archive/API until their B4 bundles appear in the index.
+
 ### 2026-11-14 14:45 ET - From: Tommy - Kind: Shipped / Need
 
 **B6 is on `main` (#22): the bundles and their index.** #21 is merged too (`6093eb1`), and `main` is merged back into `feat/frontend-viewer`: pull before your next push.

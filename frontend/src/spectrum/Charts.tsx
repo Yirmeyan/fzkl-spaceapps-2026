@@ -25,9 +25,15 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
           watching
           {activeWave != null ? ` (${activeWave.toFixed(2)} µm)` : ""}. Click any dot to jump there.
           {withFlux.length === 0
-            ? " Brightness points appear when archive photometry returns flux (saturated cores stay empty)."
-            : ` ${withFlux.length} flux point${withFlux.length === 1 ? "" : "s"} from archive photometry — flagged ones are marked.`}
+            ? " Barnard's Star (and some others) saturate SPHEREx — too bright to measure a flux. The movie and blink still show the motion."
+            : ` ${withFlux.length} flux point${withFlux.length === 1 ? "" : "s"} from photometry — flagged ones are marked.`}
         </p>
+        {withFlux.length === 0 && (
+          <p className="chart-saturated">
+            No brightness spectrum here: the star saturates the detector. Use the wavelength dots
+            below to jump by infrared color.
+          </p>
+        )}
         {withFlux.length > 0 && (
           <FluxSvg
             points={withFlux
