@@ -8,6 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 _COLLECTION_NAME = re.compile(r"[a-z0-9_]+")
+# The bucket and its region become part of an address: nothing else than these characters.
+_STORAGE_NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
 
 
 def _split(value: str) -> list[str]:
@@ -29,6 +31,7 @@ class Settings(BaseSettings):
     # Data releases to search, by order of preference when both hold the same exposure.
     sia_collections: str = "spherex_dr1,spherex_qr3"
     archive_bucket: str = "nasa-irsa-spherex"
+    archive_region: str = "us-east-1"
     search_radius_deg: float = Field(default=0.01, gt=0, le=1)
     # Longest wait for one answer of the archive, and longest time one request of this
     # service spends on the archive, all searches and attempts together. The second one
@@ -39,6 +42,13 @@ class Settings(BaseSettings):
     # them last about twelve seconds, enough to outlast the bursts seen so far.
     archive_attempts: int = Field(default=6, ge=1, le=10)
     max_exposures: int = Field(default=5000, ge=1, le=50000)
+
+    # Reads of parts of the files. A read brings 1 MB at most and the storage is fast,
+    # so the wait is short. One view asks for hundreds of ranges: the limit is on how
+    # many are in flight at once.
+    storage_timeout_s: float = Field(default=10.0, gt=0, le=60)
+    storage_attempts: int = Field(default=3, ge=1, le=10)
+    storage_concurrency: int = Field(default=32, ge=1, le=256)
 
     @field_validator("log_level")
     @classmethod
@@ -76,6 +86,18 @@ class Settings(BaseSettings):
             if not _COLLECTION_NAME.fullmatch(name):
                 raise ValueError(f"not a data release name: {name!r}")
         return value
+
+    @field_validator("archive_bucket", "archive_region")
+    @classmethod
+    def _check_storage_name(cls, value: str) -> str:
+        if not _STORAGE_NAME.fullmatch(value):
+            raise ValueError(f"not a bucket or region name: {value!r}")
+        return value
+
+    @property
+    def storage_url(self) -> str:
+        """Address of the public storage that holds the SPHEREx files."""
+        return f"https://{self.archive_bucket}.s3.{self.archive_region}.amazonaws.com"
 
     @property
     def sia_collection_list(self) -> list[str]:

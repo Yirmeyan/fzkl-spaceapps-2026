@@ -16,3 +16,7 @@ class UpstreamUnavailable(Exception):
         self.service = service
         self.reason = reason
         self.retry_after_s = retry_after_s
+
+
+class NotFound(Exception):
+    """What was asked for does not exist in the archive. Asking again does not help."""
