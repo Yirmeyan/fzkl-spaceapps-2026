@@ -28,7 +28,7 @@ export function FrameCaption({ frames, frameIndex, playing }: FrameCaptionProps)
   if (!cur) return null;
 
   const date = new Date(cur.frame.time_iso);
-  const dateLabel = date.toLocaleDateString(undefined, {
+  const dateLabel = date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
