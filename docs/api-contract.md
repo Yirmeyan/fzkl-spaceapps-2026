@@ -5,7 +5,7 @@ The agreement between the Python service (`backend/`) and the browser (`frontend
 - **Version:** 1, written at step S1 of the [architecture plan](architecture.md).
 - **Changes:** through a pull request approved by the other teammate.
 - **Compatibility:** fields can be added at any time, so a client ignores the fields it does not know. Renaming or removing a field changes `version`.
-- **Status:** the service answers `GET /api/health` and `GET /api/exposures` today. The other calls arrive with steps B2 to B5 and will follow this document.
+- **Status:** the service answers `GET /api/health`, `GET /api/exposures` and `GET /api/frames/{id}` today. `GET /api/resolve` arrives with step B5 and will follow this document.
 
 ## The idea in one minute
 
@@ -22,9 +22,9 @@ The five test targets skip questions 2 and 3: a static file, the [bundle](#the-b
 | `GET /api/health` | Service status | Immediate |
 | `GET /api/resolve?name=` | A target | 1.5 s |
 | `GET /api/exposures?ra=&dec=` | A target, a grid and a list of exposures | 1.5 s, 3 s for a moving target |
-| `GET /api/frames/{id}?ra=&dec=` | One frame | 0.4 s |
+| `GET /api/frames/{id}?ra=&dec=` | One frame | 0.6 s |
 
-The time of `exposures` is measured on the service. The others are those of the underlying requests, measured from a laptop before the service existed.
+The times of `exposures` and `frames` are measured on the service, the second one from a laptop: 0.6 s for a first frame, 2.4 to 3.9 s for the 62 frames of a detector asked together. The time of `resolve` is that of the underlying request.
 
 ## Conventions
 
@@ -414,9 +414,9 @@ Stable, safe to build on: the calls, the names of the parameters and of the fiel
 
 Provisional, the values can change but not the shape:
 
-- The photometry method. Today: a circular aperture of 2.5 SPHEREx pixels in radius (15.4 arcseconds), a sky ring from 5 to 8 pixels, the uncertainty from the variance plane of the file, no aperture correction. It is finalized at step B4.
+- The photometry method. Today: a circular aperture of 2.5 SPHEREx pixels in radius (15.4 arcseconds), a sky ring from 5 to 8 pixels, the uncertainty from the variance plane of the file, no aperture correction. The service applies it since step B3. It is checked on an unsaturated star and finalized at step B4.
 - The list of flags that turn a pixel into NaN.
-- The estimate of `background`. The SPHEREx files carry a model of the zodiacal light that may replace the median.
+- The estimate of `background`. The SPHEREx files carry a model of the zodiacal light that may replace the median. The sample file was made by a prototype that took its median from slightly different pixels: its `background` and `noise` differ from those of the service by 2 to 3 percent, until the sample is rebuilt at step B6.
 - The limits of `fov` and `size`, the cache durations and the number of parallel requests.
 - The search radius of `exposures`, and its limit of 5000 exposures per answer. Nothing tells the client today that a list was cut. The deepest fields, near the ecliptic poles, are the only places that could reach it.
 
