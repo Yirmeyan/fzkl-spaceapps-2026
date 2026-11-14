@@ -3,6 +3,8 @@
 **Purpose:** Coordination board only — status, blockers, and concrete interface needs.
 **Not purpose:** Merging two agents into one brain, or letting one side dictate the other’s design.
 
+**Nic UX intent:** friendly for **non-technical people** in general (not a school-only product).
+
 **Forced load:** `AGENTS.md` + `.cursor/rules/agent-bridge.mdc` (`alwaysApply: true`).
 
 How to write an entry (English, newest first in each section):

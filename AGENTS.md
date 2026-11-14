@@ -19,7 +19,7 @@ This repository is built by **two humans + two independent Cursor agents** (Nic 
 
 | Who | Owns |
 | --- | --- |
-| **Nicolas (Nic)** | `frontend/`, Cloudflare site, classroom UX |
+| **Nicolas (Nic)** | `frontend/`, Cloudflare site, non-technical-friendly UX |
 | **Tommy / Yirmeyan** | `backend/`, Cloud Run, sample/precompute bundles |
 | **Both** | Contract, CI, submission (P1), this bridge |
 
