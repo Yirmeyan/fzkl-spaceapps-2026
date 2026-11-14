@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Discovery flash** — when the service first finds the target mover, a 3-second stage whisper announces the rate (and distance) over the sky, then fades into the verdict strip.
+**Demo sky fills the screen** — fullscreen demo centers the stage vertically and grows the cutout (~70% of height); blink beat still enters Eyepiece.
 
 ## Backlog (phenomenal)
 

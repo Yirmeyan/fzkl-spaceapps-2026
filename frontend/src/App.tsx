@@ -135,6 +135,8 @@ export default function App() {
   const [blinkPasses, setBlinkPasses] = useState(false);
   /** Hide chrome; sky fills the viewport like looking through an eyepiece (E). */
   const [eyepiece, setEyepiece] = useState(false);
+  /** Stage element is in browser fullscreen (Demo / F). */
+  const [stageFullscreen, setStageFullscreen] = useState(false);
   /** Brief double-exposure of the previous visit while blinking (hop afterimage). */
   const [hopGhost, setHopGhost] = useState<{
     pixels: Float32Array;
@@ -250,16 +252,27 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const onFs = () => {
+      setStageFullscreen(document.fullscreenElement === stageRef.current);
+    };
+    document.addEventListener("fullscreenchange", onFs);
+    onFs();
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  const bigSky = eyepiece || stageFullscreen || demoPhase !== "idle";
+
+  useEffect(() => {
     const el = measureRef.current;
     if (!el) return;
     const update = () => {
       // Classic desk: square fits the viewport with chrome. no page scroll.
-      // Eyepiece: grow the cutout toward the full viewport.
+      // Demo / fullscreen / eyepiece: grow the cutout and use most of the height.
       const colW = el.clientWidth;
-      const maxByWidth = Math.floor(colW - 12);
-      const maxByHeight = Math.floor(window.innerHeight * (eyepiece ? 0.78 : 0.52));
-      const cap = eyepiece ? 720 : 440;
-      const floor = eyepiece ? 360 : 280;
+      const maxByWidth = Math.floor(colW - (bigSky ? 24 : 12));
+      const maxByHeight = Math.floor(window.innerHeight * (bigSky ? 0.72 : 0.52));
+      const cap = bigSky ? 900 : 440;
+      const floor = bigSky ? 420 : 280;
       const px = Math.max(floor, Math.min(cap, maxByWidth, maxByHeight));
       setDisplayPx(px);
     };
@@ -271,7 +284,7 @@ export default function App() {
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [eyepiece]);
+  }, [bigSky]);
 
   const loadFromService = useCallback(
     async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
@@ -1119,6 +1132,7 @@ export default function App() {
     setGhostVisits(false);
     setSpotMover(false);
     setSplitVisits(false);
+    setEyepiece(false);
     patchView({ playing: false, pass: null, mode: "single" });
   }
 
@@ -1158,6 +1172,7 @@ export default function App() {
       setDemoPhase(beat.phase);
       setDemoLine(beat.line);
       if (beat.phase === "intro" || beat.phase === "play") {
+        setEyepiece(false);
         setBlinkPasses(false);
         setSplitVisits(false);
         setGhostVisits(false);
@@ -1174,13 +1189,17 @@ export default function App() {
         setSpotMover(false);
         patchView({ mode: "single", playing: false, frameIndex: 0 });
         setBlinkPasses(true);
+        // Full-sky hop for judges: chrome off, cutout large.
+        setEyepiece(true);
       } else if (beat.phase === "ghost") {
+        setEyepiece(false);
         setBlinkPasses(false);
         setSplitVisits(false);
         setSpotMover(false);
         setGhostVisits(true);
         patchView({ mode: "single", playing: false, pass: null });
       } else if (beat.phase === "difference") {
+        setEyepiece(false);
         setBlinkPasses(false);
         setSplitVisits(false);
         setGhostVisits(false);
@@ -1193,15 +1212,10 @@ export default function App() {
           diffPassB: passes[passes.length - 1] ?? 3,
         });
       } else if (beat.phase === "done") {
+        setEyepiece(false);
         setBlinkPasses(false);
         setGhostVisits(false);
         patchView({ playing: false, mode: "single" });
-        window.requestAnimationFrame(() => {
-          document.querySelector(".motion-insight")?.scrollIntoView({
-            behavior: "smooth",
-            block: "nearest",
-          });
-        });
       }
       i += 1;
       demoTimer.current = window.setTimeout(step, beat.ms);
@@ -1617,8 +1631,6 @@ export default function App() {
         </div>
       </header>
 
-      {demoPhase !== "idle" && <AutoDemoBanner line={demoLine} onSkip={stopAutoDemo} />}
-
       <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
 
       <section
@@ -1694,6 +1706,7 @@ export default function App() {
 
       <main className={`workspace${cinema ? " workspace--fit" : ""}`}>
         <section className="stage" ref={stageRef}>
+          {demoPhase !== "idle" && <AutoDemoBanner line={demoLine} onSkip={stopAutoDemo} />}
           <div className="stage-bar">
             <div>
               <h2 className="stage-title">

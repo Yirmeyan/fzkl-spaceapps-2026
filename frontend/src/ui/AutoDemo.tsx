@@ -19,8 +19,8 @@ export const DEMO_BEATS: {
   },
   {
     phase: "blink",
-    ms: 6000,
-    line: "Blink Visit 1 ↔ Visit 3. The bright star hops. That hop is real motion.",
+    ms: 6500,
+    line: "Eyepiece on: Visit 1 ↔ Visit 3. The bright star hops. That hop is real motion.",
   },
   {
     phase: "ghost",
@@ -34,8 +34,8 @@ export const DEMO_BEATS: {
   },
   {
     phase: "done",
-    ms: 4000,
-    line: "Trust the bright core in the pixels. The orange path is the catalogue guide on top.",
+    ms: 4500,
+    line: "Measured vs catalog under the sky. Copy the verdict or save a postcard for the jury.",
   },
 ];
 

@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:15 ET — From: Nic — Kind: Shipped
+
+**Demo fullscreen desk:** stage fullscreen centers the sky vertically and grows the square (~70vh). Blink beat still enters Eyepiece. Done caption points at measured vs catalog / postcard. #53 on main.
+
 ### 2026-11-14 18:10 ET — From: Nic — Kind: Shipped
 
 **Discovery flash:** when candidates first find an is_target mover, a 3s stage whisper shows the rate (and distance when known). #52 eyepiece on main.
