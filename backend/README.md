@@ -16,6 +16,7 @@ Run them from the `backend/` folder.
 | Run locally | `uv run python -m uvicorn spherex_explorer.api.app:create_app --factory --reload` |
 | Test | `uv run python -m pytest` |
 | Test against the real archive | `uv run python -m pytest -m network` |
+| Build the files of the test targets | `uv run python -m spherex_explorer.precompute --output ../samples` |
 | Lint | `uv run ruff check` |
 | Format | `uv run ruff format` |
 

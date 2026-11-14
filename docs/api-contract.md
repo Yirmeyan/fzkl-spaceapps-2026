@@ -1,6 +1,6 @@
 # API contract
 
-The agreement between the Python service (`backend/`) and the browser (`frontend/`). The browser can be built against it before the service exists: a real file in the final format is in [`samples/`](../samples/README.md).
+The agreement between the Python service (`backend/`) and the browser (`frontend/`). Real files in the final format are in [`samples/`](../samples/README.md).
 
 - **Version:** 1, written at step S1 of the [architecture plan](architecture.md).
 - **Changes:** through a pull request approved by the other teammate.
@@ -243,9 +243,9 @@ A frame is one exposure, cut out and aligned on the grid, with everything measur
   "exposure_s": 113.6,
   "wavelength_um": 1.1012,
   "bandwidth_um": 0.0254,
-  "background": 0.4371,
-  "noise": 0.1643,
-  "valid_fraction": 0.99,
+  "background": 0.4463,
+  "noise": 0.1664,
+  "valid_fraction": 0.991,
   "target_xy": [63.35, 65.47],
   "photometry": { "flux_mjy": null, "error_mjy": null, "quality": "saturated" },
   "image": "43,692 characters of base64",
@@ -356,7 +356,7 @@ The flux of the target, measured by the service on the original pixels, at the p
 | `saturated` | No | The object is too bright for SPHEREx in this exposure |
 | `outside` | No | The target is off the detector or too close to its edge |
 
-Barnard's Star saturates in every frame of detector 2, so the sample holds no flux value. A sample with real values comes with step B4, on an unsaturated star.
+Barnard's Star saturates in the six detectors, so its files hold no flux value. Files with real values come with step B4, which checks the method on an unsaturated star.
 
 ## The bundle
 
@@ -378,7 +378,47 @@ A bundle is a static file that answers `exposures` and `frames` at once. The fiv
 - `frames[i]` is the frame of `exposures[i]`, as `GET /api/frames/{id}` returns it for this target and this grid.
 - The browser therefore has one code path and two sources: a bundle or the service.
 
-The sample, [`samples/barnard-star-d2.json`](../samples/barnard-star-d2.json), holds detector 2 only: 62 of the 364 exposures of the star. How the six detectors of a target are split into files is decided at step B6.
+### One file per detector, and an index
+
+A target has one bundle per detector, named `<key>-d<detector>.json`, so that the browser loads the 4 MB of the detector it shows and not the 24 MB of the six. The files are in [`samples/`](../samples/README.md) and the site serves them under `/samples/`.
+
+`index.json`, in the same folder, lists them. Read it first: it tells which targets and detectors have a file, so that a file added later needs no change in the browser.
+
+```json
+{
+  "format": "spherex-explorer/index",
+  "version": 1,
+  "generated": "2026-11-14T19:28:45Z",
+  "targets": [
+    {
+      "key": "barnard-star",
+      "name": "Barnard's Star",
+      "target": { "name": "Barnard's Star", "ra": 269.452077, "dec": 4.693365, "epoch": 2000.0, "pm_ra": -801.551, "pm_dec": 10362.394 },
+      "grid": { "ra": 269.44623, "dec": 4.768703, "fov_deg": 0.1, "size": 128 },
+      "passes": 3,
+      "detectors": [
+        { "detector": 1, "file": "barnard-star-d1.json", "frames": 60, "wavelength_um": [0.7413, 1.1074], "bytes": 3962335 }
+      ]
+    }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `key` | string | Name of the target in the file names |
+| `name` | string | Name to display |
+| `target`, `grid` | objects | The same as in each bundle of the target: the six detectors share one grid |
+| `passes` | integer | Number of passes over all the detectors |
+| `detectors[].detector` | integer | 1 to 6. A detector that never saw the target has no entry |
+| `detectors[].file` | string | Name of the bundle, relative to the index |
+| `detectors[].frames` | integer | Number of frames in the bundle |
+| `detectors[].wavelength_um` | two numbers | Shortest and longest wavelength of the frames, in micrometers |
+| `detectors[].bytes` | integer | Size of the bundle before compression in transit |
+
+- The keys of the five test targets are `barnard-star`, `epsilon-indi-b`, `wise-0855`, `rw-aurigae` and `r-draconis`.
+- An exposure whose file is gone from the archive is left out of both `exposures` and `frames`, so the two lists of a bundle always have the same length.
+- The bundles are built by the code of the service, with `python -m spherex_explorer.precompute`: a frame of a bundle is the frame the service returns for the same target and grid.
 
 ## Errors
 
@@ -421,7 +461,7 @@ Provisional, the values can change but not the shape:
 
 - The photometry method. Today: a circular aperture of 2.5 SPHEREx pixels in radius (15.4 arcseconds), a sky ring from 5 to 8 pixels, the uncertainty from the variance plane of the file, no aperture correction. The service applies it since step B3. It is checked on an unsaturated star and finalized at step B4.
 - The list of flags that turn a pixel into NaN.
-- The estimate of `background`. The SPHEREx files carry a model of the zodiacal light that may replace the median. The sample file was made by a prototype that took its median from slightly different pixels: its `background` and `noise` differ from those of the service by 2 to 3 percent, until the sample is rebuilt at step B6.
+- The estimate of `background`. The SPHEREx files carry a model of the zodiacal light that may replace the median.
 - The limits of `fov` and `size`, the cache durations and the number of parallel requests.
 - The search radius of `exposures`, and its limit of 5000 exposures per answer. Nothing tells the client today that a list was cut. The deepest fields, near the ecliptic poles, are the only places that could reach it.
 
@@ -451,4 +491,4 @@ On the sample, generated from the public SPHEREx files on November 14, 2026:
 | Dates | The frame dates are within 0.06 second of the archive index |
 | Precision | 16 bits against 32 bits: at most 0.7% of the noise on sky pixels |
 
-`node samples/check-sample.ts samples/barnard-star-d2.json` replays the checks that need no network.
+`node samples/check-sample.ts samples/barnard-star-d2.json --bright-star` replays the checks that need no network. `node samples/check-sample.ts samples/index.json` checks every file of the index.
