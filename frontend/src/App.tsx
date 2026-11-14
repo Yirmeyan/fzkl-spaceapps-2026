@@ -24,11 +24,7 @@ import {
   stackPassClean,
   stackTrackingTarget,
 } from "./compose/stack";
-import {
-  type CandidatesFile,
-  discoveryFlashLine,
-  fetchCandidatesFile,
-} from "./data/candidates";
+import { type CandidatesFile, discoveryFlashLine, fetchCandidatesFile } from "./data/candidates";
 import {
   ApiError,
   fetchBundle,

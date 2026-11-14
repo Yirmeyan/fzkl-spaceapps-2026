@@ -64,7 +64,9 @@ export function CandidatesPanel({
                   </span>
                   <span className="candidates-line">{lines.what}</span>
                   {lines.howMeasured && (
-                    <span className="candidates-line candidates-line-halo">{lines.howMeasured}</span>
+                    <span className="candidates-line candidates-line-halo">
+                      {lines.howMeasured}
+                    </span>
                   )}
                   {lines.howFar && <span className="candidates-line">{lines.howFar}</span>}
                   <span className="candidates-line candidates-line-sure">{lines.sure}</span>
