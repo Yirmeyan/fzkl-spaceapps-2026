@@ -37,6 +37,38 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:32 ET - From: Tommy - Kind: Need
+
+**Where this side is, and your list, in order. Asked by Tommy himself.** #29 is merged (`81282e4`), on green checks, and `main` is merged back into this branch: pull before your next push. This entry replaces the lists of the entries below.
+
+**State of the service. Everything here is live and checked on production.**
+
+- Five calls: `health`, `resolve`, `exposures`, `frames`, `spectrum`. The contract is `docs/api-contract.md`.
+- Files on the site under `/samples/`: `index.json`, 30 bundles (five targets, six detectors), 5 spectrum files.
+- The flux is final. The lists of exposures are remembered. Every origin may call the service. One instance stays up, so no cold start.
+- In progress here: the `spectrum` call about twice faster. Then the README and the texts of the submission.
+- Nothing else is planned on the service. The contract does not change again unless you report a blocker here.
+
+**Your list. Do the items in this order. One pull request per item, opened as soon as the item works.**
+
+1. **Check production, now.** Open https://fzkl-spaceapps-2026.pages.dev, click the five presets, and look at the network tab: each one must ask for `index.json`, then its first bundle. Write here one line per preset with what you saw.
+2. **Spectrum chart from the spectrum file.** On a preset, fetch `{key}-spectrum.json` (its name is in `index.json` under `spectrum.file`) as soon as the target is chosen, and draw the chart from its `points`. x is `wavelength_um`, y is `flux_mjy`, logarithmic y when the range exceeds a factor 20, one color per `pass`, error bars from `error_mjy`, hollow markers when `quality` is `flagged`, no marker when `flux_mjy` is null. Highlight the points of the detector on screen. Done when: Epsilon Indi B shows its 413 points from 0.75 to 5 micrometers within a second of the click, before any bundle has finished; RW Aurigae shows three colors that cross near 2 micrometers; Barnard's Star and R Draconis show their few points and the "too bright" line.
+3. **Any position, from end to end.** A name goes through `resolve`, coordinates do not. Then `exposures`, then the frames of detector 2, 12 at a time, then the other detectors, and `spectrum` once, in parallel with the frames. States to handle: waiting; an empty list of exposures, which is not an error ("SPHEREx has not observed this place yet"); 404 on a name ("unknown name, try coordinates"); 503, retried after `Retry-After` seconds, three times, then a message with a retry button. Done when `?ra=83.8221&dec=-5.3911` and the name "Vega" both show images and a spectrum without a reload.
+4. **The view in the address of the page.** `?target={key}` for a preset, or `?ra=&dec=` with the optional `epoch`, `pm_ra`, `pm_dec`, plus `detector` and `mode`. Done when a copied link opens the same target, detector and mode in a private window. The challenge asks for it: coordinates in the URL, to embed the tool elsewhere.
+5. **WISE 0855 by stacking.** For detector 6 and for each pass: the average of the frames of the pass, each one minus its `background`, without the NaN pixels and without the pixels whose `mask` is not 0. Show the three averages as a movie of three images, and the difference of the last minus the first. The object is at `target_xy` and moves 1.5 pixel toward the west per pass. If it does not show, say so in the interface: it is at the limit of detection, and saying it is part of the plan. Offer the same button for any target: "Stack this pass".
+6. **What a frame is, on screen.** For the frame shown: date, wavelength and width of the band, detector, pass, exposure time, `valid_fraction`, `quality`. A switch that tints the flagged pixels from `mask`, with the legend of its eight bits taken from the contract. The challenge asks for the metadata and the contamination flags.
+7. **A wider field, only when 1 to 6 are done.** A switch that reloads the view from the service with `fov=0.3&size=256`. The bundles stay at 0.1 degree. The challenge lists the adjustable field of view.
+8. **The demo of the submission.** Update `docs/demo-script.md`: its slide 6 still says that `resolve` and the five targets are to come. The 30 seconds are: Barnard's Star hops, the spectrum of Epsilon Indi B, RW Aurigae changes between three passes.
+
+**When.** Items 1 to 4 tonight before 20:00 ET. Items 5 and 6 Sunday before 12:00. Feature freeze Sunday 15:00, then fixes only.
+
+**Rules, unchanged.**
+
+- Pull before you push. `npm run lint`, `npm run typecheck` and `npm test` before every push. I merge a pull request when its checks are green, not before.
+- Texts in English, with no long dash.
+- Stamp your entries with the real clock: `Get-Date -Format "yyyy-MM-dd HH:mm"`. It is 15:32 as I write.
+- When something in the data surprises you, ask here before you work around it.
+
 ### 2026-11-14 15:28 ET - From: Tommy - Kind: Need / Shipped
 
 **PR #29 is not merged: its `frontend` check is red. And the spectrum in one request is live (#28).**
