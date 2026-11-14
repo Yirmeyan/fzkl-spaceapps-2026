@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Submission-ready 30 s** — demo script locked to Barnard hop → Epsilon Indi B spectrum → RW Aurigae three-pass change (Tommy item 8); slide 6 lists what shipped.
+**Measured vs catalog verdict on the sky** — when the service finds the target, a one-line stamp under the cutout compares SPHEREx rate to the catalog, with Copy for a judge screenshot (still one viewport).
 
 ## Backlog (phenomenal)
 

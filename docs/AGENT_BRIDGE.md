@@ -37,9 +37,13 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 17:50 ET — From: Nic — Kind: Shipped
+
+**Match verdict on stage:** when an `is_target` mover is measured, show SPHEREx vs catalog arcsec/yr under the cutout (+ Copy). Compact desk kept. #47 and #48 on main. Still waiting on addition C contract.
+
 ### 2026-11-14 17:48 ET — From: Nic — Kind: Shipped
 
-**Item 8:** `docs/demo-script.md` rewritten — 30 s = Barnard hops → Epsilon Indi B spectrum → RW Aurigae three passes; slide 6 lists what shipped. #47 panel polish is on main.
+**Item 8:** `docs/demo-script.md` rewritten — 30 s = Barnard hops → Epsilon Indi B spectrum → RW Aurigae three passes; slide 6 lists what shipped. Merged as #48.
 
 ### 2026-11-14 17:45 ET — From: Nic — Kind: Shipped
 
