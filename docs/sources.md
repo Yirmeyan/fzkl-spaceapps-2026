@@ -52,6 +52,8 @@ GitHub Actions used by the workflows in `.github/workflows/`. Each one is pinned
 | --- | --- | --- |
 | [actions/checkout](https://github.com/actions/checkout) | Fetches the repository in the workflow | MIT |
 | [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) | Installs uv in the workflow | MIT |
+| [google-github-actions/auth](https://github.com/google-github-actions/auth) | Signs the deployment workflow in to Google Cloud without a key | Apache-2.0 |
+| [google-github-actions/setup-gcloud](https://github.com/google-github-actions/setup-gcloud) | Installs the Google Cloud CLI that deploys the service | Apache-2.0 |
 | [actions/setup-node](https://github.com/actions/setup-node) | Installs Node.js for the frontend job | MIT |
 | [actions/upload-pages-artifact](https://github.com/actions/upload-pages-artifact) | Packages the static site for Pages | MIT |
 | [actions/deploy-pages](https://github.com/actions/deploy-pages) | Publishes the site to GitHub Pages | MIT |

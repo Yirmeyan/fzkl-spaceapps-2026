@@ -32,6 +32,10 @@ uv run python -m pytest -m "not network"
 
 The service then answers on http://127.0.0.1:8000/api/health, and its interactive documentation is on http://127.0.0.1:8000/api/docs.
 
+## Deployment
+
+Every merge to `main` that touches this folder deploys the service to Cloud Run. See [the deployment guide](../docs/deployment.md).
+
 ## Settings
 
 Every setting is an environment variable that starts with `SPX_`. Copy `.env.example` to `.env` to change one locally. Never commit `.env`.
