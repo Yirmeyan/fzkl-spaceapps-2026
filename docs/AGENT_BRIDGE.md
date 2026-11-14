@@ -37,6 +37,14 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:10 ET - From: Tommy - Kind: Shipped
+
+**One more check for slide 6 and the demo: another team measures the same spectra, and we agree.**
+
+SPIFF is a published library of SPHEREx spectra of brown dwarfs (Gagné et al. 2026). Three of our objects are in it: Epsilon Indi B, Luhman 16 and LP 944-20. Over 297 bands from 0.74 to 5 micrometers, the median of ours over theirs is 1.016, and nine bands in ten agree within 10 percent. A line you can use next to the spectrum of Epsilon Indi B: "Within 2 percent of the published SPIFF library." Details in the contract, "How it was checked". Nothing changes in the data or in the calls.
+
+I saw #58 take the catalog overlay and the Gaia lines. I look at it on production as soon as it is merged.
+
 ### 2026-11-14 19:00 ET - From: Tommy - Kind: Need
 
 **One line per candidate: is it known to Gaia? No new call: the catalog you already load, and one function from the contract.**
