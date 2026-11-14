@@ -1463,12 +1463,17 @@ select {
   border-radius: 999px;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  /* No uppercase: µ must stay µ (uppercase turns it into a capital M → "MM"). */
+  text-transform: none;
   color: #e8eef6;
   background: hsla(var(--wave-hue), 70%, 35%, 0.55);
   border: 1px solid hsla(var(--wave-hue), 80%, 70%, 0.35);
   pointer-events: none;
   backdrop-filter: blur(4px);
+}
+
+.unit-um {
+  text-transform: none;
 }
 
 .stage canvas {

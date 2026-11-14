@@ -5,10 +5,17 @@ interface FrameCaptionProps {
   frames: DecodedFrame[];
   frameIndex: number;
   playing: boolean;
+  /** When false, skip the catalogue-path tip (no proper motion known). */
+  hasCatalogMotion?: boolean;
 }
 
 /** Friendly live readout under the sky stage. */
-export function FrameCaption({ frames, frameIndex, playing }: FrameCaptionProps) {
+export function FrameCaption({
+  frames,
+  frameIndex,
+  playing,
+  hasCatalogMotion = true,
+}: FrameCaptionProps) {
   const [passFlash, setPassFlash] = useState(false);
   const prevPass = useRef<number | null>(null);
   const cur = frames[frameIndex];
@@ -48,7 +55,10 @@ export function FrameCaption({ frames, frameIndex, playing }: FrameCaptionProps)
       </p>
       <p className="frame-caption-span">
         Frame {frameIndex + 1} of {frames.length}. Bright blob = the star (often too bright for the
-        camera). Numbered dots = where it was on each visit.
+        camera).
+        {hasCatalogMotion
+          ? " Numbered dots = where it was on each visit."
+          : " No catalog path is drawn for this place."}
       </p>
     </div>
   );

@@ -6,13 +6,30 @@ interface MotionInsightProps {
   grid: Grid;
   trail: TrailPoint[];
   targetName: string;
+  /** False when catalogue pm_ra/pm_dec are both 0 or absent. */
+  hasCatalogMotion: boolean;
 }
 
 /**
  * Honest summary: trail beads/cross are catalogue proper motion on the grid.
  * The proof to trust is the bright core moving in the pixels.
  */
-export function MotionInsight({ grid, trail, targetName }: MotionInsightProps) {
+export function MotionInsight({ grid, trail, targetName, hasCatalogMotion }: MotionInsightProps) {
+  if (!hasCatalogMotion) {
+    return (
+      <div className="motion-insight">
+        <header className="motion-insight-head">
+          <p className="motion-insight-kicker">What moved</p>
+          <h3 className="motion-insight-title">No catalog motion for this place</h3>
+          <p className="motion-insight-body">
+            SPHEREx has no known proper motion here, so we do not draw a predicted path. Use Blink
+            and Difference to catch anything that moves or changes in the pixels themselves.
+          </p>
+        </header>
+      </div>
+    );
+  }
+
   if (trail.length < 2) return null;
 
   const first = trail[0]!;
