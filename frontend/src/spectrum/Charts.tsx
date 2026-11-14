@@ -6,10 +6,7 @@ interface ChartsProps {
   onSelectFrame?: (index: number) => void;
 }
 
-/**
- * Spectrum strip = which near-IR wavelength each SPHEREx frame samples.
- * Flux plots appear only when photometry is non-null (not for saturated Barnard D2).
- */
+/** Classroom-friendly wavelength / visit timeline. */
 export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
   if (frames.length === 0) return null;
 
@@ -22,15 +19,14 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
   return (
     <div className="charts">
       <section className="chart-panel">
-        <h3>Wavelength (what Play walks through)</h3>
+        <h3>Infrared color of this frame</h3>
         <p className="chart-empty">
-          SPHEREx has no filter wheel: each frame is a different near-IR wavelength. The moving
-          highlight is the <strong>current λ</strong>
-          {activeWave != null ? ` (${activeWave.toFixed(3)} µm)` : ""}. That is the “spectrum”
-          scrolling — not a classic flux curve yet
+          Each frame is a slightly different infrared “color.” The bright dot is the one you are
+          watching
+          {activeWave != null ? ` (${activeWave.toFixed(2)} µm)` : ""}. Click any dot to jump there.
           {withFlux.length === 0
-            ? " (Barnard's Star saturates on D2, so flux is null until backend B4)."
-            : "."}
+            ? " A full brightness spectrum needs clearer photometry (coming with the backend)."
+            : ""}
         </p>
         {withFlux.length > 0 && (
           <FluxSvg
@@ -44,9 +40,10 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
             yLabel="mJy"
           />
         )}
-        <WavelengthStrip
+        <DotStrip
           frames={spectrumPoints}
           activeId={active?.frame.id}
+          mode="wave"
           onPick={(id) => {
             const idx = frames.findIndex((f) => f.frame.id === id);
             if (idx >= 0) onSelectFrame?.(idx);
@@ -55,9 +52,9 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
       </section>
 
       <section className="chart-panel">
-        <h3>Visits over time</h3>
+        <h3>When SPHEREx looked</h3>
         <p className="chart-empty">
-          Dots are exposure times. Clusters = pass 1, 2, 3 (~months apart). Click a dot to jump.
+          Clusters of dots are the three visits months apart. Click to jump to that day.
         </p>
         {withFlux.length > 0 && (
           <FluxSvg
@@ -71,9 +68,10 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
             yLabel="mJy"
           />
         )}
-        <PassTimeline
+        <DotStrip
           frames={lightPoints}
           activeId={active?.frame.id}
+          mode="time"
           onPick={(id) => {
             const idx = frames.findIndex((f) => f.frame.id === id);
             if (idx >= 0) onSelectFrame?.(idx);
@@ -84,24 +82,38 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
   );
 }
 
-function WavelengthStrip({
+function DotStrip({
   frames,
   activeId,
+  mode,
   onPick,
 }: {
   frames: DecodedFrame[];
   activeId?: string;
+  mode: "wave" | "time";
   onPick?: (id: string) => void;
 }) {
-  const min = frames[0]?.frame.wavelength_um ?? 0;
-  const max = frames[frames.length - 1]?.frame.wavelength_um ?? 1;
+  if (frames.length === 0) return null;
+  const min =
+    mode === "wave" ? frames[0]!.frame.wavelength_um : frames[0]!.frame.time_mjd;
+  const max =
+    mode === "wave"
+      ? frames[frames.length - 1]!.frame.wavelength_um
+      : frames[frames.length - 1]!.frame.time_mjd;
   const span = max - min || 1;
+  const labelLeft =
+    mode === "wave" ? `${min.toFixed(2)} µm` : new Date(frames[0]!.frame.time_iso).getFullYear();
+  const labelRight =
+    mode === "wave"
+      ? `${max.toFixed(2)} µm`
+      : new Date(frames[frames.length - 1]!.frame.time_iso).getFullYear();
+
   return (
-    <svg className="strip" viewBox="0 0 300 28" role="img" aria-label="Wavelength timeline">
-      <title>Click a dot to jump to that wavelength</title>
+    <svg className="strip" viewBox="0 0 300 28" role="img" aria-label="Timeline">
       <line x1="8" y1="14" x2="292" y2="14" stroke="currentColor" strokeOpacity="0.35" />
       {frames.map((f) => {
-        const x = 8 + ((f.frame.wavelength_um - min) / span) * 284;
+        const value = mode === "wave" ? f.frame.wavelength_um : f.frame.time_mjd;
+        const x = 8 + ((value - min) / span) * 284;
         const active = f.frame.id === activeId;
         return (
           <circle
@@ -109,57 +121,24 @@ function WavelengthStrip({
             cx={x}
             cy={14}
             r={active ? 4.5 : 2.5}
-            fill={active ? "var(--accent)" : "var(--ink-muted)"}
+            fill={active ? "var(--accent)" : "var(--muted)"}
             style={{ cursor: onPick ? "pointer" : undefined }}
             onClick={() => onPick?.(f.frame.id)}
           >
-            <title>{`${f.frame.wavelength_um.toFixed(3)} µm`}</title>
+            <title>
+              {mode === "wave"
+                ? `${f.frame.wavelength_um.toFixed(3)} µm`
+                : `Visit ${f.exposure.pass} · ${f.frame.time_iso}`}
+            </title>
           </circle>
         );
       })}
       <text x="8" y="26" className="strip-label">
-        {min.toFixed(2)} µm
+        {labelLeft}
       </text>
       <text x="292" y="26" textAnchor="end" className="strip-label">
-        {max.toFixed(2)} µm
+        {labelRight}
       </text>
-    </svg>
-  );
-}
-
-function PassTimeline({
-  frames,
-  activeId,
-  onPick,
-}: {
-  frames: DecodedFrame[];
-  activeId?: string;
-  onPick?: (id: string) => void;
-}) {
-  if (frames.length === 0) return null;
-  const min = frames[0]!.frame.time_mjd;
-  const max = frames[frames.length - 1]!.frame.time_mjd;
-  const span = max - min || 1;
-  return (
-    <svg className="strip" viewBox="0 0 300 28" role="img" aria-label="Time timeline">
-      <line x1="8" y1="14" x2="292" y2="14" stroke="currentColor" strokeOpacity="0.35" />
-      {frames.map((f) => {
-        const x = 8 + ((f.frame.time_mjd - min) / span) * 284;
-        const active = f.frame.id === activeId;
-        return (
-          <circle
-            key={f.frame.id}
-            cx={x}
-            cy={14}
-            r={active ? 4.5 : 2.5}
-            fill={active ? "var(--accent)" : "var(--ink-muted)"}
-            style={{ cursor: onPick ? "pointer" : undefined }}
-            onClick={() => onPick?.(f.frame.id)}
-          >
-            <title>{`Pass ${f.exposure.pass} · ${f.frame.time_iso}`}</title>
-          </circle>
-        );
-      })}
     </svg>
   );
 }

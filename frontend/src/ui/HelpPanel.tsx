@@ -8,39 +8,33 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
   return (
     <aside className="help-panel" role="dialog" aria-label="How to use this tool">
       <header>
-        <h2>How to spot motion</h2>
+        <h2>Three-minute classroom demo</h2>
         <button type="button" className="ghost" onClick={onClose} aria-label="Close help">
           Close
         </button>
       </header>
       <ol>
         <li>
-          Pick <strong>Barnard's Star</strong>. Press play. The bright core drifts north between
-          passes while background stars stay put.
+          Open <strong>Barnard's Star</strong> — the fastest-moving nearby star.
         </li>
         <li>
-          Filter by <strong>pass</strong> to freeze one visit, or use <strong>difference</strong>{" "}
-          mode to subtract two passes — movers light up.
+          Press <strong>Play movie</strong>. You are walking through infrared “colors” the eye cannot
+          see.
         </li>
         <li>
-          SPHEREx has no filter wheel: each frame is a different near-infrared wavelength. Use{" "}
-          <strong>Match this λ</strong> before blinking across passes, so a spectrum change is not
-          mistaken for motion.
+          Press <strong>Blink visits</strong>. The star jumps north between Visit 1 and Visit 3 while
+          background stars stay put. That jump is real motion through space.
         </li>
         <li>
-          Raise <strong>Contrast</strong> if a small shift is hard to see (same idea as WiseView).
+          Try <strong>Show the move</strong> (difference). A bright/dark pair means “it moved.”
         </li>
         <li>
-          Saturated cores show as bright (not holes). That is intentional — the star is too bright
-          for the detector there.
-        </li>
-        <li>
-          Share a link: the address bar stores the target, pass, frame, and mode so others see the
-          same view.
+          Use <strong>Fullscreen</strong> for the whole class. Technical numbers live under{" "}
+          <strong>Details for teachers</strong>.
         </li>
       </ol>
       <p className="help-foot">
-        Data: NASA SPHEREx via IRSA. Challenge: Planet X and SPHEREx, NASA Space Apps 2026.
+        Data: NASA SPHEREx. Challenge: Planet X and SPHEREx · Space Apps 2026 · team FZKL.
       </p>
     </aside>
   );

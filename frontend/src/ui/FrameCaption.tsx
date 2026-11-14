@@ -7,17 +7,11 @@ interface FrameCaptionProps {
   playing: boolean;
 }
 
-function shortDate(iso: string): string {
-  return iso.slice(0, 10);
-}
-
-/** Live date / pass / wavelength under the player. */
+/** Friendly live readout under the sky stage. */
 export function FrameCaption({ frames, frameIndex, playing }: FrameCaptionProps) {
   const [passFlash, setPassFlash] = useState(false);
   const prevPass = useRef<number | null>(null);
-
-  const i = frames.length === 0 ? 0 : Math.min(frameIndex, frames.length - 1);
-  const cur = frames[i];
+  const cur = frames[frameIndex];
   const pass = cur?.exposure.pass ?? null;
 
   useEffect(() => {
@@ -31,30 +25,30 @@ export function FrameCaption({ frames, frameIndex, playing }: FrameCaptionProps)
     prevPass.current = pass;
   }, [pass]);
 
-  if (!cur || frames.length === 0) return null;
+  if (!cur) return null;
 
-  const first = frames[0]!;
-  const last = frames[frames.length - 1]!;
-  const spanDays = Math.max(0, Math.round(last.frame.time_mjd - first.frame.time_mjd));
+  const date = new Date(cur.frame.time_iso);
+  const dateLabel = date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 
   return (
-    <div className="frame-caption" aria-live="polite">
+    <div className="frame-caption">
       <p className={`frame-caption-pass${passFlash ? " flash" : ""}`}>
-        PASS {pass}
-        {passFlash ? " ← changed" : ""}
+        Visit {pass}
+        {passFlash ? " · just changed" : ""}
+        {playing ? " · playing" : ""}
       </p>
       <p className="frame-caption-now">
-        {playing ? "Playing" : "Frame"} {i + 1}/{frames.length}
-        {" · "}
-        <strong>{shortDate(cur.frame.time_iso)}</strong>
-        {" · "}
-        {cur.frame.wavelength_um.toFixed(3)} µm
+        {dateLabel}
+        <span className="frame-caption-sep">·</span>
+        Infrared color {cur.frame.wavelength_um.toFixed(2)} µm
       </p>
       <p className="frame-caption-span">
-        Sequence: {shortDate(first.frame.time_iso)} → {shortDate(last.frame.time_iso)}
-        {spanDays > 0 ? ` (${spanDays} days)` : ""}
-        {" · "}
-        {frames.length} exposures
+        Frame {frameIndex + 1} of {frames.length}. Bright blob = the star (often too bright for the
+        camera). Numbered dots = where it was on each visit.
       </p>
     </div>
   );

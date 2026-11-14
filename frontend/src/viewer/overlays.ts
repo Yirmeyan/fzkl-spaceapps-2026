@@ -1,4 +1,4 @@
-/** Catalog / proper-motion marker + optional pass trail. */
+/** Catalogue marker + pass trail (big numbered beads, not stick-figure crosses). */
 
 export interface TrailPoint {
   pass: number;
@@ -6,52 +6,60 @@ export interface TrailPoint {
   y: number;
 }
 
-const PASS_COLORS = ["#7dd3fc", "#fbbf24", "#f472b6", "#a3e635"];
+const PASS_COLORS = ["#38bdf8", "#fbbf24", "#fb7185"];
 
 export function drawTargetOverlay(
   ctx: CanvasRenderingContext2D,
   targetXy: [number, number],
   trail: TrailPoint[] = [],
 ): void {
-  if (trail.length > 0) {
+  if (trail.length > 1) {
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([2, 2]);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+    ctx.lineWidth = 1.25;
     ctx.beginPath();
     trail.forEach((p, i) => {
       if (i === 0) ctx.moveTo(p.x, p.y);
       else ctx.lineTo(p.x, p.y);
     });
     ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.restore();
+  }
 
-    for (const p of trail) {
-      const color = PASS_COLORS[(p.pass - 1) % PASS_COLORS.length]!;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = color;
-      ctx.font = "7px sans-serif";
-      ctx.fillText(`P${p.pass}`, p.x + 3.5, p.y - 2.5);
-    }
+  for (const p of trail) {
+    const color = PASS_COLORS[(p.pass - 1) % PASS_COLORS.length]!;
+    ctx.save();
+    ctx.fillStyle = "rgba(10, 16, 24, 0.75)";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 8px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(String(p.pass), p.x + 7, p.y + 3);
     ctx.restore();
   }
 
   const [tx, ty] = targetXy;
   ctx.save();
-  ctx.strokeStyle = "rgba(255, 176, 64, 0.95)";
-  ctx.lineWidth = 1;
-  const r = 4;
+  ctx.strokeStyle = "rgba(255, 196, 80, 0.95)";
+  ctx.lineWidth = 1.4;
+  const arm = 6;
   ctx.beginPath();
-  ctx.moveTo(tx - r, ty);
-  ctx.lineTo(tx + r, ty);
-  ctx.moveTo(tx, ty - r);
-  ctx.lineTo(tx, ty + r);
+  ctx.moveTo(tx - arm, ty);
+  ctx.lineTo(tx + arm, ty);
+  ctx.moveTo(tx, ty - arm);
+  ctx.lineTo(tx, ty + arm);
   ctx.stroke();
-  ctx.fillStyle = "rgba(255, 176, 64, 0.9)";
-  ctx.font = "7px sans-serif";
-  ctx.fillText("cat", tx + 5, ty + 9);
+  ctx.beginPath();
+  ctx.arc(tx, ty, 2, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
