@@ -41,6 +41,7 @@ import { HelpPanel } from "./ui/HelpPanel";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionStory } from "./ui/MotionStory";
 import { PredictVsObserve } from "./ui/PredictVsObserve";
+import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { FrameCanvas } from "./viewer/FrameCanvas";
 import type { TrailPoint } from "./viewer/overlays";
@@ -100,6 +101,7 @@ export default function App() {
   const [displayPx, setDisplayPx] = useState(560);
   const [splitVisits, setSplitVisits] = useState(false);
   const [ghostVisits, setGhostVisits] = useState(false);
+  const [spotMover, setSpotMover] = useState(false);
   const [demoPhase, setDemoPhase] = useState<DemoPhase>("idle");
   const [demoLine, setDemoLine] = useState("");
   const [showBriefing, setShowBriefing] = useState(() => {
@@ -165,7 +167,10 @@ export default function App() {
         return;
       }
 
-      const preferred = exposures.filter((e) => e.detector === 2);
+      // Tommy bridge: WISE 0855 needs det 6 first; otherwise det 2; concurrency ≤ 12.
+      const preferDet =
+        targetKey === "wise0855" || /wise\s*0855/i.test(t.name ?? "") ? 6 : 2;
+      const preferred = exposures.filter((e) => e.detector === preferDet);
       const queue =
         preferred.length > 0
           ? preferred
@@ -217,7 +222,7 @@ export default function App() {
               : prev,
           );
         },
-        { signal },
+        { concurrency: 12, signal },
       );
 
       const finalBundle: Bundle = {
@@ -569,6 +574,7 @@ export default function App() {
         e.preventDefault();
         setBlinkPasses(false);
         setGhostVisits(false);
+        setSpotMover(false);
         setSplitVisits((v) => !v);
         patchView({ playing: false, mode: "single" });
       }
@@ -576,7 +582,16 @@ export default function App() {
         e.preventDefault();
         setBlinkPasses(false);
         setSplitVisits(false);
+        setSpotMover(false);
         setGhostVisits((v) => !v);
+        patchView({ playing: false, mode: "single" });
+      }
+      if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        setBlinkPasses(false);
+        setSplitVisits(false);
+        setGhostVisits(false);
+        setSpotMover((v) => !v);
         patchView({ playing: false, mode: "single" });
       }
     }
@@ -670,7 +685,7 @@ export default function App() {
 
   const visitStacks = useMemo(() => {
     if (load.status !== "ready" || passes.length < 2) return null;
-    if (!splitVisits && !ghostVisits) return null;
+    if (!splitVisits && !ghostVisits && !spotMover) return null;
     const a = passes[0]!;
     const b = passes[passes.length - 1]!;
     const pool = forDifference;
@@ -694,10 +709,11 @@ export default function App() {
       view.contrast,
     );
     return { a, b, stackA, stackB, limits, size: load.data.grid.size };
-  }, [load, splitVisits, ghostVisits, passes, forDifference, view.contrast]);
+  }, [load, splitVisits, ghostVisits, spotMover, passes, forDifference, view.contrast]);
 
   const splitStacks = splitVisits ? visitStacks : null;
   const ghostStacks = ghostVisits ? visitStacks : null;
+  const spotStacks = spotMover ? visitStacks : null;
 
   async function onSearch(e: FormEvent) {
     e.preventDefault();
@@ -880,7 +896,7 @@ export default function App() {
             </div>
             <div className="stage-actions">
               <p className="kbd-hint" title="Keyboard shortcuts">
-                J · G · S · B · D · F
+                J · G · M · S · B · D · F
               </p>
               {targetByKey(view.targetKey)?.ra != null && (
                 <button
@@ -922,6 +938,29 @@ export default function App() {
               </div>
             )}
             {load.status === "error" && <div className="status-banner error">{load.message}</div>}
+
+            {spotStacks && load.status === "ready" && (
+              <SpotTheMover
+                size={spotStacks.size}
+                lo={spotStacks.limits.lo}
+                hi={spotStacks.limits.hi}
+                colorMap={view.colorMap}
+                displayPx={displayPx}
+                grid={load.data.grid}
+                early={{
+                  pixels: spotStacks.stackA.pixels,
+                  mask: spotStacks.stackA.mask,
+                  label: `Visit ${spotStacks.a}`,
+                }}
+                late={{
+                  pixels: spotStacks.stackB.pixels,
+                  mask: spotStacks.stackB.mask,
+                  label: `Visit ${spotStacks.b}`,
+                }}
+                trail={trail}
+                onExit={() => setSpotMover(false)}
+              />
+            )}
 
             {ghostStacks && (
               <GhostVisits
@@ -979,6 +1018,7 @@ export default function App() {
 
             {!splitStacks &&
               !ghostStacks &&
+              !spotStacks &&
               display &&
               view.mode === "single" &&
               display.kind === "single" && (
@@ -999,6 +1039,7 @@ export default function App() {
 
             {!splitStacks &&
               !ghostStacks &&
+              !spotStacks &&
               display &&
               view.mode === "difference" &&
               display.kind === "difference" &&
@@ -1021,6 +1062,7 @@ export default function App() {
 
             {!splitStacks &&
               !ghostStacks &&
+              !spotStacks &&
               display &&
               (view.mode === "stack" || view.mode === "track") &&
               display.kind === "compose" && (
@@ -1076,6 +1118,7 @@ export default function App() {
                   onClick={() => {
                     setBlinkPasses(false);
                     setSplitVisits(false);
+                    setSpotMover(false);
                     setGhostVisits((v) => !v);
                     patchView({ playing: false, mode: "single" });
                   }}
@@ -1084,11 +1127,26 @@ export default function App() {
                 </button>
                 <button
                   type="button"
+                  className={spotMover ? "active" : ""}
+                  disabled={passes.length < 2 || trail.length < 2}
+                  onClick={() => {
+                    setBlinkPasses(false);
+                    setSplitVisits(false);
+                    setGhostVisits(false);
+                    setSpotMover((v) => !v);
+                    patchView({ playing: false, mode: "single" });
+                  }}
+                >
+                  Spot the mover
+                </button>
+                <button
+                  type="button"
                   className={splitVisits ? "active" : ""}
                   disabled={passes.length < 2}
                   onClick={() => {
                     setBlinkPasses(false);
                     setGhostVisits(false);
+                    setSpotMover(false);
                     setSplitVisits((v) => !v);
                     patchView({ playing: false, mode: "single" });
                   }}

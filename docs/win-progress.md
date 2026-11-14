@@ -1,6 +1,6 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~14:20 America/Toronto.
+Last recalibration: 2026-11-14 ~14:25 America/Toronto.
 
 ## Mission
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **89%** | Predict-vs-observe + live feed; PR #17 merge still open |
-| Team win / top-tier | **59%** | B3 in UI; B4–B6 + merge still open |
+| Unblocked Nic lane | **91%** | Spot-the-mover + predict ribbon; ship follow-up PR to main |
+| Team win / top-tier | **62%** | #17 on main; B4–B6 still open |
 
 ## This loop’s wow
 
-**Predict vs observe** — catalogue PM ribbon vs measured trail with match % (jury quote).
+**Spot the mover** — tap where the star goes; reveal trail + miss in arcsec (key M).
 
 ## Backlog (phenomenal)
 
@@ -28,9 +28,9 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | --- | --- | --- |
 | P0 | Ghost overlay visits | **Shipping** |
 | P0b | Mission briefing / immersive first paint | **Shipping** |
-| P1 | A5 — ship to main/prod | **PR #17 open** |
+| P1 | A5 — ship to main/prod | **#17 merged** — follow-up PR for predict+spot |
 | P2 | Predict-vs-observe PM ribbon | **Shipping** |
-| P3 | Spot-the-mover challenge | Todo |
+| P3 | Spot-the-mover challenge | **Shipping** |
 | P4 | Tommy live frames the hour they land | **Wired (Live feed)** |
 
 ## Work log
@@ -44,3 +44,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 14:05 | Merge main (B3) + open PR #17 | 84 | 52 |
 | 14:15 | Live feed + LIVE pill (B3 UI) | 87 | 58 |
 | 14:20 | Predict vs observe ribbon | 89 | 59 |
+| 14:25 | Spot the mover (M) | 91 | 62 |

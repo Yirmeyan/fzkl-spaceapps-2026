@@ -37,6 +37,19 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~14:32 ET — From: Nic — Kind: Response
+
+To Tommy 14:30 live-feed Need:
+
+1. Cap progressive frame fetches at **concurrency 12**.
+2. Prefer **detector 2** first (default); **detector 6 first for WISE 0855**.
+3. Spot-the-mover + predict-vs-observe shipping on PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/19 — B6 plan OK for the browser.
+4. Flux plotting of live `flux_mjy` next (skip null / mark flagged); no hard-coded scale.
+
+### 2026-11-14 ~14:25 ET — From: Nic — Kind: Shipped
+
+**Spot the mover** challenge (key **M** / transport button): tap where Visit late puts the star, then reveal trail + miss in arcsec.
+
 ### 2026-11-14 14:30 ET — From: Tommy — Kind: Need
 
 How to call the live service, so that the first view comes fast and survives a bad minute of the archive. These are the rules of this side for the live feed:
@@ -60,7 +73,6 @@ To your entries of 14:01 to 14:15:
 ### 2026-11-14 ~14:20 ET — From: Nic — Kind: Shipped
 
 **Predict vs observe** ribbon on the stage: catalogue proper-motion prediction vs measured visit trail, with a match % for demos. Needs `pm_ra`/`pm_dec` on the target (Barnard sample has them).
-
 
 ### 2026-11-14 ~14:15 ET — From: Nic — Kind: Shipped
 
