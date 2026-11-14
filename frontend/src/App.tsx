@@ -1088,30 +1088,39 @@ export default function App() {
               <p className="kbd-hint" title="Keyboard shortcuts">
                 J · G · S · B · D · F
               </p>
-              {targetByKey(view.targetKey)?.ra != null && (
-                <button
-                  type="button"
-                  className="ghost"
-                  disabled={load.status === "loading"}
-                  title="Reload cutouts from the SPHEREx survey archive (past visits). Not a real-time telescope feed."
-                  onClick={() => {
-                    const ac = new AbortController();
-                    void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
-                      (err) => {
-                        const message =
-                          err instanceof ApiError
-                            ? err.message
-                            : err instanceof Error
+              {(() => {
+                const known = targetByKey(view.targetKey);
+                // Hide when the offline sample already covers this target (same visits today).
+                // Show for archive-only targets (e.g. WISE 0855) or to refresh an archive load.
+                const showArchive =
+                  known?.ra != null &&
+                  (!known.bundleUrl || (load.status === "ready" && load.source === "live"));
+                if (!showArchive) return null;
+                return (
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={load.status === "loading"}
+                    title="Load cutouts from the SPHEREx survey archive (past visits). Same data as the sample when both cover these visits — useful for targets without a sample file."
+                    onClick={() => {
+                      const ac = new AbortController();
+                      void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
+                        (err) => {
+                          const message =
+                            err instanceof ApiError
                               ? err.message
-                              : "Could not load from the SPHEREx archive";
-                        setLoad({ status: "error", message });
-                      },
-                    );
-                  }}
-                >
-                  Load from archive
-                </button>
-              )}
+                              : err instanceof Error
+                                ? err.message
+                                : "Could not load from the SPHEREx archive";
+                          setLoad({ status: "error", message });
+                        },
+                      );
+                    }}
+                  >
+                    Load from archive
+                  </button>
+                );
+              })()}
               <button
                 type="button"
                 className="primary"
