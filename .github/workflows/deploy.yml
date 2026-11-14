@@ -100,8 +100,9 @@ jobs:
             --image="$IMAGE" \
             --service-account="$GCP_RUNTIME_SERVICE_ACCOUNT" \
             --env-vars-file="$variables" \
-            --cpu=1 \
+            --cpu=2 \
             --memory=1Gi \
+            --execution-environment=gen2 \
             --min-instances=0 \
             --max-instances=3 \
             --concurrency=20 \

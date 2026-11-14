@@ -77,8 +77,9 @@ def measure(
     circle = weights > 0
     if saturated[circle].any():
         return _without_value("saturated")
-    usable = np.isfinite(image) & np.isfinite(variance) & ~no_value
-    if not usable[circle].all():
+    usable = np.isfinite(image) & ~no_value
+    # The variance only matters inside the circle: the caller may give it there alone.
+    if not (usable[circle].all() and np.isfinite(variance[circle]).all()):
         return _without_value("masked")
 
     distance = np.hypot(np.arange(width)[None, :] - x, np.arange(height)[:, None] - y)

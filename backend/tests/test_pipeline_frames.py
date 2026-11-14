@@ -131,6 +131,23 @@ def test_target_is_measured_on_the_original_pixels():
     assert frame.photometry.flux_mjy == pytest.approx(inside * total, rel=0.03)
 
 
+def test_variance_is_read_under_the_circle_of_the_measurement_only():
+    content = build_level2_file(image=sky_with(STAR), flags=no_flags())
+    storage = FakeStorage({KEY: content})
+    reader = Level2Reader(storage)
+
+    asyncio.run(build_frame(reader, EXPOSURE_ID, Target(ra=STAR[0], dec=STAR[1]), GRID))
+
+    layout = asyncio.run(reader.layout(EXPOSURE_ID))
+    variance_reads = [
+        length for _, start, length in storage.reads if start >= layout.variance_start
+    ]
+    # Layout, then the image, the flags, the wavelength table and the variance.
+    assert len(storage.reads) == 7
+    # Eight rows at most around a circle of 2.5 pixels in radius.
+    assert len(variance_reads) == 1 and variance_reads[0] <= 8 * WIDTH * 4
+
+
 def test_moving_target_is_measured_where_it_was_at_the_date_of_the_exposure():
     content = build_level2_file(image=sky_with(STAR), flags=no_flags())
     years = (MJD - 51544.5) / 365.25

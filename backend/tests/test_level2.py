@@ -76,6 +76,27 @@ def test_window_is_identical_to_what_astropy_reads(content, window):
     assert np.array_equal(raw.flags, expected["FLAGS"].data[rows, columns])
 
 
+def test_window_without_its_variance_costs_one_read_less(content):
+    reader, storage = reader_of(content)
+
+    raw = asyncio.run(reader.read_window(EXPOSURE_ID, Window(10, 20, 40, 50), with_variance=False))
+
+    assert raw.variance is None
+    assert len(storage.reads) == LAYOUT_READS + WINDOW_READS - 1
+
+
+def test_variance_alone_is_identical_to_what_astropy_reads(content):
+    reader, storage = reader_of(content)
+    expected = reference(content)["VARIANCE"].data
+
+    variance = asyncio.run(reader.read_variance(EXPOSURE_ID, Window(30, 40, 37, 47)))
+
+    assert np.array_equal(variance, expected[40:47, 30:37])
+    assert len(storage.reads) == LAYOUT_READS + 1
+    with pytest.raises(ValueError, match="outside"):
+        asyncio.run(reader.read_variance(EXPOSURE_ID, Window(0, 0, WIDTH + 1, 5)))
+
+
 def test_pixel_without_value_and_flagged_row_survive_the_reading(content):
     raw = read(content, Window(0, 0, WIDTH, HEIGHT))
 
