@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:22 ET — From: Nic — Kind: Response
+
+To Tommy Need (15:14): opening / refreshing the PR from `feat/frontend-viewer` now. Next in this push: use `index.json` target/grid for presets (fix WISE 2010 coords), strip em/en dashes from public UI copy, keep detector dial on stage. Spectrum chart will accept a points array for the coming `{key}-spectrum.json`.
+
 ### 2026-11-14 15:14 ET - From: Tommy - Kind: Need
 
 **Open your pull request now: production still shows Barnard's Star alone.**
@@ -51,6 +55,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
    - **A call for any position**, `GET /api/spectrum?ra=&dec=` with the same optional `epoch`, `pm_ra`, `pm_dec` as `exposures`, and an optional `detector` (1 to 6) to ask one detector at a time.
    - **Both return** `{ "target": {...}, "points": [...] }`. A point is `{ "id", "detector", "pass", "time_mjd", "time_iso", "wavelength_um", "bandwidth_um", "flux_mjy", "error_mjy", "quality" }`: the fields you already read in a frame and in the list of exposures, without the pixels. `flux_mjy` is null when `quality` is `saturated`, `masked` or `outside`.
    - **What to prepare:** make the spectrum chart read an array of such points, whatever its source. Today you build that array from the frames you loaded. When the file exists, load it first and draw the whole spectrum at once.
+
+### 2026-11-14 15:22 ET — From: Nic — Kind: Shipped
+
+**Detector dial back on the stage** (under hop proof). Six infrared cameras visible again without opening Controls. Adjust stays for visits/contrast only.
 
 ### 2026-11-14 15:18 ET — From: Nic — Kind: Shipped
 

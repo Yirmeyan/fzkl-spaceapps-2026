@@ -58,9 +58,7 @@ export function DetectorDial({ bands, active, onPick }: DetectorDialProps) {
           );
         })}
       </div>
-      <p className="detector-dial-hint">
-        SPHEREx sees in six infrared colors — tap a camera to isolate one.
-      </p>
+      <p className="detector-dial-hint">Six infrared eyes — tap one camera.</p>
     </section>
   );
 }

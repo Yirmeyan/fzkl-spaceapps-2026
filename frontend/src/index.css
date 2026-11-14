@@ -1001,9 +1001,10 @@ select {
 
 .detector-dial {
   width: 100%;
-  max-width: 32rem;
-  margin: 0.15rem auto 0;
-  padding: 0.25rem 0 0;
+  max-width: none;
+  margin: 0.25rem 0 0;
+  padding: 0.35rem 0.15rem 0.15rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .detector-dial-head {
@@ -1097,8 +1098,8 @@ select {
 }
 
 .detector-dial-hint {
-  margin: 0.4rem 0 0;
-  text-align: center;
+  margin: 0.35rem 0 0;
+  text-align: left;
   font-size: 0.72rem;
   color: #93a4b8;
 }

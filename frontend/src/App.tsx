@@ -1573,6 +1573,16 @@ export default function App() {
             </div>
           )}
 
+          {detectorBands.length > 1 && (
+            <DetectorDial
+              bands={detectorBands}
+              active={view.detector}
+              onPick={(detector) => {
+                patchView({ detector, frameIndex: 0, playing: false });
+              }}
+            />
+          )}
+
           {display && view.mode === "single" && display.kind === "single" && !blinkPasses && (
             <>
               {!overlayActive && (
@@ -1680,16 +1690,6 @@ export default function App() {
                 }}
               />
             </div>
-          )}
-
-          {detectorBands.length > 1 && (
-            <DetectorDial
-              bands={detectorBands}
-              active={view.detector}
-              onPick={(detector) => {
-                patchView({ detector, frameIndex: 0, playing: false });
-              }}
-            />
           )}
 
           <div className="control-panel">
