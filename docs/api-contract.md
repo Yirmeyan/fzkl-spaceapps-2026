@@ -201,7 +201,7 @@ Lists the SPHEREx exposures that cover the target, and sets the grid of the view
 - A place SPHEREx never observed gives an empty list. It is not an error.
 - The center of the grid is the position of the target at the middle of the period covered by the list. For an object with no proper motion, it is the position that was asked.
 - For Barnard's Star, the list holds 364 exposures in 3 passes, 59 to 62 per detector.
-- The archive usually answers in 2 seconds and sometimes in 20. The service waits up to 45 seconds in total, then answers 503 with a `Retry-After` header.
+- The archive usually answers in 2 seconds and sometimes in 20. It also fails in bursts of a few seconds, and the service then tries again, which can add up to 12 seconds. The service waits up to 45 seconds in total, then answers 503 with a `Retry-After` header.
 
 Passes are what reveals a moving object: it is at the same place within a pass and at another place in the next one.
 
