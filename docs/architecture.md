@@ -114,7 +114,8 @@ Python service, in `backend/`:
 | `frames` | Pure functions that turn raw pixels into a frame: pixel window, mask, alignment on the common grid, wavelength, date | Network access |
 | `photometry` | Pure functions that measure the flux and its uncertainty at one point of an exposure | HTTP, the archive |
 | `detection` | Pure functions that follow every source of a view from one visit to the next and keep those that moved or changed. A star too bright to be measured is followed through its halo. Added after the MVP: see [Candidates](api-contract.md#candidates) | HTTP, the archive, the sky: it counts in pixels of the grid |
-| `targets` | Resolves a name, propagates a proper motion to a date, and tells where the parallax puts a nearby object. After the MVP: queries Gaia | Images |
+| `targets` | Resolves a name, propagates a proper motion to a date, and tells where the parallax puts a nearby object | Images |
+| `catalogs` | Asks VizieR for the sources of Gaia DR3 and of AllWISE around a place, reads its answer, remembers it for a day, and goes to a mirror when a site fails | What a source means for a view: that is the `pipeline` |
 | `config` | Reads settings from environment variables | Hard-coded values elsewhere |
 
 Browser, in `frontend/src/`:
@@ -145,7 +146,7 @@ The contract is three calls and one unit of data, the frame. It is written in fu
 | `GET /api/frames/{id}?ra=&dec=` | One frame | 0.4 s | 1 day while the pipeline changes, much longer once it is frozen |
 | `GET /api/health` | Service status | Immediate | None |
 
-After the MVP, `GET /api/catalog?ra=&dec=&radius=&epoch=` will return Gaia sources already moved to the requested date.
+Added after the MVP: `GET /api/spectrum`, `GET /api/candidates` and `GET /api/catalog`, which lists the sources of Gaia DR3 and of AllWISE inside a view. A source comes with its motion, as a target does, and the browser moves it to the date of each frame. See the [contract](api-contract.md#calls).
 
 The main fields of a frame, with the values of the sample file:
 
@@ -249,7 +250,7 @@ The MVP has 17 steps. Each one is a short branch, a pull request and a validatio
 | F7 | Nicolas | Default settings, the five targets in one click, help texts | An outsider sees Barnard's Star move without any explanation |
 | P1 | Both | README, sources and licenses, AI disclosure, 7 slides or a 30 second video, submission form | Every link opens without signing in |
 
-After the MVP come B8, the Gaia catalog on the service side, then F8, its overlay in the viewer.
+After the MVP came B8, the catalogs on the service side, Gaia DR3 and AllWISE. F8, their overlay in the viewer, follows.
 
 Five milestones, in Montréal time:
 
@@ -298,6 +299,7 @@ S3 also accepts direct requests from a browser. This is a way out if no host fit
 - SPHEREx files on Amazon S3: IRSA cloud data access, https://irsa.ipac.caltech.edu/cloud_access/
 - IRSA SPHEREx tutorials: https://caltech-ipac.github.io/irsa-tutorials/spherex/
 - CDS Sesame name resolver, Strasbourg astronomical Data Center: https://cds.unistra.fr/cgi-bin/nph-sesame
+- VizieR catalog service of the CDS, for Gaia DR3 and AllWISE: https://vizier.cds.unistra.fr/
 - WiseView, the reference tool for WISE: http://byw.tools/wiseview
 - Hosting facts: the pages linked in the hosting table, read on November 14, 2026.
 

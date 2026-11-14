@@ -11,6 +11,7 @@ from astropy.io import fits
 
 from conftest import BARNARD
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive, Window, key_from_id
+from spherex_explorer.catalogs import CATALOGS, VizierCatalogs
 from spherex_explorer.config import Settings
 from spherex_explorer.frames import Grid
 from spherex_explorer.pipeline import build_frame, list_exposures
@@ -164,3 +165,27 @@ def test_barnards_star_is_resolved_to_the_target_of_the_sample():
     assert target.epoch == BARNARD["epoch"]
     assert target.pm_ra == pytest.approx(BARNARD["pm_ra"], abs=0.5)
     assert target.pm_dec == pytest.approx(BARNARD["pm_dec"], abs=0.5)
+
+
+def test_barnards_star_is_the_brightest_source_of_gaia_and_of_allwise_around_it():
+    settings = Settings(_env_file=None)
+
+    async def run():
+        async with httpx2.AsyncClient() as client:
+            service = VizierCatalogs(
+                client, urls=settings.catalog_url_list, timeout_s=settings.catalog_timeout_s
+            )
+            return [await service.around(catalog, 269.4485, 4.7394, 0.05) for catalog in CATALOGS]
+
+    gaia, allwise = asyncio.run(run())
+
+    star = gaia.sources[0]
+    assert star.id == "Gaia DR3 4472832130942575872"
+    assert (star.pm_ra, star.pm_dec) == pytest.approx((-801.551, 10362.394), abs=0.01)
+    assert star.parallax == pytest.approx(546.98, abs=0.01)
+    assert dict(star.magnitudes)["G"] == pytest.approx(8.19, abs=0.01)
+    # WISE saw it five and a half years earlier, 58 arcseconds to the south.
+    seen = allwise.sources[0]
+    assert seen.id == "J175747.94+044323.8"
+    assert (star.dec - seen.dec) * 3600 == pytest.approx(5.6 * 10.36, abs=4.0)
+    assert dict(seen.magnitudes)["W2"] < 5

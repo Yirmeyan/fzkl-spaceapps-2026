@@ -91,3 +91,6 @@ Every setting is an environment variable that starts with `SPX_`. Copy `.env.exa
 | `SPX_STORAGE_CONCURRENCY` | `32` | Most reads in flight at once, all requests together |
 | `SPX_RESOLVER_URLS` | The mirror of the CDS at Harvard, then the CDS | Addresses of the Sesame name resolver, tried in this order, separated by commas |
 | `SPX_RESOLVER_TIMEOUT_S` | `10` | Longest wait for one answer of the name resolver, in seconds |
+| `SPX_CATALOG_URLS` | The mirror of VizieR at Harvard, then the CDS | Addresses of the VizieR catalog service, tried in this order, separated by commas |
+| `SPX_CATALOG_TIMEOUT_S` | `8` | Longest wait for one answer of the catalog service, in seconds. Each site is asked twice before the service answers 503 |
+| `SPX_CATALOG_LIMIT` | `300` | Most sources kept per catalog and per view, the brightest first |

@@ -9,13 +9,20 @@ class UpstreamError(Exception):
 
 
 class UpstreamUnavailable(Exception):
-    """An outside service did not answer. The same request may succeed later."""
+    """An outside service did not answer. The same request may succeed later.
 
-    def __init__(self, service: str, reason: str, retry_after_s: int) -> None:
+    `public` is the sentence a client may read, when the service that failed is not the
+    SPHEREx archive. The reason stays in the logs.
+    """
+
+    def __init__(
+        self, service: str, reason: str, retry_after_s: int, public: str | None = None
+    ) -> None:
         super().__init__(f"{service} is unavailable: {reason}")
         self.service = service
         self.reason = reason
         self.retry_after_s = retry_after_s
+        self.public = public
 
 
 class NotFound(Exception):
