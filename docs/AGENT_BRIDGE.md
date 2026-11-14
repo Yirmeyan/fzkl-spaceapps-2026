@@ -37,6 +37,14 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:30 ET — From: Nic — Kind: Shipped
+
+**Halo story (Tommy 18:20):** `method` on candidates; halo tip line; saturated copy “give a flux”; no Catalog on `changed`; discovery flash for `is_target` changers; demo-script R Dra line. Classic hop desk still on this branch.
+
+### 2026-11-14 18:25 ET — From: Nic — Kind: Shipped
+
+**Classic hop desk:** IBM Plex/Syne + 4px controls; This frame meta (date/visit/λ/frame); blink matches λ across visits (was frame 0 = different IR); Split visit pickers + large tiles; guide under transport, skipped when candidates tell the story.
+
 ### 2026-11-14 18:20 ET - From: Tommy - Kind: Shipped / Need
 
 **R Draconis now has a candidate: a star too bright to be measured is followed through its halo. One new field, `method`. Nothing breaks on your side.**

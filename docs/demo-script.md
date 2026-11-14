@@ -22,11 +22,11 @@ Goal: anyone non-technical sees **real stellar motion** and **real spectra** wit
 
 1. **(0–10 s) Barnard's Star hops** — preset loaded; **Play**, then blink visits (**B**) so the bright core jumps while the background stays. Point at the catalog track and the candidates panel: measured rate next to `Catalog: …″ per year`.
 2. **(10–20 s) Epsilon Indi B spectrum** — switch to **Epsilon Indi B**. Unsaturated; open the spectrum chart (log y when the range is wide). One short line: “nearby brown dwarf, real SPHEREx flux.”
-3. **(20–30 s) RW Aurigae changes** — switch to **RW Aurigae**. Step Visit 1 → 2 → 3 (or pass tabs): brightness / shape change across passes. Optional: candidates “changed” line if the panel lists it.
+3. **(20–30 s) RW Aurigae or R Draconis** — **RW Aurigae**: step Visit 1 → 2 → 3; candidates “changed” line. **R Draconis**: too bright for SPHEREx to measure, and the tool still tells it faded by half in a year, from its halo.
 
 Backup if “is this fake?”: “NASA SPHEREx cutouts; orange marks are catalogue or measured positions on the same grid.”
 
-Deep links for cut takes: `?target=barnard`, `?target=epsindi`, `?target=rwaur` (plus `demo=1` on Barnard for the auto walkthrough).
+Deep links for cut takes: `?target=barnard`, `?target=epsindi`, `?target=rwaur`, `?target=rdra` (plus `demo=1` on Barnard for the auto walkthrough).
 
 ## 7-slide outline (P1)
 
@@ -35,7 +35,7 @@ Deep links for cut takes: `?target=barnard`, `?target=epsindi`, `?target=rwaur` 
 3. Demo — Barnard's Star hops (`?demo=1`), then Epsilon Indi B spectrum, then RW Aurigae across three passes
 4. How it works — browser compose + Cloud Run frames, resolve, spectrum, candidates
 5. SPHEREx-aware — wavelength, passes, saturated cores honest, wider field on demand
-6. What we shipped — five live presets, any-sky resolve, spectrum in one request, candidates that match the catalog, shareable URLs
+6. What we shipped — five live presets each with a result (including R Dra via its halo), any-sky resolve, spectrum in one request, candidates that match the catalog, shareable URLs
 7. Team / AI disclosure / links / AGPL
 
 ## Do not say

@@ -63,6 +63,9 @@ export function CandidatesPanel({
                     {c.is_target ? " · you asked for this" : " · other object"}
                   </span>
                   <span className="candidates-line">{lines.what}</span>
+                  {lines.howMeasured && (
+                    <span className="candidates-line candidates-line-halo">{lines.howMeasured}</span>
+                  )}
                   {lines.howFar && <span className="candidates-line">{lines.howFar}</span>}
                   <span className="candidates-line candidates-line-sure">{lines.sure}</span>
                   {lines.catalog && (
@@ -89,7 +92,7 @@ export function CandidatesPanel({
       )}
       {data.saturated.length > 0 && (
         <p className="candidates-sat">
-          Too bright for SPHEREx to measure here ({data.saturated.length} saturated
+          Too bright for SPHEREx to give a flux here ({data.saturated.length} saturated
           {data.saturated.length === 1 ? " star" : " stars"}).
         </p>
       )}

@@ -9,7 +9,7 @@ interface FrameCaptionProps {
   hasCatalogMotion?: boolean;
 }
 
-/** Friendly live readout under the sky stage. */
+/** Classic live readout under the sky: visit, date, frame, infrared color. */
 export function FrameCaption({
   frames,
   frameIndex,
@@ -51,13 +51,16 @@ export function FrameCaption({
       <p className="frame-caption-now">
         {dateLabel}
         <span className="frame-caption-sep">·</span>
-        Infrared color {cur.frame.wavelength_um.toFixed(2)} µm
+        Frame {frameIndex + 1} of {frames.length}
+        <span className="frame-caption-sep">·</span>
+        {cur.frame.wavelength_um.toFixed(2)} µm
+        <span className="frame-caption-sep">·</span>
+        Detector {cur.exposure.detector}
       </p>
       <p className="frame-caption-span">
-        Frame {frameIndex + 1} of {frames.length}. Bright blob = the star (often too bright for the
-        camera).
+        Bright blob = the star (often too bright for the camera).
         {hasCatalogMotion
-          ? " Numbered dots = where it was on each visit."
+          ? " Numbered dots = where the catalog puts it on each visit."
           : " No catalog path is drawn for this place."}
       </p>
     </div>
