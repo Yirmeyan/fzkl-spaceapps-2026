@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Classic compact desk** — human override: restore the first centered layout. One viewport, no page scroll, dark NASA style, square stage + right rail. Clarity over cinema sprawl.
+**Shareable sky addresses** — on the compact desk: `?target=` / `?ra=&dec=` (+ detector, mode, epoch, PM) so a copied link opens the same view (Tommy item 4).
 
 ## Backlog (phenomenal)
 

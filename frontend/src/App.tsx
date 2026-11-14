@@ -36,6 +36,7 @@ import {
   clearSampleIndexCache,
   detectorBundleUrl,
   fetchSampleIndex,
+  INDEX_KEY_BY_UI,
   orderedDetectors,
   sampleTargetByUiKey,
   spectrumFileUrl,
@@ -44,7 +45,13 @@ import { KNOWN_TARGETS, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
 import { fetchSpectrumFile, type SpectrumPoint } from "./spectrum/spectrumPoints";
 import { wavelengthHue } from "./spectrum/waveHue";
-import { readSkyFromUrl, readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
+import {
+  readSkyFromUrl,
+  readViewFromUrl,
+  type TargetExtras,
+  type ViewState,
+  writeViewToUrl,
+} from "./state/url";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
 import { type DetectorBand, DetectorDial } from "./ui/DetectorDial";
 import { FrameCaption } from "./ui/FrameCaption";
@@ -115,6 +122,9 @@ export default function App() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [spectrumWaiting, setSpectrumWaiting] = useState(false);
+  const [skyTarget, setSkyTarget] = useState<TargetExtras | null>(() => readSkyFromUrl());
+  const skyTargetRef = useRef(skyTarget);
+  skyTargetRef.current = skyTarget;
   const [displayPx, setDisplayPx] = useState(400);
   const [splitVisits, setSplitVisits] = useState(false);
   const [ghostVisits, setGhostVisits] = useState(false);
@@ -155,7 +165,11 @@ export default function App() {
     const url = new URL(window.location.href);
     url.search = "";
     url.searchParams.set("demo", "1");
-    url.searchParams.set("target", view.targetKey || "barnard");
+    const indexKey =
+      view.targetKey === "custom"
+        ? null
+        : (INDEX_KEY_BY_UI[view.targetKey || "barnard"] ?? (view.targetKey || "barnard-star"));
+    if (indexKey) url.searchParams.set("target", indexKey);
     const href = url.toString();
     void navigator.clipboard.writeText(href).then(() => {
       setLinkCopied(true);
@@ -168,13 +182,18 @@ export default function App() {
   const patchView = useCallback((partial: Partial<ViewState>) => {
     setView((prev) => {
       const next = { ...prev, ...partial };
-      writeViewToUrl(next);
+      writeViewToUrl(next, true, skyTargetRef.current);
       return next;
     });
   }, []);
 
   useEffect(() => {
-    const onPop = () => setView(readViewFromUrl());
+    const onPop = () => {
+      const next = readViewFromUrl();
+      setView(next);
+      setSkyTarget(readSkyFromUrl());
+      setSearchInput(next.query);
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -205,6 +224,20 @@ export default function App() {
       setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
       setSpectrumPoints(null);
       setSpectrumWaiting(true);
+      if (targetKey === "custom") {
+        const extras: TargetExtras = {
+          ra: target.ra,
+          dec: target.dec,
+          epoch: target.epoch ?? 2000,
+          pm_ra: target.pm_ra ?? null,
+          pm_dec: target.pm_dec ?? null,
+        };
+        skyTargetRef.current = extras;
+        setSkyTarget(extras);
+      } else {
+        skyTargetRef.current = null;
+        setSkyTarget(null);
+      }
       // Spectrum in parallel with exposures/frames (chart waits separately, images do not).
       const spectrumTask = fetchSpectrum(target, {}, signal)
         .then((res) => {
@@ -361,6 +394,8 @@ export default function App() {
         return;
       }
       setSpectrumPoints(null);
+      skyTargetRef.current = null;
+      setSkyTarget(null);
       clearSampleIndexCache();
 
       // Tommy Need: target/grid come from index.json (correct epoch + PM), not stale targets.ts.
