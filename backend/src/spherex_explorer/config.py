@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     storage_attempts: int = Field(default=3, ge=1, le=10)
     storage_concurrency: int = Field(default=32, ge=1, le=256)
 
+    # Name resolver of the CDS: its mirror at Harvard first, the closest to the service,
+    # then the main site in Strasbourg when the mirror fails.
+    resolver_urls: str = (
+        "https://vizier.cfa.harvard.edu/viz-bin/nph-sesame,"
+        "https://cds.unistra.fr/cgi-bin/nph-sesame"
+    )
+    resolver_timeout_s: float = Field(default=10.0, gt=0, le=60)
+
     @field_validator("log_level")
     @classmethod
     def _normalize_log_level(cls, value: str) -> str:
@@ -93,6 +101,22 @@ class Settings(BaseSettings):
         if not _STORAGE_NAME.fullmatch(value):
             raise ValueError(f"not a bucket or region name: {value!r}")
         return value
+
+    @field_validator("resolver_urls")
+    @classmethod
+    def _check_resolver_urls(cls, value: str) -> str:
+        urls = _split(value)
+        if not urls:
+            raise ValueError("at least one resolver address is needed")
+        for url in urls:
+            if not url.startswith(("http://", "https://")) or "?" in url:
+                raise ValueError(f"not a resolver address: {url!r}")
+        return value
+
+    @property
+    def resolver_url_list(self) -> list[str]:
+        """Addresses of the name resolver, in the order they are tried."""
+        return _split(self.resolver_urls)
 
     @property
     def storage_url(self) -> str:

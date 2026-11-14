@@ -5,7 +5,7 @@ The agreement between the Python service (`backend/`) and the browser (`frontend
 - **Version:** 1, written at step S1 of the [architecture plan](architecture.md).
 - **Changes:** through a pull request approved by the other teammate.
 - **Compatibility:** fields can be added at any time, so a client ignores the fields it does not know. Renaming or removing a field changes `version`.
-- **Status:** the service answers `GET /api/health`, `GET /api/exposures` and `GET /api/frames/{id}` today. `GET /api/resolve` arrives with step B5 and will follow this document.
+- **Status:** the service answers the four calls of this document.
 
 ## The idea in one minute
 
@@ -156,7 +156,12 @@ Turns a name into a target, through the CDS Sesame name resolver.
 }
 ```
 
-`name` is the name that was asked. An unknown name is a `not_found` error.
+`name` is the name that was asked, with its spaces tidied. An unknown name is a `not_found` error.
+
+- The position is the one of the year 2000, as SIMBAD gives it. A fast object is elsewhere today: `exposures` and `frames` move it with `pm_ra` and `pm_dec`.
+- `pm_ra` and `pm_dec` are `null` when the catalog gives no proper motion, for a galaxy for example.
+- The catalogs know designations, not nicknames. `WISE J085510.83-071442.5` is found, `WISE 0855` is not.
+- A name already asked is answered from the memory of the service. A new one takes 0.4 to 1.2 s, and an unknown one up to 5 s.
 
 ### `GET /api/exposures`
 
