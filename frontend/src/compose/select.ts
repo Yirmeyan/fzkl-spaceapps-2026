@@ -36,3 +36,26 @@ export function filterByWavelength(
     return true;
   });
 }
+
+/**
+ * Keep frames near a reference wavelength.
+ * Forum / challenge guidance: blink at matched λ so spectrum is not mistaken for motion.
+ */
+export function filterNearWavelength(
+  frames: DecodedFrame[],
+  waveUm: number | null,
+  tolUm: number,
+): DecodedFrame[] {
+  if (waveUm == null) return frames;
+  const tol = Math.max(tolUm, 0);
+  return frames.filter((f) => Math.abs(f.frame.wavelength_um - waveUm) <= tol);
+}
+
+/** Scale display limits: contrast > 1 tightens the asinh window (more punch). */
+export function applyContrast(
+  limits: { lo: number; hi: number },
+  contrast: number,
+): { lo: number; hi: number } {
+  const c = Math.max(0.25, Math.min(contrast, 8));
+  return { lo: limits.lo / c, hi: limits.hi / c };
+}

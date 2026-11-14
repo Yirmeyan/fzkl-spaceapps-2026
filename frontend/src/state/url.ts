@@ -12,6 +12,12 @@ export interface ViewState {
   diffPassB: number;
   showHelp: boolean;
   query: string;
+  /** Reference wavelength in µm for matched blinking; null = all λ */
+  waveUm: number | null;
+  /** Half-width of the wavelength match window in µm */
+  waveTolUm: number;
+  /** Display contrast (>1 = tighter asinh window) */
+  contrast: number;
 }
 
 export const DEFAULT_VIEW: ViewState = {
@@ -26,6 +32,9 @@ export const DEFAULT_VIEW: ViewState = {
   diffPassB: 2,
   showHelp: false,
   query: "",
+  waveUm: null,
+  waveTolUm: 0.03,
+  contrast: 1,
 };
 
 function num(v: string | null, fallback: number): number {
@@ -35,6 +44,12 @@ function num(v: string | null, fallback: number): number {
 }
 
 function optInt(v: string | null): number | null {
+  if (v == null || v === "" || v === "all") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function optFloat(v: string | null): number | null {
   if (v == null || v === "" || v === "all") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -56,6 +71,9 @@ export function readViewFromUrl(search = window.location.search): ViewState {
     diffPassB: num(q.get("b"), 2),
     showHelp: q.get("help") === "1",
     query: q.get("q") || "",
+    waveUm: optFloat(q.get("wave")),
+    waveTolUm: Math.min(0.5, Math.max(0.005, num(q.get("wtol"), DEFAULT_VIEW.waveTolUm))),
+    contrast: Math.min(8, Math.max(0.25, num(q.get("contrast"), DEFAULT_VIEW.contrast))),
   };
 }
 
@@ -74,6 +92,9 @@ export function writeViewToUrl(state: ViewState, replace = true): void {
   }
   if (state.showHelp) q.set("help", "1");
   if (state.query) q.set("q", state.query);
+  if (state.waveUm != null) q.set("wave", String(state.waveUm));
+  if (state.waveTolUm !== DEFAULT_VIEW.waveTolUm) q.set("wtol", String(state.waveTolUm));
+  if (state.contrast !== DEFAULT_VIEW.contrast) q.set("contrast", String(state.contrast));
 
   const search = q.toString();
   const url = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;

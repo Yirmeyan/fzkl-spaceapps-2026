@@ -23,8 +23,12 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
           mode to subtract two passes — movers light up.
         </li>
         <li>
-          SPHEREx has no filter wheel: each frame is a different near-infrared wavelength. The strip
-          under the charts is the spectrum timeline.
+          SPHEREx has no filter wheel: each frame is a different near-infrared wavelength. Use{" "}
+          <strong>Match this λ</strong> before blinking across passes, so a spectrum change is not
+          mistaken for motion.
+        </li>
+        <li>
+          Raise <strong>Contrast</strong> if a small shift is hard to see (same idea as WiseView).
         </li>
         <li>
           Saturated cores show as bright (not holes). That is intentional — the star is too bright

@@ -28,5 +28,8 @@ npm-debug.log*
 frontend/dist/
 frontend/public/samples/
 
+# Local reference notes (not part of the English repo)
+Ressources/
+
 # Logs
 *.log

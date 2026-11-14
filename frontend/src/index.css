@@ -294,6 +294,23 @@ legend {
   margin-right: 0.75rem;
 }
 
+.wave-chip {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  align-self: center;
+}
+
+.contrast-field label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.contrast-field input[type="range"] {
+  flex: 1;
+}
+
 .meta {
   margin: 0;
   background: var(--panel);

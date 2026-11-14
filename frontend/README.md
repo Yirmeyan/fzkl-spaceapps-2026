@@ -27,7 +27,7 @@ Open http://127.0.0.1:5173/
 
 Copy `.env.example` to `.env` if you need a custom API base. `VITE_API_BASE` is empty by default so the Vite proxy is used.
 
-For GitHub Pages builds, set `VITE_BASE=/fzkl-spaceapps-2026/`.
+The site is published on Cloudflare Pages (preview URL on every pull request). Leave `VITE_BASE` empty unless you need a custom path.
 
 ## Checks
 

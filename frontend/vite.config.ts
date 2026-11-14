@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // Local/dev default "/". GitHub Pages workflow sets VITE_BASE=/fzkl-spaceapps-2026/
+  // Local and Cloudflare Pages both use "/". Override with VITE_BASE if needed.
   base: process.env.VITE_BASE ?? "/",
   server: {
     port: 5173,

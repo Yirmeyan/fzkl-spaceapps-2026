@@ -1,5 +1,11 @@
 import { type FormEvent, startTransition, useCallback, useEffect, useMemo, useState } from "react";
-import { filterFrames, uniqueDetectors, uniquePasses } from "./compose/select";
+import {
+  applyContrast,
+  filterFrames,
+  filterNearWavelength,
+  uniqueDetectors,
+  uniquePasses,
+} from "./compose/select";
 import {
   type ComposeMode,
   differencePasses,
@@ -212,8 +218,9 @@ export default function App() {
 
   const filtered = useMemo(() => {
     if (load.status !== "ready") return [];
-    return filterFrames(load.data.frames, { pass: view.pass, detector: view.detector });
-  }, [load, view.pass, view.detector]);
+    const byPass = filterFrames(load.data.frames, { pass: view.pass, detector: view.detector });
+    return filterNearWavelength(byPass, view.waveUm, view.waveTolUm);
+  }, [load, view.pass, view.detector, view.waveUm, view.waveTolUm]);
 
   // Keep frame index in range
   useEffect(() => {
@@ -247,7 +254,7 @@ export default function App() {
 
     if (view.mode === "stack") {
       const stacked = stackFrames(filtered);
-      const limits = computeDisplayLimits([stacked]);
+      const limits = applyContrast(computeDisplayLimits([stacked]), view.contrast);
       return {
         pixels: stacked.pixels,
         mask: stacked.mask,
@@ -261,7 +268,7 @@ export default function App() {
     }
     if (view.mode === "difference") {
       const diff = differencePasses(filtered, view.diffPassA, view.diffPassB);
-      const limits = computeDisplayLimits([diff]);
+      const limits = applyContrast(computeDisplayLimits([diff]), view.contrast);
       return {
         pixels: diff.pixels,
         mask: diff.mask,
@@ -275,7 +282,7 @@ export default function App() {
     }
     if (view.mode === "track") {
       const tracked = stackTrackingTarget(filtered);
-      const limits = computeDisplayLimits([tracked]);
+      const limits = applyContrast(computeDisplayLimits([tracked]), view.contrast);
       return {
         pixels: tracked.pixels,
         mask: tracked.mask,
@@ -288,17 +295,18 @@ export default function App() {
       };
     }
 
+    const limits = applyContrast(load.data.limits, view.contrast);
     return {
       pixels: active.pixels,
       mask: active.mask,
       background: active.frame.background,
-      lo: load.data.limits.lo,
-      hi: load.data.limits.hi,
+      lo: limits.lo,
+      hi: limits.hi,
       size,
       targetXy: active.frame.target_xy,
       meta: active,
     };
-  }, [load, filtered, view.frameIndex, view.mode, view.diffPassA, view.diffPassB]);
+  }, [load, filtered, view.frameIndex, view.mode, view.diffPassA, view.diffPassB, view.contrast]);
 
   const passes = load.status === "ready" ? uniquePasses(load.data.frames) : [];
   const detectors = load.status === "ready" ? uniqueDetectors(load.data.frames) : [];
@@ -511,6 +519,55 @@ export default function App() {
                   {label}
                 </button>
               ))}
+            </fieldset>
+
+            <fieldset>
+              <legend>Wavelength</legend>
+              <button
+                type="button"
+                className={view.waveUm == null ? "active" : ""}
+                onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
+              >
+                All λ
+              </button>
+              <button
+                type="button"
+                className={view.waveUm != null ? "active" : ""}
+                disabled={!display}
+                title="Keep frames near this frame's wavelength so blinking is not confused with the spectrum"
+                onClick={() => {
+                  if (!display) return;
+                  patchView({
+                    waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
+                    frameIndex: 0,
+                  });
+                }}
+              >
+                Match this λ
+              </button>
+              {view.waveUm != null && (
+                <span className="wave-chip">
+                  {view.waveUm.toFixed(3)} ± {view.waveTolUm.toFixed(3)} µm · {filtered.length}{" "}
+                  frames
+                </span>
+              )}
+            </fieldset>
+
+            <fieldset className="contrast-field">
+              <legend>Contrast</legend>
+              <label>
+                <span className="sr-only">Contrast</span>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={4}
+                  step={0.1}
+                  value={view.contrast}
+                  onChange={(e) => patchView({ contrast: Number(e.target.value) })}
+                  aria-label="Contrast"
+                />
+                <span>{view.contrast.toFixed(1)}×</span>
+              </label>
             </fieldset>
 
             {view.mode === "difference" && (
