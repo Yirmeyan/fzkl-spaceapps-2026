@@ -1,6 +1,7 @@
 """JSON error responses, so that no failure reaches a client as a bare stack trace."""
 
 import logging
+import re
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -18,11 +19,23 @@ def _body(code: str, message: str) -> dict[str, dict[str, str]]:
     return {"error": {"code": code, "message": message}}
 
 
+# Where a parameter was read does not help the caller: only its name does.
+_PLACES = frozenset({"query", "path", "body", "header"})
+_SUBJECT = re.compile(r"^(Input|String|Value) should ")
+
+
 def _describe(exc: RequestValidationError) -> str:
+    """One sentence per rejected parameter, such as "ra should be less than 360"."""
     parts = []
     for error in exc.errors():
-        location = ".".join(str(item) for item in error.get("loc", ()))
-        parts.append(f"{location}: {error.get('msg', 'invalid value')}")
+        name = ".".join(str(item) for item in error.get("loc", ()) if item not in _PLACES)
+        name = name or "the request"
+        if error.get("type") == "missing":
+            parts.append(f"{name} is required")
+            continue
+        # The second half of a message only repeats how the parsing failed.
+        message = str(error.get("msg", "is not valid")).partition(",")[0]
+        parts.append(f"{name} {_SUBJECT.sub('should ', message)}")
     return "; ".join(parts) or "Invalid request."
 
 
