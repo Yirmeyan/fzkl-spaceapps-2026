@@ -40,6 +40,8 @@ import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionStory } from "./ui/MotionStory";
+import { PredictVsObserve } from "./ui/PredictVsObserve";
+import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { FrameCanvas } from "./viewer/FrameCanvas";
 import type { TrailPoint } from "./viewer/overlays";
@@ -99,6 +101,7 @@ export default function App() {
   const [displayPx, setDisplayPx] = useState(560);
   const [splitVisits, setSplitVisits] = useState(false);
   const [ghostVisits, setGhostVisits] = useState(false);
+  const [spotMover, setSpotMover] = useState(false);
   const [demoPhase, setDemoPhase] = useState<DemoPhase>("idle");
   const [demoLine, setDemoLine] = useState("");
   const [showBriefing, setShowBriefing] = useState(() => {
@@ -164,79 +167,120 @@ export default function App() {
         return;
       }
 
-      const preferred = exposures.filter((e) => e.detector === 2);
-      const queue =
-        preferred.length > 0
-          ? preferred
-          : exposures.filter((e) => e.detector === exposures[0]!.detector);
-
-      const frames: Frame[] = new Array(queue.length);
-      let loaded = 0;
-      setLoad({
-        status: "loading",
-        message: `Live SPHEREx — pulling frames…`,
-        loaded: 0,
-        total: queue.length,
+      // Tommy bridge: prefer det 2 (det 6 for WISE 0855), then other detectors one at a time.
+      const preferDet = targetKey === "wise0855" || /wise\s*0855/i.test(t.name ?? "") ? 6 : 2;
+      const byDet = new Map<number, typeof exposures>();
+      for (const e of exposures) {
+        const list = byDet.get(e.detector) ?? [];
+        list.push(e);
+        byDet.set(e.detector, list);
+      }
+      const detOrder = [...byDet.keys()].sort((a, b) => {
+        if (a === preferDet) return -1;
+        if (b === preferDet) return 1;
+        return a - b;
       });
+      const priorExposures: typeof exposures = [];
+      const priorFrames: Frame[] = [];
+      let loadedTotal = 0;
+      const grandTotal = exposures.length;
 
-      await loadFramesProgressive(
-        queue,
-        t,
-        grid,
-        (frame, index) => {
-          frames[index] = frame;
-          loaded += 1;
-          if (loaded === queue.length || loaded === 1 || loaded % 8 === 0) {
-            const present = frames.filter(Boolean) as Frame[];
-            const partial: Bundle = {
-              format: "spherex-explorer/bundle",
-              version: 1,
-              generated: new Date().toISOString(),
-              target: t,
-              grid,
-              exposures: queue,
-              frames: present,
-            };
-            startTransition(() => {
-              setLoad({
-                status: "ready",
-                data: decodeBundle(partial),
-                source: "live",
-              });
-            });
-          }
-          setLoad((prev) =>
-            prev.status === "loading"
-              ? {
-                  ...prev,
-                  loaded,
-                  total: queue.length,
-                  message: `Live SPHEREx — ${loaded}/${queue.length} frames`,
-                }
-              : prev,
-          );
-        },
-        { signal },
-      );
-
-      const finalBundle: Bundle = {
-        format: "spherex-explorer/bundle",
-        version: 1,
-        generated: new Date().toISOString(),
-        target: t,
-        grid,
-        exposures: queue,
-        frames: frames.filter(Boolean) as Frame[],
+      const publishLive = (exps: typeof exposures, frames: Frame[]) => {
+        const partial: Bundle = {
+          format: "spherex-explorer/bundle",
+          version: 1,
+          generated: new Date().toISOString(),
+          target: t,
+          grid,
+          exposures: exps,
+          frames,
+        };
+        startTransition(() => {
+          setLoad({ status: "ready", data: decodeBundle(partial), source: "live" });
+        });
       };
-      setLoad({ status: "ready", data: decodeBundle(finalBundle), source: "live" });
-      patchView({
-        targetKey,
-        frameIndex: 0,
-        pass: null,
-        detector: null,
-        query: t.name ?? `${t.ra}, ${t.dec}`,
+
+      for (let di = 0; di < detOrder.length; di++) {
+        if (signal.aborted) return;
+        const det = detOrder[di]!;
+        const queue = byDet.get(det)!;
+        const batchFrames: (Frame | undefined)[] = new Array(queue.length);
+        let batchLoaded = 0;
+
+        if (di === 0) {
+          setLoad({
+            status: "loading",
+            message: `Live SPHEREx — detector ${det}…`,
+            loaded: 0,
+            total: grandTotal,
+          });
+        }
+
+        await loadFramesProgressive(
+          queue,
+          t,
+          grid,
+          (frame, index) => {
+            batchFrames[index] = frame;
+            batchLoaded += 1;
+            loadedTotal += 1;
+            const present = batchFrames.filter(Boolean) as Frame[];
+            const got = new Set(present.map((f) => f.id));
+            const kept = queue.filter((e) => got.has(e.id));
+            const exps = [...priorExposures, ...kept];
+            const frames = [...priorFrames, ...present];
+            const shouldPaint =
+              di === 0
+                ? batchLoaded === 1 || batchLoaded % 8 === 0 || batchLoaded === queue.length
+                : batchLoaded === queue.length || batchLoaded % 12 === 0;
+            if (shouldPaint) publishLive(exps, frames);
+            setLoad((prev) =>
+              prev.status === "loading"
+                ? {
+                    ...prev,
+                    loaded: loadedTotal,
+                    total: grandTotal,
+                    message: `Live SPHEREx — D${det} ${batchLoaded}/${queue.length} · ${loadedTotal}/${grandTotal}`,
+                  }
+                : prev,
+            );
+          },
+          { concurrency: 12, signal },
+        );
+
+        const finalized = batchFrames.filter(Boolean) as Frame[];
+        const got = new Set(finalized.map((f) => f.id));
+        const kept = queue.filter((e) => got.has(e.id));
+        priorExposures.push(...kept);
+        priorFrames.push(...finalized);
+        publishLive(priorExposures, priorFrames);
+
+        if (di === 0) {
+          patchView({
+            targetKey,
+            frameIndex: 0,
+            pass: null,
+            detector: det,
+            query: t.name ?? `${t.ra}, ${t.dec}`,
+          });
+          setSearchInput(t.name ?? `${t.ra}, ${t.dec}`);
+        }
+      }
+
+      patchView({ detector: null });
+      setLoad({
+        status: "ready",
+        data: decodeBundle({
+          format: "spherex-explorer/bundle",
+          version: 1,
+          generated: new Date().toISOString(),
+          target: t,
+          grid,
+          exposures: priorExposures,
+          frames: priorFrames,
+        }),
+        source: "live",
       });
-      setSearchInput(t.name ?? `${t.ra}, ${t.dec}`);
     },
     [patchView],
   );
@@ -568,6 +612,7 @@ export default function App() {
         e.preventDefault();
         setBlinkPasses(false);
         setGhostVisits(false);
+        setSpotMover(false);
         setSplitVisits((v) => !v);
         patchView({ playing: false, mode: "single" });
       }
@@ -575,7 +620,16 @@ export default function App() {
         e.preventDefault();
         setBlinkPasses(false);
         setSplitVisits(false);
+        setSpotMover(false);
         setGhostVisits((v) => !v);
+        patchView({ playing: false, mode: "single" });
+      }
+      if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        setBlinkPasses(false);
+        setSplitVisits(false);
+        setGhostVisits(false);
+        setSpotMover((v) => !v);
         patchView({ playing: false, mode: "single" });
       }
     }
@@ -615,6 +669,9 @@ export default function App() {
     setDemoPhase("idle");
     setDemoLine("");
     setBlinkPasses(false);
+    setGhostVisits(false);
+    setSpotMover(false);
+    setSplitVisits(false);
     patchView({ playing: false, pass: null, mode: "single" });
   }
 
@@ -622,6 +679,8 @@ export default function App() {
     if (load.status !== "ready") return;
     if (demoTimer.current != null) window.clearTimeout(demoTimer.current);
     setSplitVisits(false);
+    setGhostVisits(false);
+    setSpotMover(false);
     setShowAdvanced(false);
     void toggleFullscreen();
 
@@ -637,6 +696,8 @@ export default function App() {
       if (beat.phase === "intro" || beat.phase === "play") {
         setBlinkPasses(false);
         setSplitVisits(false);
+        setGhostVisits(false);
+        setSpotMover(false);
         patchView({
           mode: "single",
           pass: null,
@@ -645,11 +706,21 @@ export default function App() {
         });
       } else if (beat.phase === "blink") {
         setSplitVisits(false);
+        setGhostVisits(false);
+        setSpotMover(false);
         patchView({ mode: "single", playing: false, frameIndex: 0 });
         setBlinkPasses(true);
+      } else if (beat.phase === "ghost") {
+        setBlinkPasses(false);
+        setSplitVisits(false);
+        setSpotMover(false);
+        setGhostVisits(true);
+        patchView({ mode: "single", playing: false, pass: null });
       } else if (beat.phase === "difference") {
         setBlinkPasses(false);
         setSplitVisits(false);
+        setGhostVisits(false);
+        setSpotMover(false);
         patchView({
           mode: "difference",
           playing: false,
@@ -657,9 +728,23 @@ export default function App() {
           diffPassA: passes[0] ?? 1,
           diffPassB: passes[passes.length - 1] ?? 3,
         });
+      } else if (beat.phase === "predict") {
+        setBlinkPasses(false);
+        setGhostVisits(false);
+        setSpotMover(false);
+        setSplitVisits(false);
+        patchView({ mode: "single", playing: false, pass: null });
+        // Scroll predict ribbon into view for judges
+        window.requestAnimationFrame(() => {
+          document.querySelector(".predict-observe")?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        });
       } else if (beat.phase === "done") {
         setBlinkPasses(false);
-        patchView({ playing: false });
+        setGhostVisits(false);
+        patchView({ playing: false, mode: "single" });
       }
       i += 1;
       demoTimer.current = window.setTimeout(step, beat.ms);
@@ -669,7 +754,7 @@ export default function App() {
 
   const visitStacks = useMemo(() => {
     if (load.status !== "ready" || passes.length < 2) return null;
-    if (!splitVisits && !ghostVisits) return null;
+    if (!splitVisits && !ghostVisits && !spotMover) return null;
     const a = passes[0]!;
     const b = passes[passes.length - 1]!;
     const pool = forDifference;
@@ -693,10 +778,11 @@ export default function App() {
       view.contrast,
     );
     return { a, b, stackA, stackB, limits, size: load.data.grid.size };
-  }, [load, splitVisits, ghostVisits, passes, forDifference, view.contrast]);
+  }, [load, splitVisits, ghostVisits, spotMover, passes, forDifference, view.contrast]);
 
   const splitStacks = splitVisits ? visitStacks : null;
   const ghostStacks = ghostVisits ? visitStacks : null;
+  const spotStacks = spotMover ? visitStacks : null;
 
   async function onSearch(e: FormEvent) {
     e.preventDefault();
@@ -879,7 +965,7 @@ export default function App() {
             </div>
             <div className="stage-actions">
               <p className="kbd-hint" title="Keyboard shortcuts">
-                J · G · S · B · D · F
+                J · G · M · S · B · D · F
               </p>
               {targetByKey(view.targetKey)?.ra != null && (
                 <button
@@ -921,6 +1007,29 @@ export default function App() {
               </div>
             )}
             {load.status === "error" && <div className="status-banner error">{load.message}</div>}
+
+            {spotStacks && load.status === "ready" && (
+              <SpotTheMover
+                size={spotStacks.size}
+                lo={spotStacks.limits.lo}
+                hi={spotStacks.limits.hi}
+                colorMap={view.colorMap}
+                displayPx={displayPx}
+                grid={load.data.grid}
+                early={{
+                  pixels: spotStacks.stackA.pixels,
+                  mask: spotStacks.stackA.mask,
+                  label: `Visit ${spotStacks.a}`,
+                }}
+                late={{
+                  pixels: spotStacks.stackB.pixels,
+                  mask: spotStacks.stackB.mask,
+                  label: `Visit ${spotStacks.b}`,
+                }}
+                trail={trail}
+                onExit={() => setSpotMover(false)}
+              />
+            )}
 
             {ghostStacks && (
               <GhostVisits
@@ -978,6 +1087,7 @@ export default function App() {
 
             {!splitStacks &&
               !ghostStacks &&
+              !spotStacks &&
               display &&
               view.mode === "single" &&
               display.kind === "single" && (
@@ -998,6 +1108,7 @@ export default function App() {
 
             {!splitStacks &&
               !ghostStacks &&
+              !spotStacks &&
               display &&
               view.mode === "difference" &&
               display.kind === "difference" &&
@@ -1020,6 +1131,7 @@ export default function App() {
 
             {!splitStacks &&
               !ghostStacks &&
+              !spotStacks &&
               display &&
               (view.mode === "stack" || view.mode === "track") &&
               display.kind === "compose" && (
@@ -1039,7 +1151,14 @@ export default function App() {
           </div>
 
           {load.status === "ready" && (
-            <MotionStory target={load.data.target} grid={load.data.grid} trail={trail} />
+            <>
+              <PredictVsObserve
+                target={load.data.target}
+                grid={load.data.grid}
+                frames={load.data.frames}
+              />
+              <MotionStory target={load.data.target} grid={load.data.grid} trail={trail} />
+            </>
           )}
 
           {display && view.mode === "single" && display.kind === "single" && (
@@ -1068,6 +1187,7 @@ export default function App() {
                   onClick={() => {
                     setBlinkPasses(false);
                     setSplitVisits(false);
+                    setSpotMover(false);
                     setGhostVisits((v) => !v);
                     patchView({ playing: false, mode: "single" });
                   }}
@@ -1076,11 +1196,26 @@ export default function App() {
                 </button>
                 <button
                   type="button"
+                  className={spotMover ? "active" : ""}
+                  disabled={passes.length < 2 || trail.length < 2}
+                  onClick={() => {
+                    setBlinkPasses(false);
+                    setSplitVisits(false);
+                    setGhostVisits(false);
+                    setSpotMover((v) => !v);
+                    patchView({ playing: false, mode: "single" });
+                  }}
+                >
+                  Spot the mover
+                </button>
+                <button
+                  type="button"
                   className={splitVisits ? "active" : ""}
                   disabled={passes.length < 2}
                   onClick={() => {
                     setBlinkPasses(false);
                     setGhostVisits(false);
+                    setSpotMover(false);
                     setSplitVisits((v) => !v);
                     patchView({ playing: false, mode: "single" });
                   }}

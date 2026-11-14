@@ -1,6 +1,14 @@
 /** Timed captions for the one-button jury walkthrough. */
 
-export type DemoPhase = "idle" | "intro" | "play" | "blink" | "difference" | "done";
+export type DemoPhase =
+  | "idle"
+  | "intro"
+  | "play"
+  | "blink"
+  | "ghost"
+  | "difference"
+  | "predict"
+  | "done";
 
 export const DEMO_BEATS: {
   phase: DemoPhase;
@@ -9,28 +17,38 @@ export const DEMO_BEATS: {
 }[] = [
   {
     phase: "intro",
-    ms: 3500,
+    ms: 3200,
     line: "SPHEREx revisited this patch of sky months apart. Watch what refuses to stay put.",
   },
   {
     phase: "play",
-    ms: 5500,
+    ms: 5000,
     line: "Play: each frame is a different infrared color — same place, new slice of the spectrum.",
   },
   {
     phase: "blink",
-    ms: 7000,
+    ms: 6000,
     line: "Blink Visit 1 ↔ Visit 3. The bright star hops. That hop is real motion.",
   },
   {
-    phase: "difference",
+    phase: "ghost",
     ms: 6500,
+    line: "Ghost sky: both visits at once. The mover breathes — fixed stars stay put.",
+  },
+  {
+    phase: "difference",
+    ms: 5500,
     line: "Difference: bright/dark dipole = mover. Fixed stars cancel to near zero.",
   },
   {
+    phase: "predict",
+    ms: 5500,
+    line: "Predict vs observe: catalogue proper motion vs what SPHEREx measured — the sky agrees.",
+  },
+  {
     phase: "done",
-    ms: 4000,
-    line: "That is the whole challenge in one minute: make sky change obvious to anyone.",
+    ms: 3800,
+    line: "Press M anytime to Spot the mover yourself. That is the challenge in under a minute.",
   },
 ];
 
