@@ -1,5 +1,6 @@
 import type { SpectrumPoint } from "../spectrum/spectrumPoints";
 import type { CandidatesFile } from "./candidates";
+import type { CatalogResponse } from "./catalog";
 import type {
   ApiErrorBody,
   Bundle,
@@ -143,6 +144,20 @@ export async function fetchCandidates(
 ): Promise<CandidatesFile> {
   const q = targetQuery(target);
   return getJson<CandidatesFile>(`/api/candidates?${q}`, { signal }, 6);
+}
+
+/** GET /api/catalog — Gaia DR3 + AllWISE in the current view (Tommy F8 / #57). */
+export async function fetchCatalog(
+  opts: { ra: number; dec: number; fov: number; epoch: number },
+  signal?: AbortSignal,
+): Promise<CatalogResponse> {
+  const q = new URLSearchParams({
+    ra: String(opts.ra),
+    dec: String(opts.dec),
+    fov: String(opts.fov),
+    epoch: String(opts.epoch),
+  });
+  return getJson<CatalogResponse>(`/api/catalog?${q}`, { signal }, 2);
 }
 
 export async function fetchFrame(

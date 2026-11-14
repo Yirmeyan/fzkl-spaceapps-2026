@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Halo heartbeat:** when a saturated target is read on its halo, a pulse ring blooms from the heart on the stage with the discovery flash — judges see the measurement, not just text.
+**Catalog overlay F8 (Tommy):** Gaia DR3 + AllWISE rings on the sky (proper-motioned), Look switches, tap tip — Barnard follows Gaia; AllWISE sits in 2010.
 
 ## Backlog (phenomenal)
 

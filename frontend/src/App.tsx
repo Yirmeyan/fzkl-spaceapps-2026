@@ -26,16 +26,30 @@ import {
 } from "./compose/stack";
 import { type CandidatesFile, discoveryFlashLine, fetchCandidatesFile } from "./data/candidates";
 import {
+  type CatalogKey,
+  type CatalogResponse,
+  catalogSourceTip,
+  catalogUnavailableMessage,
+  middleFrameEpochYear,
+} from "./data/catalog";
+import {
   ApiError,
   fetchBundle,
   fetchCandidates,
+  fetchCatalog,
   fetchExposures,
   fetchSpectrum,
   loadFramesProgressive,
   resolveName,
 } from "./data/client";
 import type { Bundle, Frame, Grid, Target } from "./data/contract";
-import { computeDisplayLimits, MASK_BIT_LEGEND, mjdToDate } from "./data/contract";
+import {
+  computeDisplayLimits,
+  MASK_BIT_LEGEND,
+  mjdToDate,
+  skyToPixel,
+  targetAt,
+} from "./data/contract";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
 import {
   candidatesFileUrl,
@@ -162,6 +176,14 @@ export default function App() {
   const [showAdvanced, setShowAdvanced] = useState(true);
   /** Tommy item 6: tint non-zero mask pixels on the stage. */
   const [tintMask, setTintMask] = useState(false);
+  /** Tommy F8: catalog overlay switches (off until first asked). */
+  const [showGaia, setShowGaia] = useState(false);
+  const [showAllwise, setShowAllwise] = useState(false);
+  const [catalogFile, setCatalogFile] = useState<CatalogResponse | null>(null);
+  const [catalogWaiting, setCatalogWaiting] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogTip, setCatalogTip] = useState<string | null>(null);
+  const [catalogHighlightId, setCatalogHighlightId] = useState<string | null>(null);
   const [fieldPreset, setFieldPreset] = useState<FieldPreset>("default");
   const fieldPresetRef = useRef<FieldPreset>("default");
   fieldPresetRef.current = fieldPreset;
@@ -706,6 +728,40 @@ export default function App() {
     const byPass = filterFrames(load.data.frames, { pass: view.pass, detector: view.detector });
     return filterNearWavelength(byPass, view.waveUm, view.waveTolUm);
   }, [load, view.pass, view.detector, view.waveUm, view.waveTolUm]);
+
+  // Tommy F8: ask Gaia/AllWISE when a Look switch turns on, and again when the grid changes.
+  useEffect(() => {
+    if (!showGaia && !showAllwise) return;
+    if (load.status !== "ready") return;
+    const ac = new AbortController();
+    const grid = load.data.grid;
+    const epoch = middleFrameEpochYear(load.data.frames.map((f) => f.frame.time_mjd));
+    setCatalogWaiting(true);
+    setCatalogError(null);
+    void fetchCatalog({ ra: grid.ra, dec: grid.dec, fov: grid.fov_deg, epoch }, ac.signal)
+      .then((data) => {
+        if (ac.signal.aborted) return;
+        setCatalogFile(data);
+        setCatalogWaiting(false);
+      })
+      .catch((err) => {
+        if (ac.signal.aborted) return;
+        setCatalogFile(null);
+        setCatalogWaiting(false);
+        setCatalogError(catalogUnavailableMessage(err));
+        setShowGaia(false);
+        setShowAllwise(false);
+      });
+    return () => ac.abort();
+  }, [showGaia, showAllwise, load]);
+
+  useEffect(() => {
+    // Fresh sky → clear catalog so the next switch asks for this grid.
+    setCatalogFile(null);
+    setCatalogTip(null);
+    setCatalogHighlightId(null);
+    setCatalogError(null);
+  }, [view.targetKey, fieldPreset]);
 
   const forDifference = useMemo(() => {
     if (load.status !== "ready") return [];
@@ -2137,8 +2193,66 @@ export default function App() {
                     viewGrid={load.status === "ready" ? load.data.grid : null}
                     activeCandidate={activeCandidate}
                     saturated={candidatesFile?.saturated ?? []}
+                    catalogSlices={catalogFile?.catalogs ?? []}
+                    catalogEnabled={
+                      new Set(
+                        [showGaia ? "gaia" : null, showAllwise ? "allwise" : null].filter(
+                          Boolean,
+                        ) as CatalogKey[],
+                      )
+                    }
+                    catalogHighlightId={catalogHighlightId}
                     onFrameIndexChange={onPlayerFrame}
                   />
+                  {(showGaia || showAllwise) && catalogFile && load.status === "ready" && (
+                    <button
+                      type="button"
+                      className="catalog-hit-layer"
+                      aria-label="Identify a catalog source under the pointer"
+                      onClick={(e) => {
+                        const canvas = (e.currentTarget.parentElement?.querySelector("canvas") ??
+                          null) as HTMLCanvasElement | null;
+                        if (!canvas || load.status !== "ready") return;
+                        const rect = canvas.getBoundingClientRect();
+                        const x = ((e.clientX - rect.left) / rect.width) * load.data.grid.size;
+                        const y = ((e.clientY - rect.top) / rect.height) * load.data.grid.size;
+                        const frame =
+                          filtered[Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))];
+                        if (!frame) return;
+                        const tMjd = frame.frame.time_mjd;
+                        let best: { tip: string; id: string; d: number } | null = null;
+                        for (const slice of catalogFile.catalogs) {
+                          if (slice.key === "gaia" && !showGaia) continue;
+                          if (slice.key === "allwise" && !showAllwise) continue;
+                          for (const s of slice.sources.slice(0, 100)) {
+                            const [ra, dec] = targetAt(
+                              {
+                                ra: s.ra,
+                                dec: s.dec,
+                                epoch: slice.epoch,
+                                pm_ra: s.pm_ra,
+                                pm_dec: s.pm_dec,
+                              },
+                              tMjd,
+                            );
+                            const [cx, cy] = skyToPixel(load.data.grid, ra, dec);
+                            const d = Math.hypot(cx - x, cy - y);
+                            if (d > 6) continue;
+                            if (!best || d < best.d) {
+                              best = { tip: catalogSourceTip(slice, s), id: s.id, d };
+                            }
+                          }
+                        }
+                        if (best) {
+                          setCatalogTip(best.tip);
+                          setCatalogHighlightId(best.id);
+                        } else {
+                          setCatalogTip(null);
+                          setCatalogHighlightId(null);
+                        }
+                      }}
+                    />
+                  )}
                   {hopGhost && (
                     <div className="hop-ghost" aria-hidden="true">
                       <FrameCanvas
@@ -2756,6 +2870,31 @@ export default function App() {
                   />
                   <span>Tint flagged pixels</span>
                 </label>
+                <p className="control-label">Other telescopes</p>
+                <label className="tint-mask-row">
+                  <input
+                    type="checkbox"
+                    checked={showGaia}
+                    disabled={catalogError != null && !catalogFile}
+                    onChange={(e) => setShowGaia(e.target.checked)}
+                  />
+                  <span>Gaia DR3</span>
+                </label>
+                <label className="tint-mask-row">
+                  <input
+                    type="checkbox"
+                    checked={showAllwise}
+                    disabled={catalogError != null && !catalogFile}
+                    onChange={(e) => setShowAllwise(e.target.checked)}
+                  />
+                  <span>AllWISE (the infrared sky in 2010)</span>
+                </label>
+                {catalogWaiting && <p className="micro">Asking the catalogs…</p>}
+                {catalogError && <p className="micro catalog-unavail">{catalogError}</p>}
+                {catalogFile?.catalogs.some((c) => c.truncated) && (
+                  <p className="micro">Showing the 300 brightest</p>
+                )}
+                {catalogTip && <p className="micro catalog-tip">{catalogTip}</p>}
                 <p className="control-label">Field of view</p>
                 <div className="chip-row">
                   <button

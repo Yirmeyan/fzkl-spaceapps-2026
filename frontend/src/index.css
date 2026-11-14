@@ -2901,6 +2901,26 @@ select {
   font-size: 1.05rem;
 }
 
+.catalog-hit-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: inherit;
+  background: transparent;
+  cursor: crosshair;
+}
+
+.catalog-tip {
+  color: #c4b5fd;
+}
+
+.catalog-unavail {
+  color: var(--warn);
+}
+
 /* Saturated-heart bloom when a halo candidate is first found (R Dra jury beat). */
 .halo-pulse {
   position: absolute;

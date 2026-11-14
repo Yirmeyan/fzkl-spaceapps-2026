@@ -1,7 +1,13 @@
 import { useEffect, useRef } from "react";
 import type { Candidate, SaturatedStar } from "../data/candidates";
+import type { CatalogSlice } from "../data/catalog";
 import { type ColorMap, type Grid, renderFrameToRgba } from "../data/contract";
-import { drawCandidatesOverlay, drawTargetOverlay, type TrailPoint } from "./overlays";
+import {
+  drawCandidatesOverlay,
+  drawCatalogOverlay,
+  drawTargetOverlay,
+  type TrailPoint,
+} from "./overlays";
 
 export interface FrameCanvasProps {
   pixels: Float32Array;
@@ -21,6 +27,10 @@ export interface FrameCanvasProps {
   activeCandidate?: number | null;
   candidatePass?: number | null;
   saturated?: SaturatedStar[];
+  catalogSlices?: CatalogSlice[];
+  catalogEnabled?: Set<string>;
+  catalogHighlightId?: string | null;
+  catalogTimeMjd?: number | null;
   className?: string;
   displayPx?: number;
 }
@@ -42,6 +52,10 @@ export function FrameCanvas({
   activeCandidate = null,
   candidatePass = null,
   saturated = [],
+  catalogSlices = [],
+  catalogEnabled,
+  catalogHighlightId = null,
+  catalogTimeMjd = null,
   className,
   displayPx,
 }: FrameCanvasProps) {
@@ -75,6 +89,23 @@ export function FrameCanvas({
         saturated,
       );
     }
+    if (
+      viewGrid &&
+      catalogTimeMjd != null &&
+      catalogEnabled &&
+      catalogEnabled.size > 0 &&
+      catalogSlices.length > 0
+    ) {
+      drawCatalogOverlay(
+        ctx,
+        catalogSlices,
+        catalogEnabled,
+        viewGrid,
+        catalogTimeMjd,
+        100,
+        catalogHighlightId,
+      );
+    }
   }, [
     pixels,
     mask,
@@ -92,6 +123,10 @@ export function FrameCanvas({
     activeCandidate,
     candidatePass,
     saturated,
+    catalogSlices,
+    catalogEnabled,
+    catalogHighlightId,
+    catalogTimeMjd,
   ]);
 
   return (
