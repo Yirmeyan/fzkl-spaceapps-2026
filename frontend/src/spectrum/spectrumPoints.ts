@@ -18,7 +18,7 @@ export interface SpectrumPoint {
   quality: PhotometryQuality;
 }
 
-/** Build spectrum points from loaded frames (today). Swap source when index ships spectrum files. */
+/** Build spectrum points from loaded frames (fallback when no spectrum file). */
 export function spectrumPointsFromFrames(frames: DecodedFrame[]): SpectrumPoint[] {
   return frames.map((f) => ({
     id: f.frame.id,
@@ -32,4 +32,26 @@ export function spectrumPointsFromFrames(frames: DecodedFrame[]): SpectrumPoint[
     error_mjy: f.frame.photometry.error_mjy,
     quality: f.frame.photometry.quality,
   }));
+}
+
+export interface SpectrumFile {
+  format: "spherex-explorer/spectrum";
+  version: number;
+  generated: string;
+  target: unknown;
+  points: SpectrumPoint[];
+}
+
+/** Load `<key>-spectrum.json` listed in the sample index. */
+export async function fetchSpectrumFile(
+  url: string,
+  signal?: AbortSignal,
+): Promise<SpectrumPoint[]> {
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error(`Failed to load spectrum: ${res.status}`);
+  const data = (await res.json()) as SpectrumFile;
+  if (data.format !== "spherex-explorer/spectrum") {
+    throw new Error("Not a SPHEREx spectrum file");
+  }
+  return data.points;
 }

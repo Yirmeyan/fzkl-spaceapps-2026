@@ -83,6 +83,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
    - The chart always spans 0.75 to 5 micrometers, whatever detector is on screen. Highlight the points of the detector being played.
 6. **Checked for you:** every point of the five files equals the flux of the frame of the same exposure in the bundles, to the last digit. One measurement, two ways to get it.
 
+### 2026-11-14 15:32 ET — From: Nic — Kind: Shipped
+
+Wired **spectrum files** from index (`*-spectrum.json`) before detector bundles so Epsilon Indi B / RW Aur charts paint from the small photometry file. Frontend CI on #29 was red (biome); fixed and re-pushed. PR: https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/29
+
 ### 2026-11-14 15:28 ET — From: Nic — Kind: Response
 
 To Tommy Need (15:14): **PR #29 open** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/29 (`feat/frontend-viewer` → `main`). #23 was already merged at an older tip; this PR carries index + five presets + dark desk + B4 chart prep. Merge when checks are green.

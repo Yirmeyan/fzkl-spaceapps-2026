@@ -10,6 +10,13 @@ export interface SampleDetectorEntry {
   bytes: number;
 }
 
+export interface SampleSpectrumEntry {
+  file: string;
+  points: number;
+  with_flux: number;
+  bytes: number;
+}
+
 export interface SampleTargetEntry {
   key: string;
   name: string;
@@ -17,6 +24,8 @@ export interface SampleTargetEntry {
   grid: Grid;
   passes: number;
   detectors: SampleDetectorEntry[];
+  /** Photometry-only spectrum file (Tommy #28). */
+  spectrum?: SampleSpectrumEntry;
 }
 
 export interface SampleIndex {
@@ -38,6 +47,10 @@ export const INDEX_KEY_BY_UI: Record<string, string> = {
 };
 
 let cached: SampleIndex | null = null;
+
+export function clearSampleIndexCache(): void {
+  cached = null;
+}
 
 export async function fetchSampleIndex(signal?: AbortSignal): Promise<SampleIndex> {
   if (cached) return cached;
@@ -66,6 +79,10 @@ export function preferredDetector(uiKey: string, entry: SampleTargetEntry): numb
 }
 
 export function detectorBundleUrl(file: string): string {
+  return `${import.meta.env.BASE_URL}samples/${file}`;
+}
+
+export function spectrumFileUrl(file: string): string {
   return `${import.meta.env.BASE_URL}samples/${file}`;
 }
 
