@@ -15,16 +15,17 @@ export function HealthBadge() {
       try {
         const h = await fetchHealth(ac.signal);
         if (cancelled) return;
-        setStatus("ok");
-        setDetail(`Service ${h.status} · v${h.version}`);
+        const next = `Service ${h.status} · v${h.version}`;
+        setStatus((s) => (s === "ok" ? s : "ok"));
+        setDetail((d) => (d === next ? d : next));
       } catch (err) {
         if (cancelled || ac.signal.aborted) return;
-        setStatus("down");
-        if (err instanceof ApiError) {
-          setDetail(`Service unreachable (${err.code})`);
-        } else {
-          setDetail("Service offline — static samples still work");
-        }
+        const next =
+          err instanceof ApiError
+            ? `Service unreachable (${err.code})`
+            : "Service offline — static samples still work";
+        setStatus((s) => (s === "down" ? s : "down"));
+        setDetail((d) => (d === next ? d : next));
       }
     }
 

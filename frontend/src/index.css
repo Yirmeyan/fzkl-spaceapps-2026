@@ -12,10 +12,6 @@
   --ok: #3ecf8e;
   --warn: #e6c35c;
   --bad: #e86a5a;
-  --glow:
-    radial-gradient(1200px 600px at 20% -10%, #1a2a44 0%, transparent 55%),
-    radial-gradient(900px 500px at 90% 10%, #2a1c10 0%, transparent 50%),
-    linear-gradient(180deg, #0a1018 0%, #070b12 100%);
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--void);
@@ -39,10 +35,9 @@ body,
 }
 
 body {
-  /* Solid base + fixed wash: avoids full-page shimmer when the canvas animates. */
-  background-color: var(--void);
-  background-image: var(--glow);
-  background-attachment: fixed;
+  /* Solid only — layered/fixed gradients were driving continuous GPU recomposite
+     (visible shimmer + coil whine) even on a paused frame. */
+  background: var(--void);
   min-height: 100vh;
 }
 
@@ -113,10 +108,7 @@ select {
   letter-spacing: -0.03em;
   margin: 0;
   line-height: 1.05;
-  background: linear-gradient(105deg, #fff 20%, var(--accent) 90%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--text);
 }
 
 .tagline {
@@ -146,7 +138,6 @@ select {
 
 .health-ok .health-dot {
   background: var(--ok);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ok) 70%, transparent);
 }
 
 .health-down .health-dot {
@@ -155,13 +146,6 @@ select {
 
 .health-checking .health-dot {
   background: var(--warn);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.35;
-  }
 }
 
 .targets {
@@ -221,9 +205,6 @@ select {
   align-items: center;
   gap: 0.75rem;
   min-height: 360px;
-  contain: layout paint;
-  isolation: isolate;
-  transform: translateZ(0);
 }
 
 .viewer-pane canvas {

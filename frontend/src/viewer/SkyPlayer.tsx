@@ -12,13 +12,13 @@ export interface SkyPlayerProps {
   size: number;
   scale?: number;
   className?: string;
-  /** Called when the visible frame changes. Throttled while playing. */
   onFrameIndexChange?: (index: number) => void;
 }
 
 /**
- * Prefers ImageBitmap blits and keeps playback off the React render path
- * so the rest of the page does not repaint 8×/s (that was the screen shimmer).
+ * Static when paused: one blit, then the canvas is left alone (no rAF).
+ * Playback uses setInterval only — never requestAnimationFrame at display Hz,
+ * which was driving GPU coil-whine on some machines.
  */
 export function SkyPlayer({
   frames,
@@ -33,120 +33,88 @@ export function SkyPlayer({
   onFrameIndexChange,
 }: SkyPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bitmapsRef = useRef<(ImageBitmap | null)[]>([]);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const cacheRef = useRef<(ImageData | null)[]>([]);
   const indexRef = useRef(frameIndex);
-  const playingRef = useRef(playing);
-  const fpsRef = useRef(fps);
+  const cacheKeyRef = useRef("");
   const onChangeRef = useRef(onFrameIndexChange);
-  const lastNotifyRef = useRef(0);
-
-  indexRef.current = frameIndex;
-  playingRef.current = playing;
-  fpsRef.current = fps;
   onChangeRef.current = onFrameIndexChange;
 
-  // Build ImageBitmaps once per frame set / stretch limits.
-  useEffect(() => {
-    let cancelled = false;
-    const bitmaps: (ImageBitmap | null)[] = frames.map(() => null);
-    bitmapsRef.current = bitmaps;
+  const cacheKey = `${size}|${lo}|${hi}|${frames.length}|${frames[0]?.frame.id ?? ""}|${frames[frames.length - 1]?.frame.id ?? ""}`;
 
-    async function build() {
-      for (let i = 0; i < frames.length; i++) {
-        if (cancelled) return;
-        const f = frames[i]!;
-        const rgba = renderFrameToRgba(f.pixels, f.mask, size, lo, hi, f.frame.background);
-        // Copy into a plain ArrayBuffer-backed view for createImageBitmap.
-        const copy = new Uint8ClampedArray(rgba.length);
-        copy.set(rgba);
-        const imageData = new ImageData(copy, size, size);
-        try {
-          bitmaps[i] = await createImageBitmap(imageData);
-        } catch {
-          bitmaps[i] = null;
-        }
-        if (i === indexRef.current) blit(indexRef.current);
-      }
-    }
-
-    void build();
-    return () => {
-      cancelled = true;
-      for (const b of bitmaps) b?.close();
-    };
-  }, [frames, size, lo, hi]);
-
-  function blit(index: number) {
+  function ensureCtx(): CanvasRenderingContext2D | null {
     const canvas = canvasRef.current;
-    if (!canvas || size <= 0) return;
-    const ctx = canvas.getContext("2d", { alpha: false });
-    if (!ctx) return;
-
-    ctx.fillStyle = "#05080e";
-    ctx.fillRect(0, 0, size, size);
-
-    const bmp = bitmapsRef.current[index];
-    const f = frames[index];
-    if (bmp) {
-      ctx.drawImage(bmp, 0, 0);
-    } else if (f) {
-      const rgba = renderFrameToRgba(f.pixels, f.mask, size, lo, hi, f.frame.background);
-      const imageData = ctx.createImageData(size, size);
-      imageData.data.set(rgba);
-      ctx.putImageData(imageData, 0, 0);
+    if (!canvas) return null;
+    if (!ctxRef.current) {
+      ctxRef.current = canvas.getContext("2d", {
+        alpha: false,
+        desynchronized: true,
+      });
     }
-
-    if (f) {
-      const [tx, ty] = f.frame.target_xy;
-      ctx.strokeStyle = "rgba(255, 176, 64, 0.95)";
-      ctx.lineWidth = 1;
-      const r = 4;
-      ctx.beginPath();
-      ctx.moveTo(tx - r, ty);
-      ctx.lineTo(tx + r, ty);
-      ctx.moveTo(tx, ty - r);
-      ctx.lineTo(tx, ty + r);
-      ctx.stroke();
-    }
+    return ctxRef.current;
   }
 
-  // Sync external frameIndex (slider / pause).
+  function ensureCache() {
+    if (cacheKeyRef.current === cacheKey && cacheRef.current.length === frames.length) {
+      return;
+    }
+    cacheKeyRef.current = cacheKey;
+    cacheRef.current = frames.map((f) => {
+      const rgba = renderFrameToRgba(f.pixels, f.mask, size, lo, hi, f.frame.background);
+      const copy = new Uint8ClampedArray(rgba.length);
+      copy.set(rgba);
+      return new ImageData(copy, size, size);
+    });
+  }
+
+  function blit(index: number) {
+    const ctx = ensureCtx();
+    if (!ctx || size <= 0) return;
+    ensureCache();
+    const image = cacheRef.current[index];
+    if (!image) return;
+    ctx.putImageData(image, 0, 0);
+
+    const f = frames[index];
+    if (!f) return;
+    const [tx, ty] = f.frame.target_xy;
+    ctx.strokeStyle = "rgba(255, 176, 64, 0.95)";
+    ctx.lineWidth = 1;
+    const r = 4;
+    ctx.beginPath();
+    ctx.moveTo(tx - r, ty);
+    ctx.lineTo(tx + r, ty);
+    ctx.moveTo(tx, ty - r);
+    ctx.lineTo(tx, ty + r);
+    ctx.stroke();
+  }
+
+  // Still frame: one blit, then stop. Never leave a timer running while paused.
   useEffect(() => {
     if (playing) return;
     indexRef.current = frameIndex;
     blit(frameIndex);
+    onChangeRef.current?.(frameIndex);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frameIndex, playing, frames, lo, hi, size]);
+  }, [playing, frameIndex, cacheKey]);
 
-  // Playback loop: canvas only, no React setState per tick.
+  // Playback: setInterval only (no rAF). Do not notify React every tick —
+  // that re-rendered the whole page and kept the GPU busy.
   useEffect(() => {
     if (!playing || frames.length < 2) return;
 
-    let raf = 0;
-    let last = performance.now();
-    const notifyEveryMs = 200;
-
-    const tick = (now: number) => {
-      raf = requestAnimationFrame(tick);
-      if (!playingRef.current) return;
-      const interval = 1000 / Math.max(1, fpsRef.current);
-      if (now - last < interval) return;
-      last = now;
-
+    const id = window.setInterval(() => {
       const next = (indexRef.current + 1) % frames.length;
       indexRef.current = next;
       blit(next);
+    }, 1000 / Math.max(1, fps));
 
-      if (now - lastNotifyRef.current >= notifyEveryMs) {
-        lastNotifyRef.current = now;
-        onChangeRef.current?.(next);
-      }
+    return () => {
+      window.clearInterval(id);
+      onChangeRef.current?.(indexRef.current);
     };
-
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, frames.length]);
+  }, [playing, fps, frames.length, cacheKey]);
 
   const css = size * scale;
 
@@ -161,7 +129,6 @@ export function SkyPlayer({
         height: css,
         imageRendering: "pixelated",
         background: "#05080e",
-        contain: "strict",
       }}
       aria-label="SPHEREx image frame"
     />
