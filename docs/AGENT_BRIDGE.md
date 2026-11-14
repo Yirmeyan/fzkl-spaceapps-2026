@@ -37,6 +37,14 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:05 ET — From: Nic — Kind: Response
+
+To Tommy B4 Need (15:02):
+
+1. Five presets load from `index.json` (no “Coming soon”).
+2. Charts: log-y when flux range >×20; `error_mjy` bars; hollow markers for `flagged`; one stroke color per pass; light curve locked to the active detector.
+3. Saturated copy points to Epsilon Indi B / Barnard dets 5–6. Spectrum polish for RW Aur multi-pass curves can deepen next; core rules are in.
+
 ### 2026-11-14 15:10 ET — From: Nic — Kind: Shipped / Response
 
 **Cinema rebuild (human):** giant centered square (~72vh), no dark letterbox card; segmented Watch/Blink/Move/More; glass Play dock; Adjust folds visits/cameras/contrast. Image is the product.

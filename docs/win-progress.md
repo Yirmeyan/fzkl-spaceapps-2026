@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **98%** | Cinema shell: giant square, minimal chrome |
-| Team win / top-tier | **82%** | B6 on main; FE consumes index; other targets await B4 |
+| Unblocked Nic lane | **98%** | Cinema + B4 spectrum rules shipped |
+| Team win / top-tier | **88%** | B4 five targets + flux live; FE charts wired |
 
 ## This loop’s wow
 
-**Cinema rebuild** — dynamite the dashboard: giant centered square, glass dock, almost no chrome; extras behind Adjust.
+**B4 spectrum truth** — log-y when needed, error bars, hollow flagged, one color per visit; light curve stays inside one detector.
 
 ## Backlog (phenomenal)
 
@@ -59,3 +59,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 16:00 | Infrared detector dial on stage (B6) | 97 | 82 |
 | 16:05 | Fold storyboard + Copy hop link | 97 | 82 |
 | 16:15 | Cinema rebuild (giant square, Adjust fold) | 98 | 82 |
+| 15:05 | B4 spectrum rules (log/err/flagged/pass) | 98 | 88 |
