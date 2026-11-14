@@ -31,7 +31,7 @@ A sixth one looks elsewhere: **what do other telescopes already know there?** `G
 | `GET /api/frames/{id}?ra=&dec=` | One frame | 0.6 s |
 | `GET /api/spectrum?ra=&dec=` | A target and one flux per exposure | 6 to 11 s for 250 to 550 exposures |
 | `GET /api/candidates?ra=&dec=` | The sources of the view that moved or changed | See [the call](#get-apicandidates): it reads every frame of the view |
-| `GET /api/catalog?ra=&dec=` | The sources of Gaia DR3 and of AllWISE inside a view | 1 to 4 s the first time, immediate for a day after |
+| `GET /api/catalog?ra=&dec=` | The sources of Gaia DR3 and of AllWISE inside a view | 1 to 2 s the first time for the default view, 3 to 5 s for a view of 0.3 degree in the Milky Way. Immediate after that, for a day |
 
 The times of `exposures` and `frames` are measured on the service, the second one from a laptop: 0.6 s for a first frame, 2.4 to 3.9 s for the 62 frames of a detector asked together. The time of `resolve` is that of the underlying request.
 
