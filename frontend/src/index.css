@@ -2753,3 +2753,63 @@ select {
   font-size: 0.75rem;
   color: #93a4b8;
 }
+
+.discovery-flash {
+  position: absolute;
+  inset: 12% 8%;
+  z-index: 4;
+  display: grid;
+  place-content: center;
+  gap: 0.35rem;
+  padding: 1rem 1.25rem;
+  text-align: center;
+  border-radius: 14px;
+  border: 1px solid rgba(110, 231, 183, 0.45);
+  background: color-mix(in srgb, #05080e 72%, #6ee7b7);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  animation: discovery-flash-in 3s ease-out forwards;
+}
+
+.discovery-flash-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #93a4b8;
+}
+
+.discovery-flash-line {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: clamp(1.05rem, 2.4vw, 1.45rem);
+  font-weight: 700;
+  color: #f4f7fb;
+}
+
+@keyframes discovery-flash-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+.app--fit .discovery-flash {
+  inset: 16% 10%;
+  padding: 0.75rem 1rem;
+}
+
+.app--fit .discovery-flash-line {
+  font-size: 1.05rem;
+}

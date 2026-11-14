@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:10 ET — From: Nic — Kind: Shipped
+
+**Discovery flash:** when candidates first find an is_target mover, a 3s stage whisper shows the rate (and distance when known). #52 eyepiece on main.
+
 ### 2026-11-14 18:05 ET — From: Nic — Kind: Shipped
 
 **Eyepiece focus (E):** hide picker/rail/footer; grow the cutout; Esc leaves. Compact centered desk preference. #51 postcard on main.
