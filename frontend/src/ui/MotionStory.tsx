@@ -43,8 +43,8 @@ export function MotionStory({ target, grid, trail }: MotionStoryProps) {
         <strong>{direction}</strong>
       </p>
       <p className="motion-story-body">
-        That is the catalogue path from Visit {first.pass} → Visit {last.pass} on this cutout
-        (~{arcsecPerPx.toFixed(1)}″ per pixel). Background stars barely move; the target does.
+        That is the catalogue path from Visit {first.pass} → Visit {last.pass} on this cutout (~
+        {arcsecPerPx.toFixed(1)}″ per pixel). Background stars barely move; the target does.
         {pm != null ? ` Catalogue proper motion ≈ ${pm.toFixed(1)}″ per year.` : null}
       </p>
       <p className="motion-story-punch">

@@ -541,7 +541,16 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.playing, view.mode, view.showHelp, blinkPasses, passes, patchView, demoPhase, splitVisits]);
+  }, [
+    view.playing,
+    view.mode,
+    view.showHelp,
+    blinkPasses,
+    passes,
+    patchView,
+    demoPhase,
+    splitVisits,
+  ]);
 
   async function toggleFullscreen() {
     const el = stageRef.current;
@@ -733,7 +742,11 @@ export default function App() {
           >
             Auto demo (30s)
           </button>
-          <button type="button" className="ghost" onClick={() => patchView({ showHelp: !view.showHelp })}>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => patchView({ showHelp: !view.showHelp })}
+          >
             Quick guide
           </button>
         </div>
@@ -884,42 +897,47 @@ export default function App() {
               </div>
             )}
 
-            {!splitStacks && !ghostStacks && display && view.mode === "single" && display.kind === "single" && (
-              <SkyPlayer
-                frames={filtered}
-                frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                playing={view.playing}
-                fps={view.fps}
-                lo={display.lo}
-                hi={display.hi}
-                size={display.size}
-                colorMap={view.colorMap}
-                displayPx={displayPx}
-                trail={trail}
-                onFrameIndexChange={onPlayerFrame}
-              />
-            )}
+            {!splitStacks &&
+              !ghostStacks &&
+              display &&
+              view.mode === "single" &&
+              display.kind === "single" && (
+                <SkyPlayer
+                  frames={filtered}
+                  frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                  playing={view.playing}
+                  fps={view.fps}
+                  lo={display.lo}
+                  hi={display.hi}
+                  size={display.size}
+                  colorMap={view.colorMap}
+                  displayPx={displayPx}
+                  trail={trail}
+                  onFrameIndexChange={onPlayerFrame}
+                />
+              )}
 
-            {!splitStacks && !ghostStacks && display && view.mode === "difference" && display.kind === "difference" && (
-              <>
-                {"error" in display && display.error ? (
-                  <div className="status-banner error">{display.error}</div>
-                ) : (
-                  <FrameCanvas
-                    pixels={display.pixels!}
-                    mask={display.mask!}
-                    size={display.size}
-                    lo={display.lo!}
-                    hi={display.hi!}
-                    background={0}
-                    colorMap={view.colorMap}
-                    targetXy={display.targetXy}
-                    trail={trail}
-                    displayPx={displayPx}
-                  />
-                )}
-              </>
-            )}
+            {!splitStacks &&
+              !ghostStacks &&
+              display &&
+              view.mode === "difference" &&
+              display.kind === "difference" &&
+              ("error" in display && display.error ? (
+                <div className="status-banner error">{display.error}</div>
+              ) : (
+                <FrameCanvas
+                  pixels={display.pixels!}
+                  mask={display.mask!}
+                  size={display.size}
+                  lo={display.lo!}
+                  hi={display.hi!}
+                  background={0}
+                  colorMap={view.colorMap}
+                  targetXy={display.targetXy}
+                  trail={trail}
+                  displayPx={displayPx}
+                />
+              ))}
 
             {!splitStacks &&
               !ghostStacks &&
@@ -1005,12 +1023,14 @@ export default function App() {
             </>
           )}
 
-          {view.mode === "difference" && display?.kind === "difference" && !("error" in display && display.error) && (
-            <p className="mode-note">
-              Visit {view.diffPassA} minus visit {view.diffPassB}. A bright/dark pair near the
-              center means the star moved.
-            </p>
-          )}
+          {view.mode === "difference" &&
+            display?.kind === "difference" &&
+            !("error" in display && display.error) && (
+              <p className="mode-note">
+                Visit {view.diffPassA} minus visit {view.diffPassB}. A bright/dark pair near the
+                center means the star moved.
+              </p>
+            )}
 
           <ViewerGuide targetName={targetName} mode={guideMode} />
 
@@ -1092,7 +1112,8 @@ export default function App() {
             {uiMode === "compare" && (
               <div className="control-block">
                 <p className="lead">
-                  Blinking Visit {blinkA ?? 1} ↔ Visit {blinkB ?? 3}. Watch the bright star hop north.
+                  Blinking Visit {blinkA ?? 1} ↔ Visit {blinkB ?? 3}. Watch the bright star hop
+                  north.
                 </p>
                 <button
                   type="button"
@@ -1266,9 +1287,7 @@ export default function App() {
                 target={load.data.target}
                 grid={load.data.grid}
                 frame={display.meta}
-                filteredCount={
-                  view.mode === "difference" ? forDifference.length : filtered.length
-                }
+                filteredCount={view.mode === "difference" ? forDifference.length : filtered.length}
                 mode={view.mode}
               />
             ) : (

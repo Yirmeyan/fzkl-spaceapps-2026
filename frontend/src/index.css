@@ -630,8 +630,7 @@ select {
   align-items: center;
   min-height: 280px;
   background:
-    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.04), transparent 55%),
-    #05080e;
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.04), transparent 55%), #05080e;
   border-radius: 14px;
   overflow: hidden;
 }
@@ -736,7 +735,20 @@ select {
 
 .swatch.cross {
   background: #fdba74;
-  clip-path: polygon(40% 0, 60% 0, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0 60%, 0 40%, 40% 40%);
+  clip-path: polygon(
+    40% 0,
+    60% 0,
+    60% 40%,
+    100% 40%,
+    100% 60%,
+    60% 60%,
+    60% 100%,
+    40% 100%,
+    40% 60%,
+    0 60%,
+    0 40%,
+    40% 40%
+  );
   border-radius: 0;
 }
 
@@ -873,15 +885,15 @@ select {
   content: " −";
 }
 
-.details .meta {
-  margin-top: 0.85rem;
-}
-
 .meta {
   margin: 0;
   display: grid;
   gap: 0.45rem;
   font-size: 0.86rem;
+}
+
+.details .meta {
+  margin-top: 0.85rem;
 }
 
 .meta > div {

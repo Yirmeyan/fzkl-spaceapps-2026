@@ -94,8 +94,7 @@ function DotStrip({
   onPick?: (id: string) => void;
 }) {
   if (frames.length === 0) return null;
-  const min =
-    mode === "wave" ? frames[0]!.frame.wavelength_um : frames[0]!.frame.time_mjd;
+  const min = mode === "wave" ? frames[0]!.frame.wavelength_um : frames[0]!.frame.time_mjd;
   const max =
     mode === "wave"
       ? frames[frames.length - 1]!.frame.wavelength_um
@@ -116,21 +115,32 @@ function DotStrip({
         const x = 8 + ((value - min) / span) * 284;
         const active = f.frame.id === activeId;
         return (
-          <circle
+          <g
             key={f.frame.id}
-            cx={x}
-            cy={14}
-            r={active ? 4.5 : 2.5}
-            fill={active ? "var(--accent)" : "var(--muted)"}
+            role="button"
+            tabIndex={0}
             style={{ cursor: onPick ? "pointer" : undefined }}
             onClick={() => onPick?.(f.frame.id)}
+            onKeyDown={(e) => {
+              if (!onPick) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onPick(f.frame.id);
+              }
+            }}
           >
             <title>
               {mode === "wave"
                 ? `${f.frame.wavelength_um.toFixed(3)} µm`
                 : `Visit ${f.exposure.pass} · ${f.frame.time_iso}`}
             </title>
-          </circle>
+            <circle
+              cx={x}
+              cy={14}
+              r={active ? 4.5 : 2.5}
+              fill={active ? "var(--accent)" : "var(--muted)"}
+            />
+          </g>
         );
       })}
       <text x="8" y="26" className="strip-label">
