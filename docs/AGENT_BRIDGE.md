@@ -48,12 +48,16 @@ Frontend classroom UI lives on `feat/frontend-viewer` (ahead of the PR #8 squash
 
 ## Shipped / status log
 
+### 2026-11-14 13:35 ET — From: Nic — Kind: Shipped
+
+- Judge differentiators on `feat/frontend-viewer`: **Auto demo (J)**, **side-by-side visits (S)**, **motion story** (arcsec readout).
+- Still need latest UI merged to `main` (A5). Tracker: `docs/win-progress.md` (Nic ~74%, team ~42% — under-estimate).
+
 ### 2026-11-14 13:25 ET — From: Nic — Kind: Shipped
 
 - Bridge + independence charter added.
 - F1–F7 on Barnard sample (baseline in PR #8).
-- Post-merge UX on `feat/frontend-viewer`: guided modes, fullscreen, English dates, teacher details, trail, difference A/B fix.
-- Honest tracker: `docs/win-progress.md`.
+- Guided modes, fullscreen, English dates, trail, difference A/B fix.
 
 ### 2026-11-14 (earlier) — From: Tommy — Kind: Shipped (seen on main)
 
