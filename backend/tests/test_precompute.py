@@ -52,7 +52,7 @@ async def no_wait(seconds: float) -> None:
     return None
 
 
-def build(tmp_path, identifiers=IDS, missing=(), source=None):
+def build(tmp_path, identifiers=IDS, missing=(), source=None, **options):
     content = build_level2_file(flags=np.zeros((72, 96), dtype=np.int32))
     files = {key_from_id(i): content for i in identifiers if i not in missing}
     return asyncio.run(
@@ -65,6 +65,7 @@ def build(tmp_path, identifiers=IDS, missing=(), source=None):
             fov_deg=0.05,
             size=64,
             sleep=no_wait,
+            **options,
         )
     )
 
@@ -75,6 +76,7 @@ def test_one_file_per_detector_in_the_format_of_the_contract(tmp_path):
     assert sorted(path.name for path in tmp_path.iterdir()) == [
         "test-star-d2.json",
         "test-star-d5.json",
+        "test-star-spectrum.json",
     ]
     bundle = json.loads((tmp_path / "test-star-d2.json").read_text(encoding="utf-8"))
     assert list(bundle) == [
@@ -188,3 +190,62 @@ def test_command_refuses_a_folder_that_does_not_exist(tmp_path, capsys):
 
 def test_missing_file_error_carries_a_sentence_for_the_client():
     assert NotFound("detail", public="sentence").public == "sentence"
+
+
+def test_spectrum_file_holds_one_point_per_exposure_in_the_format_of_the_contract(tmp_path):
+    entry = build(tmp_path)
+
+    spectrum = json.loads((tmp_path / "test-star-spectrum.json").read_text(encoding="utf-8"))
+    assert list(spectrum) == ["format", "version", "generated", "target", "points"]
+    assert (spectrum["format"], spectrum["version"]) == ("spherex-explorer/spectrum", 1)
+    assert spectrum["target"]["name"] == "Test Star"
+    assert [point["id"] for point in spectrum["points"]] == IDS
+    assert list(spectrum["points"][0]) == [
+        "id",
+        "detector",
+        "pass",
+        "time_mjd",
+        "time_iso",
+        "wavelength_um",
+        "bandwidth_um",
+        "flux_mjy",
+        "error_mjy",
+        "quality",
+    ]
+    assert entry["spectrum"] == {
+        "file": "test-star-spectrum.json",
+        "points": 4,
+        "with_flux": 4,
+        "bytes": (tmp_path / "test-star-spectrum.json").stat().st_size,
+    }
+
+
+def test_point_of_the_spectrum_file_is_the_measurement_of_the_frame_of_the_bundle(tmp_path):
+    build(tmp_path)
+
+    spectrum = json.loads((tmp_path / "test-star-spectrum.json").read_text(encoding="utf-8"))
+    bundle = json.loads((tmp_path / "test-star-d2.json").read_text(encoding="utf-8"))
+
+    point, frame = spectrum["points"][0], bundle["frames"][0]
+    assert point["id"] == frame["id"]
+    assert point["flux_mjy"] == frame["photometry"]["flux_mjy"]
+    assert point["quality"] == frame["photometry"]["quality"]
+    assert point["wavelength_um"] == frame["wavelength_um"]
+
+
+def test_spectra_alone_leave_the_bundles_and_complete_the_index(tmp_path):
+    write_index(tmp_path, [build(tmp_path)])
+    bundle = tmp_path / "test-star-d2.json"
+    before = bundle.read_bytes()
+    (tmp_path / "test-star-spectrum.json").unlink()
+
+    entry = build(tmp_path, with_frames=False)
+    write_index(tmp_path, [entry])
+
+    assert list(entry) == ["key", "spectrum"]
+    assert bundle.read_bytes() == before
+    assert (tmp_path / "test-star-spectrum.json").exists()
+    index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
+    (only,) = index["targets"]
+    assert [detector["detector"] for detector in only["detectors"]] == [2, 5]
+    assert only["spectrum"]["points"] == 4

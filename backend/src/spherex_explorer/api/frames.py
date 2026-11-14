@@ -9,10 +9,12 @@ from fastapi import APIRouter, Depends, Path, Request, Response
 from pydantic import BaseModel
 
 from spherex_explorer.api.exposures import get_time_budget_s
+from spherex_explorer.api.numbers import SKY_DECIMALS, TIME_DECIMALS, rounded, significant
 from spherex_explorer.api.params import Dec, Epoch, Fov, GridDec, GridRa, PmDec, PmRa, Ra, Size
 from spherex_explorer.errors import UpstreamUnavailable
 from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE, Grid
 from spherex_explorer.mjd import mjd_to_iso
+from spherex_explorer.photometry import Measurement
 from spherex_explorer.pipeline import Frame, FrameSource, build_frame
 from spherex_explorer.targets import Target
 
@@ -25,11 +27,8 @@ _RETRY_AFTER_S = 5
 # Largest value a 16-bit float holds. Brighter pixels are clipped to it.
 _FLOAT16_MAX = 65504.0
 # Digits kept in the answer, well below what the instrument resolves.
-_TIME_DECIMALS = 6
-_SKY_DECIMALS = 4
 _PIXEL_DECIMALS = 2
 _FRACTION_DECIMALS = 3
-_FLUX_DIGITS = 5
 
 
 class PhotometryOut(BaseModel):
@@ -73,35 +72,32 @@ def encode_mask(mask: np.ndarray) -> str:
     return base64.b64encode(mask.astype(np.uint8).tobytes()).decode("ascii")
 
 
-def _rounded(value: float | None, decimals: int) -> float | None:
-    return None if value is None else round(value, decimals)
-
-
-def _significant(value: float | None) -> float | None:
-    return None if value is None else float(f"{value:.{_FLUX_DIGITS}g}")
+def photometry_out(measurement: Measurement) -> PhotometryOut:
+    """A measurement as the contract writes it."""
+    return PhotometryOut(
+        flux_mjy=significant(measurement.flux_mjy),
+        error_mjy=significant(measurement.error_mjy),
+        quality=measurement.quality,
+    )
 
 
 def frame_out(frame: Frame) -> FrameOut:
     """A frame as the contract writes it: rounded numbers, pixels and flags in base64."""
     return FrameOut(
         id=frame.id,
-        time_mjd=round(frame.time_mjd, _TIME_DECIMALS),
+        time_mjd=round(frame.time_mjd, TIME_DECIMALS),
         time_iso=mjd_to_iso(frame.time_mjd),
         exposure_s=round(frame.exposure_s, 1),
-        wavelength_um=round(frame.wavelength_um, _SKY_DECIMALS),
-        bandwidth_um=round(frame.bandwidth_um, _SKY_DECIMALS),
-        background=_rounded(frame.background, _SKY_DECIMALS),
-        noise=_rounded(frame.noise, _SKY_DECIMALS),
+        wavelength_um=round(frame.wavelength_um, SKY_DECIMALS),
+        bandwidth_um=round(frame.bandwidth_um, SKY_DECIMALS),
+        background=rounded(frame.background, SKY_DECIMALS),
+        noise=rounded(frame.noise, SKY_DECIMALS),
         valid_fraction=round(frame.valid_fraction, _FRACTION_DECIMALS),
         target_xy=(
             round(frame.target_xy[0], _PIXEL_DECIMALS),
             round(frame.target_xy[1], _PIXEL_DECIMALS),
         ),
-        photometry=PhotometryOut(
-            flux_mjy=_significant(frame.photometry.flux_mjy),
-            error_mjy=_significant(frame.photometry.error_mjy),
-            quality=frame.photometry.quality,
-        ),
+        photometry=photometry_out(frame.photometry),
         image=encode_image(frame.image),
         mask=encode_mask(frame.mask),
     )

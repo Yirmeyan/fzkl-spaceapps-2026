@@ -1,4 +1,4 @@
-// Checks a bundle file, or the index and every bundle it lists, against docs/api-contract.md.
+// Checks a bundle, a spectrum file, or the index and every file it lists, against docs/api-contract.md.
 // The helpers below are the ones printed in the contract, so this script also tests them.
 // Usage (Node 24, no dependency):
 //   node samples/check-sample.ts samples/index.json
@@ -116,6 +116,9 @@ const QUALITIES = ["ok", "flagged", "masked", "saturated", "outside"];
 
 const BUNDLE_FORMAT = "spherex-explorer/bundle";
 const INDEX_FORMAT = "spherex-explorer/index";
+const SPECTRUM_FORMAT = "spherex-explorer/spectrum";
+const POINT_KEYS = ["id", "detector", "pass", "time_mjd", "time_iso", "wavelength_um", "bandwidth_um", "flux_mjy", "error_mjy", "quality"];
+const WITHOUT_VALUE = ["masked", "saturated", "outside"];
 const TARGET_KEYS = ["name", "ra", "dec", "epoch", "pm_ra", "pm_dec"];
 const GRID_KEYS = ["ra", "dec", "fov_deg", "size"];
 
@@ -128,10 +131,17 @@ function check(condition: boolean, message: string): void {
   console.log("PROBLEM:", context + message);
 }
 
+interface Measured {
+  flux: number | null;
+  quality: string;
+  wavelength: number;
+}
+
 interface Summary {
   frames: number;
   detectors: number[];
   wavelengths: [number, number];
+  measured: Map<string, Measured>;
   lines: string[];
 }
 
@@ -156,6 +166,7 @@ function checkBundle(bundle: any, brightStar: boolean): Summary {
   let shortest = Infinity;
   let longest = -Infinity;
   const detectors = new Set<number>();
+  const measured = new Map<string, Measured>();
   const cores: { pass: number; x: number; y: number; predicted: [number, number] }[] = [];
 
   frames.forEach((frame, index) => {
@@ -171,6 +182,8 @@ function checkBundle(bundle: any, brightStar: boolean): Summary {
     previousTime = frame.time_mjd;
     worstDate = Math.max(worstDate, Math.abs(mjdToDate(frame.time_mjd).getTime() - Date.parse(frame.time_iso)));
     detectors.add(exposure.detector);
+    measured.set(frame.id, { flux: frame.photometry.flux_mjy, quality: frame.photometry.quality, wavelength: frame.wavelength_um });
+    check((frame.photometry.flux_mjy === null) === WITHOUT_VALUE.includes(frame.photometry.quality), `frame ${index}: a flux goes with the qualities ok and flagged, and only with them`);
     shortest = Math.min(shortest, frame.wavelength_um);
     longest = Math.max(longest, frame.wavelength_um);
 
@@ -254,7 +267,56 @@ function checkBundle(bundle: any, brightStar: boolean): Summary {
     `motion in pixels between the first and the last pass (x, y): ${motion}`,
     `first row is ${north.toFixed(1)} arcsec north of the center, first column ${east.toFixed(1)} arcsec east`,
   ];
-  return { frames: frames.length, detectors: [...detectors], wavelengths: [shortest, longest], lines };
+  return { frames: frames.length, detectors: [...detectors], wavelengths: [shortest, longest], measured, lines };
+}
+
+interface SpectrumSummary {
+  points: number;
+  withFlux: number;
+  byId: Map<string, any>;
+  lines: string[];
+}
+
+function checkSpectrum(spectrum: any): SpectrumSummary {
+  const points: any[] = spectrum.points ?? [];
+  check(spectrum.format === SPECTRUM_FORMAT && spectrum.version === 1, "format or version");
+  check(Array.isArray(spectrum.points), "the file holds no list of points");
+  const byId = new Map<string, any>();
+  let previousTime = -Infinity;
+  let worstDate = 0;
+  let withFlux = 0;
+  let shortest = Infinity;
+  let longest = -Infinity;
+  points.forEach((point, index) => {
+    check(POINT_KEYS.every((key) => key in point), `fields of point ${index}`);
+    check(ID_PATTERN.test(point.id), `identifier ${point.id}`);
+    check(!byId.has(point.id), `point ${index} repeats an exposure`);
+    byId.set(point.id, point);
+    check(Number.isInteger(point.detector) && String(point.id).includes(`D${point.detector}.`), `detector of point ${index}`);
+    check(Number.isInteger(point.pass) && point.pass >= 1, `pass of point ${index}`);
+    check(QUALITIES.includes(point.quality), `quality of point ${index}`);
+    check((point.flux_mjy === null) === WITHOUT_VALUE.includes(point.quality), `point ${index}: a flux goes with the qualities ok and flagged, and only with them`);
+    check((point.error_mjy === null) === (point.flux_mjy === null), `point ${index}: a flux and its uncertainty come together`);
+    check(point.error_mjy === null || point.error_mjy > 0, `uncertainty of point ${index}`);
+    check(point.time_mjd >= previousTime, "points must be sorted by time");
+    previousTime = point.time_mjd;
+    worstDate = Math.max(worstDate, Math.abs(mjdToDate(point.time_mjd).getTime() - Date.parse(point.time_iso)));
+    if (point.wavelength_um === null) {
+      check(point.quality === "outside", `point ${index} has no wavelength although the target is on the detector`);
+    } else {
+      check(point.wavelength_um > 0.7 && point.wavelength_um < 5.2 && point.bandwidth_um > 0, `wavelength of point ${index}`);
+      shortest = Math.min(shortest, point.wavelength_um);
+      longest = Math.max(longest, point.wavelength_um);
+    }
+    if (point.flux_mjy !== null) withFlux++;
+  });
+  check(worstDate <= 600, "time_iso differs from time_mjd");
+  const lines = [
+    `${points.length} points, ${withFlux} with a flux`,
+    `wavelengths from ${shortest} to ${longest} micrometers`,
+    `time_iso against time_mjd: worst difference ${worstDate} ms`,
+  ];
+  return { points: points.length, withFlux, byId, lines };
 }
 
 function sameFields(a: any, b: any, keys: string[]): boolean {
@@ -271,6 +333,7 @@ function checkIndex(index: any, folder: string): void {
     check(Number.isInteger(entry.passes) && entry.passes >= 1, "number of passes");
     check(Array.isArray(entry.detectors) && entry.detectors.length > 0, "the target lists no file");
     let total = 0;
+    const measured = new Map<string, Measured>();
     for (const listed of entry.detectors ?? []) {
       context = `${listed.file}: `;
       check(listed.file === `${entry.key}-d${listed.detector}.json`, "name of the file");
@@ -293,24 +356,69 @@ function checkIndex(index: any, folder: string): void {
         "wavelengths differ from the index",
       );
       total += summary.frames;
+      for (const [id, value] of summary.measured) measured.set(id, value);
       console.log(`${listed.file}: ${summary.frames} frames, ${summary.wavelengths[0]} to ${summary.wavelengths[1]} micrometers`);
     }
+    if (entry.spectrum) checkListedSpectrum(entry, folder, measured);
     context = "";
     console.log(`${entry.name}: ${total} frames in ${(entry.detectors ?? []).length} files, ${entry.passes} passes`);
   }
+}
+
+// The spectrum file of a target against the index, and against the frames of its bundles:
+// two paths of the service measured the same exposures, and they must agree.
+function checkListedSpectrum(entry: any, folder: string, measured: Map<string, Measured>): void {
+  const listed = entry.spectrum;
+  context = `${listed.file}: `;
+  check(listed.file === `${entry.key}-spectrum.json`, "name of the file");
+  let text: string;
+  try {
+    text = readFileSync(join(folder, listed.file), "utf8");
+  } catch {
+    check(false, "the file is missing");
+    return;
+  }
+  const spectrum = JSON.parse(text);
+  const summary = checkSpectrum(spectrum);
+  check(Buffer.byteLength(text, "utf8") === listed.bytes, "size differs from the index");
+  check(sameFields(spectrum.target, entry.target, TARGET_KEYS), "target differs from the index");
+  check(summary.points === listed.points, "number of points differs from the index");
+  check(summary.withFlux === listed.with_flux, "number of points with a flux differs from the index");
+  let compared = 0;
+  let worstFlux = 0;
+  let worstWavelength = 0;
+  for (const [id, frame] of measured) {
+    const point = summary.byId.get(id);
+    if (!point) {
+      check(false, `the frame ${id} of a bundle has no point`);
+      continue;
+    }
+    check(point.quality === frame.quality, `quality of ${id} differs from its frame`);
+    if (point.flux_mjy !== null && frame.flux !== null) {
+      worstFlux = Math.max(worstFlux, Math.abs(point.flux_mjy - frame.flux) / Math.abs(frame.flux));
+      compared++;
+    }
+    if (point.wavelength_um !== null) worstWavelength = Math.max(worstWavelength, Math.abs(point.wavelength_um - frame.wavelength));
+  }
+  check(worstFlux <= 1e-4, "a flux differs from the one of its frame");
+  // A frame gives the wavelength at the center of its grid, a point at the target itself.
+  check(worstWavelength <= 0.005, "a wavelength differs from the one of its frame");
+  console.log(`${listed.file}: ${summary.points} points, ${summary.withFlux} with a flux, ${compared} equal to their frame within ${worstFlux.toExponential(1)}`);
 }
 
 const options = process.argv.slice(2).filter((argument) => argument.startsWith("--"));
 const paths = process.argv.slice(2).filter((argument) => !argument.startsWith("--"));
 const unknown = options.filter((option) => option !== "--bright-star");
 if (paths.length !== 1 || unknown.length > 0) {
-  console.error("Usage: node samples/check-sample.ts <bundle.json or index.json> [--bright-star]");
+  console.error("Usage: node samples/check-sample.ts <bundle.json, spectrum.json or index.json> [--bright-star]");
   process.exit(2);
 }
 
 const content = JSON.parse(readFileSync(paths[0], "utf8"));
 if (content.format === INDEX_FORMAT) {
   checkIndex(content, dirname(paths[0]));
+} else if (content.format === SPECTRUM_FORMAT) {
+  for (const line of checkSpectrum(content).lines) console.log(line);
 } else {
   for (const line of checkBundle(content, options.includes("--bright-star")).lines) console.log(line);
 }
