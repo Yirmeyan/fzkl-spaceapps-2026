@@ -24,10 +24,16 @@ import {
   stackPassClean,
   stackTrackingTarget,
 } from "./compose/stack";
-import { type CandidatesFile, discoveryFlashLine, fetchCandidatesFile } from "./data/candidates";
+import {
+  type CandidatesFile,
+  discoveryFlashLine,
+  fetchCandidatesFile,
+  knownAs,
+} from "./data/candidates";
 import {
   type CatalogKey,
   type CatalogResponse,
+  type CatalogSlice,
   catalogSourceTip,
   catalogUnavailableMessage,
   fetchCatalogFile,
@@ -183,6 +189,8 @@ export default function App() {
   const [showGaia, setShowGaia] = useState(false);
   const [showAllwise, setShowAllwise] = useState(false);
   const [catalogFile, setCatalogFile] = useState<CatalogResponse | null>(null);
+  /** Gaia slice with optional tight-FOV refill when the view catalog is truncated. */
+  const [gaiaForKnownAs, setGaiaForKnownAs] = useState<CatalogSlice | null>(null);
   const [catalogWaiting, setCatalogWaiting] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [catalogTip, setCatalogTip] = useState<string | null>(null);
@@ -786,10 +794,45 @@ export default function App() {
 
   useEffect(() => {
     setCatalogFile(null);
+    setGaiaForKnownAs(null);
     setCatalogTip(null);
     setCatalogHighlightId(null);
     setCatalogError(null);
   }, [view.targetKey, fieldPreset]);
+
+  // Tommy 19:00: if Gaia is truncated and knownAs is null, ask a tight 0.02° field
+  // around the candidate before saying "holds no source here".
+  useEffect(() => {
+    const base = gaiaSlice(catalogFile);
+    setGaiaForKnownAs(base);
+    if (!base || !candidatesFile) return;
+    if (!base.truncated) return;
+    const needs = candidatesFile.candidates.filter((c) => knownAs(c, base) == null);
+    if (needs.length === 0) return;
+    const ac = new AbortController();
+    void (async () => {
+      const extra = [...base.sources];
+      for (const c of needs) {
+        if (ac.signal.aborted) return;
+        try {
+          const tight = await fetchCatalog(
+            { ra: c.ra, dec: c.dec, fov: 0.02, epoch: c.epoch },
+            ac.signal,
+          );
+          const g = gaiaSlice(tight);
+          if (!g) continue;
+          for (const s of g.sources) {
+            if (!extra.some((e) => e.id === s.id)) extra.push(s);
+          }
+        } catch {
+          /* keep null for this candidate */
+        }
+      }
+      if (ac.signal.aborted) return;
+      setGaiaForKnownAs({ ...base, sources: extra, truncated: false });
+    })();
+    return () => ac.abort();
+  }, [catalogFile, candidatesFile]);
 
   const forDifference = useMemo(() => {
     if (load.status !== "ready") return [];
@@ -2430,7 +2473,7 @@ export default function App() {
                   candidates={candidatesFile.candidates}
                   catalogPmRa={load.data.target.pm_ra}
                   catalogPmDec={load.data.target.pm_dec}
-                  gaiaCatalog={gaiaSlice(catalogFile)}
+                  gaiaCatalog={gaiaForKnownAs}
                   targetName={load.data.target.name ?? targetName}
                 />
               )}
@@ -2548,7 +2591,7 @@ export default function App() {
                 detector={view.detector}
                 catalogPmRa={load.status === "ready" ? load.data.target.pm_ra : null}
                 catalogPmDec={load.status === "ready" ? load.data.target.pm_dec : null}
-                gaiaCatalog={gaiaSlice(catalogFile)}
+                gaiaCatalog={gaiaForKnownAs}
                 onPick={(index) => setActiveCandidate(index)}
                 onStudy={(index) => {
                   const c = candidatesFile?.candidates[index];
