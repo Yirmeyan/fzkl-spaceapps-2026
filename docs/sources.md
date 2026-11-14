@@ -30,3 +30,12 @@ Versions are locked in `backend/uv.lock`, which also lists the transitive depend
 | [uv](https://docs.astral.sh/uv/) | Environment and lock file | Apache-2.0 OR MIT |
 
 Licenses come from the metadata of each installed package, except Hatchling and uv, taken from their repositories.
+
+## Continuous integration
+
+GitHub Actions used by the workflows in `.github/workflows/`. Each one is pinned to a commit.
+
+| Action | Use | License |
+| --- | --- | --- |
+| [actions/checkout](https://github.com/actions/checkout) | Fetches the repository in the workflow | MIT |
+| [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) | Installs uv in the workflow | MIT |
