@@ -32,9 +32,10 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
           <strong>Technical details</strong> if you want them.
         </li>
         <li>
-          Keys: <strong>J</strong> auto demo · <strong>G</strong> ghost sky · <strong>S</strong>{" "}
-          side-by-side · <strong>Space</strong> play · <strong>B</strong> blink · <strong>D</strong>{" "}
-          difference · <strong>F</strong> fullscreen.
+          Keys: <strong>J</strong> auto demo · <strong>G</strong> ghost · <strong>M</strong> spot
+          the mover · <strong>S</strong> side-by-side · <strong>Space</strong> play ·{" "}
+          <strong>B</strong> blink · <strong>D</strong> difference · <strong>F</strong> fullscreen.
+          Or open a <strong>Judge link</strong> (<code>?demo=1</code>).
         </li>
       </ol>
       <p className="help-foot">

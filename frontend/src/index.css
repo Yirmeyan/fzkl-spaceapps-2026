@@ -431,6 +431,91 @@ select {
   flex-shrink: 0;
 }
 
+.visit-storyboard {
+  width: 100%;
+  padding: 0.85rem 1rem 1rem;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(20, 28, 42, 0.95), rgba(8, 12, 20, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.visit-storyboard-head {
+  margin-bottom: 0.65rem;
+}
+
+.visit-storyboard-kicker {
+  margin: 0 0 0.15rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #93a4b8;
+}
+
+.visit-storyboard-title {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.visit-storyboard-strip {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scroll-snap-type: x proximity;
+}
+
+.visit-storyboard-cell {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem;
+  margin: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.visit-storyboard-cell:hover {
+  border-color: rgba(253, 186, 116, 0.55);
+  transform: translateY(-2px);
+}
+
+.visit-storyboard-cell.active {
+  border-color: #fdba74;
+  box-shadow: 0 0 0 1px rgba(253, 186, 116, 0.35);
+}
+
+.visit-storyboard-cell canvas {
+  border-radius: 4px;
+  display: block;
+}
+
+.visit-storyboard-pass {
+  font-family: Fraunces, Georgia, serif;
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.visit-storyboard-date {
+  font-size: 0.72rem;
+  color: #93a4b8;
+}
+
+.visit-storyboard-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.82rem;
+  color: #93a4b8;
+}
+
 .spot-mover {
   width: 100%;
   display: flex;

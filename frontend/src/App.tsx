@@ -28,7 +28,7 @@ import {
   resolveName,
 } from "./data/client";
 import type { Bundle, Frame, Grid, Target } from "./data/contract";
-import { computeDisplayLimits } from "./data/contract";
+import { computeDisplayLimits, mjdToDate } from "./data/contract";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
 import { KNOWN_TARGETS, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
@@ -43,6 +43,7 @@ import { MotionStory } from "./ui/MotionStory";
 import { PredictVsObserve } from "./ui/PredictVsObserve";
 import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
+import { type StoryboardCell, VisitStoryboard } from "./ui/VisitStoryboard";
 import { FrameCanvas } from "./viewer/FrameCanvas";
 import type { TrailPoint } from "./viewer/overlays";
 import { SkyPlayer } from "./viewer/SkyPlayer";
@@ -820,6 +821,41 @@ export default function App() {
   const ghostStacks = ghostVisits ? visitStacks : null;
   const spotStacks = spotMover ? visitStacks : null;
 
+  const storyboard = useMemo(() => {
+    if (load.status !== "ready" || passes.length < 2) return null;
+    const pool = forDifference;
+    const cells: StoryboardCell[] = [];
+    const stacks: { pixels: Float32Array; mask: Uint8Array; noise: number | null }[] = [];
+    for (const p of passes) {
+      const stack = stackFrames(pool.filter((f) => f.exposure.pass === p));
+      stacks.push(stack);
+      const mjds = pool.filter((f) => f.exposure.pass === p).map((f) => f.frame.time_mjd);
+      const mid = mjds.reduce((a, b) => a + b, 0) / Math.max(mjds.length, 1);
+      const dateLabel = Number.isFinite(mid)
+        ? mjdToDate(mid).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+        : `Visit ${p}`;
+      cells.push({
+        pass: p,
+        pixels: stack.pixels,
+        mask: stack.mask,
+        label: `Visit ${p}`,
+        dateLabel,
+      });
+    }
+    const limits = applyContrast(
+      computeDisplayLimits(
+        stacks.map((s) => ({
+          pixels: s.pixels,
+          mask: s.mask,
+          background: 0,
+          noise: s.noise,
+        })),
+      ),
+      view.contrast,
+    );
+    return { cells, limits, size: load.data.grid.size };
+  }, [load, passes, forDifference, view.contrast]);
+
   async function onSearch(e: FormEvent) {
     e.preventDefault();
     const raw = searchInput.trim();
@@ -1193,6 +1229,25 @@ export default function App() {
                 />
               )}
           </div>
+
+          {load.status === "ready" && storyboard && (
+            <VisitStoryboard
+              size={storyboard.size}
+              lo={storyboard.limits.lo}
+              hi={storyboard.limits.hi}
+              colorMap={view.colorMap}
+              cells={storyboard.cells}
+              trail={trail}
+              activePass={view.pass}
+              onPickPass={(pass) => {
+                setBlinkPasses(false);
+                setGhostVisits(false);
+                setSpotMover(false);
+                setSplitVisits(false);
+                patchView({ mode: "single", pass, frameIndex: 0, playing: false });
+              }}
+            />
+          )}
 
           {load.status === "ready" && (
             <>
