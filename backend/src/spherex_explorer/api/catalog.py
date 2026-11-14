@@ -2,6 +2,7 @@
 
 import asyncio
 import time
+from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request, Response
@@ -104,6 +105,15 @@ def catalog_out(found: CatalogView) -> CatalogOut:
     )
 
 
+def catalogs_out(view: Grid, epoch: float, found: Sequence[CatalogView]) -> CatalogsOut:
+    """The catalogs of a view, in the shape of the contract."""
+    return CatalogsOut(
+        view=ViewOut(ra=view.ra, dec=view.dec, fov_deg=view.fov_deg),
+        epoch=round(epoch, _EPOCH_DECIMALS),
+        catalogs=[catalog_out(one) for one in found],
+    )
+
+
 @router.get("/catalog", response_model=CatalogsOut)
 async def read_catalogs(
     response: Response,
@@ -135,8 +145,4 @@ async def read_catalogs(
         ) from exc
 
     response.headers["Cache-Control"] = _CACHE_CONTROL
-    return CatalogsOut(
-        view=ViewOut(ra=ra, dec=dec, fov_deg=fov),
-        epoch=round(date, _EPOCH_DECIMALS),
-        catalogs=[catalog_out(one) for one in found],
-    )
+    return catalogs_out(view, date, found)

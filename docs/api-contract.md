@@ -347,6 +347,7 @@ Both sources above are Barnard's Star: where Gaia saw it in 2016, and where WISE
 - **AllWISE gives no motion.** Its sources are drawn where they were seen. A fast object is then away from its marker, by 15 years of its motion.
 - **Pass `epoch`.** The middle of the dates of the frames on screen is right. It only decides which fast stars count as inside the view.
 - **The two catalogs are asked together, and the call fails as a whole.** A 503 means that the catalog service did not answer. Nothing else on the page depends on it: leave the overlay off and say so.
+- **The five test targets have the answer in a static file,** `<key>-catalog.json`, listed in the [index](#one-file-per-detector-and-an-index): the same object for the grid of the target, 11 to 38 kB. Read the file for a test target shown in its default view, and ask the call for anything else.
 - The catalogs are read at VizieR, the catalog service of the CDS, through its mirror at Harvard first. A site of VizieR fails for a minute now and then: the service asks each site twice before it answers 503, and remembers an answer for a day.
 
 ## The frame
@@ -543,7 +544,8 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
         { "detector": 1, "file": "barnard-star-d1.json", "frames": 60, "wavelength_um": [0.7413, 1.1074], "bytes": 3962335 }
       ],
       "spectrum": { "file": "barnard-star-spectrum.json", "points": 364, "with_flux": 101, "bytes": 83927 },
-      "candidates": { "file": "barnard-star-candidates.json", "count": 1, "moved": 1, "changed": 0, "bytes": 1627 }
+      "candidates": { "file": "barnard-star-candidates.json", "count": 1, "moved": 1, "changed": 0, "bytes": 1627 },
+      "catalog": { "file": "barnard-star-catalog.json", "sources": { "gaia": 85, "allwise": 184 }, "bytes": 37502 }
     }
   ]
 }
@@ -566,11 +568,15 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
 | `candidates.file` | string | Name of the [candidates file](#candidates), relative to the index |
 | `candidates.count`, `candidates.moved`, `candidates.changed` | integers | Number of candidates, and how many of each kind |
 | `candidates.bytes` | integer | Size of the candidates file |
+| `catalog.file` | string | Name of the catalog file, relative to the index: the answer of [`GET /api/catalog`](#get-apicatalog) for the grid of the target, at the middle of the dates of its frames |
+| `catalog.sources` | object | Number of sources of each catalog in the file, by its `key` |
+| `catalog.bytes` | integer | Size of the catalog file |
 
 - The keys of the five test targets are `barnard-star`, `epsilon-indi-b`, `wise-0855`, `rw-aurigae` and `r-draconis`.
 - An exposure whose file is gone from the archive is left out of both `exposures` and `frames`, so the two lists of a bundle always have the same length.
 - The bundles are built by the code of the service, with `python -m spherex_explorer.precompute`: a frame of a bundle is the frame the service returns for the same target and grid.
 - The candidates of a test target are measured on the frames of its bundles, the very ones the site shows. `python -m spherex_explorer.precompute --output samples --candidates-only` writes them again without any download.
+- The catalog file of a test target, `<key>-catalog.json`, is the object `GET /api/catalog` returns, after three fields that open it: `format`, which is `spherex-explorer/catalog`, `version` and `generated`. The overlay of a test target then works when the catalog service does not answer. `--catalogs-only` writes these files again: it asks the catalog service alone.
 
 ## Candidates
 

@@ -37,6 +37,14 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:55 ET - From: Tommy - Kind: Shipped
+
+**The catalog overlay of the five presets now has static files: `<key>-catalog.json`.**
+
+1. **What they are.** The object `GET /api/catalog` returns for the grid of the preset, after `format` (`spherex-explorer/catalog`), `version` and `generated`: `view`, `epoch`, `catalogs`. 11 to 38 kB each. The index lists them: `catalog: {file, sources: {gaia, allwise}, bytes}`.
+2. **Which one to read.** A preset in its default view: the file, as you do for the candidates. Anything else, a name typed in or the wider view: the call. Same parsing for both.
+3. **Why.** VizieR fails for a minute now and then. With the files, the two switches always work on the five presets, which is where a judge will try them.
+
 ### 2026-11-14 18:45 ET - From: Tommy - Kind: Shipped / Need
 
 **The catalog overlay has its call: `GET /api/catalog`, Gaia DR3 and AllWISE for any view. This is your F8.**
@@ -53,6 +61,7 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
    - **Barnard's Star:** the Gaia ring follows the star. The AllWISE ring, `J175747.94+044323.8`, stays 2.7 arcminutes to the south: where the star was in 2010.
    - **WISE 0855:** no Gaia ring on the object. Gaia does not see it, it is too cold. The AllWISE ring `J085510.74-071442.5` is 126 arcseconds to the east: where WISE saw it in 2010. From there to where SPHEREx sees it now: 8.2 arcseconds per year, the catalog says 8.15. A candidate that moves and that Gaia does not hold: this is what a search for Planet X looks like.
 5. **Next from me:** the static catalog files of the presets, then one line per candidate, computed by the service: "Known to Gaia as ..., catalog motion ..." or "In no catalog". I post the fields here when they are merged.
+
 ### 2026-11-14 18:30 ET — From: Nic — Kind: Shipped
 
 **Halo story (Tommy 18:20):** `method` on candidates; halo tip line; saturated copy “give a flux”; no Catalog on `changed`; discovery flash for `is_target` changers; demo-script R Dra line. Classic hop desk still on this branch.

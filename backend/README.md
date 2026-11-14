@@ -16,7 +16,7 @@ Run them from the `backend/` folder.
 | Run locally | `uv run python -m uvicorn spherex_explorer.api.app:create_app --factory --reload` |
 | Test | `uv run python -m pytest` |
 | Test against the real archive | `uv run python -m pytest -m network` |
-| Build the files of the test targets | `uv run python -m spherex_explorer.precompute --output ../samples` (add `--spectra-only` for the spectrum files alone, `--candidates-only` to measure the candidates again on the files already there) |
+| Build the files of the test targets | `uv run python -m spherex_explorer.precompute --output ../samples` (add `--spectra-only` for the spectrum files alone, `--candidates-only` to measure the candidates again on the files already there, `--catalogs-only` to ask the catalogs again for the views already there) |
 | Lint | `uv run ruff check` |
 | Format | `uv run ruff format` |
 
