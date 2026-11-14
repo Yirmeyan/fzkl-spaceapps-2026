@@ -1,0 +1,33 @@
+---
+description: Nic frontend loops must ship game-breaking ideas only — no cosmetic polish
+alwaysApply: true
+---
+
+# Frontend bar (Nic) — win or nothing
+
+14k teams. Cosmetics do not win.
+
+## Every Nic frontend iteration MUST
+
+1. Write in `docs/win-progress.md` **one game-breaking idea** for this loop (what a judge remembers in 10 seconds).
+2. Ship **that idea only** end-to-end (code + copy + push if relevant).
+3. Update progress honestly.
+
+## Hard ban (do not spend a loop on these)
+
+- Button / chip / accent color tweaks
+- Spacing, radius, shadow, font polish alone
+- Renaming labels without new capability
+- “Make it prettier” / gradient / glass / glow for its own sake
+- Tiny a11y or copy nits unless blocking a wow feature
+- Refactors with no user-visible new power
+
+## What counts as game-breaking (examples of bar)
+
+- New way to **see motion** (compare, blink, trail, tour, measure)
+- New **judge-ready** interaction (one-click story, shareable moment)
+- New **discovery** affordance (spot the mover, predict vs observe)
+- Wiring **new Tommy data** into a visible capability
+- Shipping latest UI to **production/main** so judges see it
+
+If the idea would not change a judge’s mind vs 14k other SPHEREx sites, **discard it** and pick a bigger one.
