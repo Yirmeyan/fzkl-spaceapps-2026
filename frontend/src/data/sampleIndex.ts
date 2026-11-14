@@ -25,6 +25,12 @@ export interface SampleCandidatesEntry {
   bytes: number;
 }
 
+export interface SampleCatalogEntry {
+  file: string;
+  sources: { gaia: number; allwise: number };
+  bytes: number;
+}
+
 export interface SampleTargetEntry {
   key: string;
   name: string;
@@ -36,6 +42,8 @@ export interface SampleTargetEntry {
   spectrum?: SampleSpectrumEntry;
   /** What moved or changed in the field (Tommy addition A / #42). */
   candidates?: SampleCandidatesEntry;
+  /** Gaia + AllWISE overlay for the preset grid (Tommy #59). */
+  catalog?: SampleCatalogEntry;
 }
 
 export interface SampleIndex {
@@ -97,6 +105,10 @@ export function spectrumFileUrl(file: string): string {
 }
 
 export function candidatesFileUrl(file: string): string {
+  return `${import.meta.env.BASE_URL}samples/${file}`;
+}
+
+export function catalogFileUrl(file: string): string {
   return `${import.meta.env.BASE_URL}samples/${file}`;
 }
 

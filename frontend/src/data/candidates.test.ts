@@ -25,7 +25,8 @@ describe("candidates", () => {
     // Barnard's sample has no parallax yet; howFar stays null.
     expect(lines.howFar).toBeNull();
     expect(lines.sure).toMatch(/Candidate,/);
-    expect(lines.catalog).toBe("Catalog: 10.35″ per year");
+    // Without a Gaia slice, the panel keeps no catalog line (Tommy 19:00).
+    expect(lines.catalog).toBeNull();
   });
 
   it("formats distance and catalog lines when parallax is present", () => {
@@ -58,7 +59,27 @@ describe("candidates", () => {
     const lines = candidateLines(c, 3966.7, 2497.1);
     expect(lines.howFar).toMatch(/10\.7 light-years/);
     expect(lines.howFar).toMatch(/between 9\.5 and 12\.1/);
-    expect(lines.catalog).toBe("Catalog: 4.69″ per year");
+    expect(lines.catalog).toBeNull();
+  });
+
+  it("matches Barnard's Star to its Gaia source", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { dirname, join } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const { knownAs, gaiaKnowsLine } = await import("./candidates");
+    const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+    const cand = JSON.parse(
+      readFileSync(join(root, "samples", "barnard-star-candidates.json"), "utf8"),
+    ) as CandidatesFile;
+    const cat = JSON.parse(
+      readFileSync(join(root, "samples", "barnard-star-catalog.json"), "utf8"),
+    ) as { catalogs: { key: string; epoch: number; sources: unknown[] }[] };
+    const gaia = cat.catalogs.find((c) => c.key === "gaia")!;
+    const c = cand.candidates[0]!;
+    const hit = knownAs(c, gaia as never);
+    expect(hit?.source.id).toBe("Gaia DR3 4472832130942575872");
+    expect(hit!.separation).toBeLessThan(0.5);
+    expect(gaiaKnowsLine(c, hit)).toMatch(/Gaia DR3 knows it: 10\.39″ per year/);
   });
 
   it("explains an empty list with the limits", () => {

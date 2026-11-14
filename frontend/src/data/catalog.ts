@@ -23,6 +23,9 @@ export interface CatalogSlice {
 }
 
 export interface CatalogResponse {
+  format?: "spherex-explorer/catalog";
+  version?: number;
+  generated?: string;
   view: { ra: number; dec: number; fov_deg: number };
   epoch: number;
   catalogs: CatalogSlice[];
@@ -63,4 +66,21 @@ export function catalogSourceTip(slice: CatalogSlice, source: CatalogSource): st
   const moveBit =
     slice.key === "gaia" && pm > 100 ? `moves ${(pm / 1000).toFixed(2)}″ per year` : null;
   return [source.id, magBit, moveBit].filter(Boolean).join(" · ");
+}
+
+export async function fetchCatalogFile(
+  url: string,
+  signal?: AbortSignal,
+): Promise<CatalogResponse> {
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error(`Failed to load catalog: ${res.status}`);
+  const data = (await res.json()) as CatalogResponse;
+  if (data.format != null && data.format !== "spherex-explorer/catalog") {
+    throw new Error("Not a SPHEREx catalog file");
+  }
+  return data;
+}
+
+export function gaiaSlice(file: CatalogResponse | null): CatalogSlice | null {
+  return file?.catalogs.find((c) => c.key === "gaia") ?? null;
 }

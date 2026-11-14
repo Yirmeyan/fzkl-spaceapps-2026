@@ -30,6 +30,8 @@ import {
   type CatalogResponse,
   catalogSourceTip,
   catalogUnavailableMessage,
+  fetchCatalogFile,
+  gaiaSlice,
   middleFrameEpochYear,
 } from "./data/catalog";
 import {
@@ -53,6 +55,7 @@ import {
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
 import {
   candidatesFileUrl,
+  catalogFileUrl,
   clearSampleIndexCache,
   detectorBundleUrl,
   fetchSampleIndex,
@@ -729,34 +732,59 @@ export default function App() {
     return filterNearWavelength(byPass, view.waveUm, view.waveTolUm);
   }, [load, view.pass, view.detector, view.waveUm, view.waveTolUm]);
 
-  // Tommy F8: ask Gaia/AllWISE when a Look switch turns on, and again when the grid changes.
+  // Tommy F8 / #59 / 19:00: load catalog for overlay OR candidates (knownAs).
+  // Prefer static preset file; otherwise GET /api/catalog.
   useEffect(() => {
-    if (!showGaia && !showAllwise) return;
-    if (load.status !== "ready") return;
+    const need = showGaia || showAllwise || candidatesFile != null;
+    if (!need || load.status !== "ready") return;
     const ac = new AbortController();
     const grid = load.data.grid;
     const epoch = middleFrameEpochYear(load.data.frames.map((f) => f.frame.time_mjd));
     setCatalogWaiting(true);
     setCatalogError(null);
-    void fetchCatalog({ ra: grid.ra, dec: grid.dec, fov: grid.fov_deg, epoch }, ac.signal)
-      .then((data) => {
+
+    void (async () => {
+      try {
+        let data: CatalogResponse | null = null;
+        try {
+          const index = await fetchSampleIndex(ac.signal);
+          const entry = sampleTargetByUiKey(index, view.targetKey);
+          const defaultFov = FIELD_PRESETS.default.fov;
+          if (
+            entry?.catalog &&
+            fieldPreset === "default" &&
+            Math.abs(grid.fov_deg - defaultFov) < 1e-9
+          ) {
+            data = await fetchCatalogFile(catalogFileUrl(entry.catalog.file), ac.signal);
+          }
+        } catch {
+          /* fall through to live call */
+        }
+        if (!data) {
+          data = await fetchCatalog(
+            { ra: grid.ra, dec: grid.dec, fov: grid.fov_deg, epoch },
+            ac.signal,
+          );
+        }
         if (ac.signal.aborted) return;
         setCatalogFile(data);
         setCatalogWaiting(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         if (ac.signal.aborted) return;
         setCatalogFile(null);
         setCatalogWaiting(false);
-        setCatalogError(catalogUnavailableMessage(err));
-        setShowGaia(false);
-        setShowAllwise(false);
-      });
+        if (showGaia || showAllwise) {
+          setCatalogError(catalogUnavailableMessage(err));
+          setShowGaia(false);
+          setShowAllwise(false);
+        }
+      }
+    })();
+
     return () => ac.abort();
-  }, [showGaia, showAllwise, load]);
+  }, [showGaia, showAllwise, load, candidatesFile, view.targetKey, fieldPreset]);
 
   useEffect(() => {
-    // Fresh sky → clear catalog so the next switch asks for this grid.
     setCatalogFile(null);
     setCatalogTip(null);
     setCatalogHighlightId(null);
@@ -2402,6 +2430,7 @@ export default function App() {
                   candidates={candidatesFile.candidates}
                   catalogPmRa={load.data.target.pm_ra}
                   catalogPmDec={load.data.target.pm_dec}
+                  gaiaCatalog={gaiaSlice(catalogFile)}
                   targetName={load.data.target.name ?? targetName}
                 />
               )}
@@ -2519,6 +2548,7 @@ export default function App() {
                 detector={view.detector}
                 catalogPmRa={load.status === "ready" ? load.data.target.pm_ra : null}
                 catalogPmDec={load.status === "ready" ? load.data.target.pm_dec : null}
+                gaiaCatalog={gaiaSlice(catalogFile)}
                 onPick={(index) => setActiveCandidate(index)}
                 onStudy={(index) => {
                   const c = candidatesFile?.candidates[index];

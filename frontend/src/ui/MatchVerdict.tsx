@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import type { Candidate } from "../data/candidates";
+import { knownAs } from "../data/candidates";
+import type { CatalogSlice } from "../data/catalog";
 
 interface MatchVerdictProps {
   candidates: Candidate[];
   catalogPmRa: number | null | undefined;
   catalogPmDec: number | null | undefined;
+  gaiaCatalog?: CatalogSlice | null;
   targetName: string;
 }
 
@@ -43,7 +46,7 @@ function downloadSkyPostcard(targetName: string, verdictLine: string, agrees: bo
   ctx.fillRect(0, 0, w, h);
 
   ctx.fillStyle = "#f4f7fb";
-  ctx.font = "700 28px Fraunces, Georgia, serif";
+  ctx.font = "700 28px Syne, IBM Plex Sans, sans-serif";
   ctx.fillText("SPHEREx Explorer", pad, pad + 28);
   ctx.fillStyle = "#93a4b8";
   ctx.font = "500 14px Segoe UI, system-ui, sans-serif";
@@ -91,21 +94,29 @@ function downloadSkyPostcard(targetName: string, verdictLine: string, agrees: bo
 }
 
 /**
- * Stage stamp: SPHEREx-measured proper motion next to the catalog rate.
- * Shareable judge moment when they agree (Tommy panel line, lifted onto the sky).
+ * Stage stamp: SPHEREx-measured proper motion next to Gaia (Tommy 19:00).
+ * WISE 0855: "Gaia: nothing here" is the challenge beat.
  */
 export function MatchVerdict({
   candidates,
   catalogPmRa,
   catalogPmDec,
+  gaiaCatalog = null,
   targetName,
 }: MatchVerdictProps) {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const target = candidates.find((c) => c.is_target && c.kind === "moved" && c.motion);
-  const catalog = catalogRateArcsecPerYear(catalogPmRa, catalogPmDec);
+  const gaiaMatch = target && gaiaCatalog ? knownAs(target, gaiaCatalog) : null;
+  const gaiaRate =
+    gaiaMatch != null
+      ? Math.hypot(gaiaMatch.source.pm_ra ?? 0, gaiaMatch.source.pm_dec ?? 0) / 1000
+      : null;
+  const fallback = catalogRateArcsecPerYear(catalogPmRa, catalogPmDec);
+  const catalog = gaiaCatalog != null ? gaiaRate : fallback;
   const measured = target?.motion?.rate_arcsec_per_year ?? null;
   const err = target?.motion?.rate_error_arcsec_per_year ?? null;
+  const gaiaAbsent = gaiaCatalog != null && gaiaMatch == null;
 
   useEffect(() => {
     if (!copied) return;
@@ -119,11 +130,13 @@ export function MatchVerdict({
     return () => window.clearTimeout(t);
   }, [saved]);
 
-  if (measured == null || catalog == null || err == null) return null;
+  if (measured == null || err == null) return null;
+  if (!gaiaAbsent && catalog == null) return null;
 
-  const delta = Math.abs(measured - catalog);
-  const agrees = delta <= Math.max(3 * err, 0.15 * catalog);
-  const line = `${targetName}: SPHEREx ${measured.toFixed(2)} ± ${err.toFixed(2)}″/yr · Catalog ${catalog.toFixed(2)}″/yr${agrees ? " · they agree" : ""}`;
+  const agrees =
+    catalog != null ? Math.abs(measured - catalog) <= Math.max(3 * err, 0.15 * catalog) : false;
+  const catalogBit = gaiaAbsent ? "Gaia: nothing here" : `Gaia ${catalog!.toFixed(2)}″/yr`;
+  const line = `${targetName}: SPHEREx ${measured.toFixed(2)} ± ${err.toFixed(2)}″/yr · ${catalogBit}${agrees ? " · they agree" : ""}`;
 
   return (
     <div className={`match-verdict${agrees ? " match-verdict--agree" : ""}`} role="status">
@@ -134,7 +147,13 @@ export function MatchVerdict({
           {measured.toFixed(2)} ± {err.toFixed(2)}″/yr
         </strong>
         <span className="match-verdict-sep">·</span>
-        Catalog <strong>{catalog.toFixed(2)}″/yr</strong>
+        {gaiaAbsent ? (
+          <strong>Gaia: nothing here</strong>
+        ) : (
+          <>
+            Gaia <strong>{catalog!.toFixed(2)}″/yr</strong>
+          </>
+        )}
         {agrees && <span className="match-verdict-agree"> · they agree</span>}
       </p>
       <div className="match-verdict-actions">
