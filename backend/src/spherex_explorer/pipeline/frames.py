@@ -41,7 +41,11 @@ class FrameSource(Protocol):
 
     async def layout(self, exposure_id: str) -> Layout: ...
 
-    async def read_window(self, exposure_id: str, window: Window) -> RawWindow: ...
+    async def read_window(
+        self, exposure_id: str, window: Window, *, with_variance: bool = True
+    ) -> RawWindow: ...
+
+    async def read_variance(self, exposure_id: str, window: Window) -> np.ndarray: ...
 
     async def wavelength_table(self, exposure_id: str) -> WavelengthTable: ...
 
@@ -142,7 +146,19 @@ async def build_frame(source: FrameSource, exposure_id: str, target: Target, gri
         mask = np.zeros((grid.size, grid.size), dtype=np.uint8)
         photometry = Measurement(flux_mjy=None, error_mjy=None, quality="outside")
     else:
-        raw, table = await asyncio.gather(source.read_window(exposure_id, window), table_read)
+        circle = _circle_window(layout, target_x, target_y)
+        reads = [source.read_window(exposure_id, window, with_variance=False), table_read]
+        if circle is not None:
+            reads.append(source.read_variance(exposure_id, circle))
+        raw, table, *measured = await asyncio.gather(*reads)
+        # The variance is as heavy as the image and only the measurement uses it, inside
+        # its circle. Reading it there alone nearly halves what a frame downloads.
+        variance = np.full(raw.image.shape, np.nan, dtype=np.float32)
+        if circle is not None:
+            variance[
+                circle.y0 - window.y0 : circle.y1 - window.y0,
+                circle.x0 - window.x0 : circle.x1 - window.x0,
+            ] = measured[0]
         plan = flag_plan(layout.flag_planes)
         window_mask = translate(raw.flags, plan)
         no_value = has_no_value(raw.flags, plan)
@@ -152,7 +168,7 @@ async def build_frame(source: FrameSource, exposure_id: str, target: Target, gri
         area_y = target_y if math.isfinite(target_y) else center_y
         photometry = measure(
             raw.image,
-            raw.variance,
+            variance,
             window_mask,
             no_value,
             is_saturated(raw.flags, plan),
@@ -160,8 +176,6 @@ async def build_frame(source: FrameSource, exposure_id: str, target: Target, gri
             target_y - window.y0,
             wcs.pixel_area_sr(area_x, area_y),
         )
-        if not _fully_on_detector(layout, target_x, target_y):
-            photometry = Measurement(flux_mjy=None, error_mjy=None, quality="outside")
 
     wavelength, bandwidth = wavelength_at(table, center_x, center_y)
     background, noise = background_and_noise(image, mask)
@@ -181,11 +195,20 @@ async def build_frame(source: FrameSource, exposure_id: str, target: Target, gri
     )
 
 
-def _fully_on_detector(layout: Layout, x: float, y: float) -> bool:
-    """True when the circle of the measurement is entirely on the detector."""
-    return (
+def _circle_window(layout: Layout, x: float, y: float) -> Window | None:
+    """Detector pixels the circle of the measurement touches. None when it leaves the detector."""
+    on_detector = (
         math.isfinite(x)
         and math.isfinite(y)
         and APERTURE_RADIUS <= x <= layout.width - 1 - APERTURE_RADIUS
         and APERTURE_RADIUS <= y <= layout.height - 1 - APERTURE_RADIUS
+    )
+    if not on_detector:
+        return None
+    reach = APERTURE_RADIUS + 0.5
+    return Window(
+        x0=max(0, math.floor(x - reach)),
+        y0=max(0, math.floor(y - reach)),
+        x1=min(layout.width, math.floor(x + reach) + 2),
+        y1=min(layout.height, math.floor(y + reach) + 2),
     )
