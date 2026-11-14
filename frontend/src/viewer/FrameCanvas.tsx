@@ -10,12 +10,10 @@ export interface FrameCanvasProps {
   hi: number;
   background: number | null;
   colorMap?: ColorMap;
-  /** Optional marker at target position [x, y] in grid pixels */
   targetXy?: [number, number] | null;
   trail?: TrailPoint[];
   className?: string;
-  /** Display scale (CSS pixels per image pixel). Default 4 → 512px for 128. */
-  scale?: number;
+  displayPx?: number;
 }
 
 export function FrameCanvas({
@@ -29,9 +27,10 @@ export function FrameCanvas({
   targetXy,
   trail = [],
   className,
-  scale = 4,
+  displayPx,
 }: FrameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const css = displayPx ?? size * 4;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -51,15 +50,13 @@ export function FrameCanvas({
     }
   }, [pixels, mask, size, lo, hi, background, colorMap, targetXy, trail]);
 
-  const css = size * scale;
-
   return (
     <canvas
       ref={canvasRef}
       className={className}
       width={size}
       height={size}
-      style={{ width: css, height: css, imageRendering: "pixelated" }}
+      style={{ width: css, height: css, maxWidth: "100%", imageRendering: "pixelated" }}
       aria-label="SPHEREx image frame"
     />
   );

@@ -1,4 +1,12 @@
-import { type FormEvent, startTransition, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   applyContrast,
   filterFrames,
@@ -33,6 +41,8 @@ import { FrameCanvas } from "./viewer/FrameCanvas";
 import type { TrailPoint } from "./viewer/overlays";
 import { SkyPlayer } from "./viewer/SkyPlayer";
 
+type UiMode = "watch" | "compare" | "difference" | "more";
+
 function meanPassTrail(frames: DecodedFrame[]): TrailPoint[] {
   const map = new Map<number, { sx: number; sy: number; n: number }>();
   for (const f of frames) {
@@ -48,6 +58,13 @@ function meanPassTrail(frames: DecodedFrame[]): TrailPoint[] {
     .map(([pass, v]) => ({ pass, x: v.sx / v.n, y: v.sy / v.n }));
 }
 
+function uiModeFromView(mode: ComposeMode, blink: boolean): UiMode {
+  if (blink) return "compare";
+  if (mode === "difference") return "difference";
+  if (mode === "stack" || mode === "track") return "more";
+  return "watch";
+}
+
 type LoadState =
   | { status: "idle" }
   | { status: "loading"; message: string; loaded?: number; total?: number }
@@ -56,7 +73,6 @@ type LoadState =
 
 function parseCoordinateQuery(raw: string): Target | null {
   const trimmed = raw.trim();
-  // decimal degrees: "269.45 4.69" or "269.45,4.69"
   const decimal = trimmed.match(/^([+-]?\d+(?:\.\d+)?)\s*[,\s]\s*([+-]?\d+(?:\.\d+)?)$/);
   if (decimal) {
     return {
@@ -74,10 +90,11 @@ export default function App() {
   const [view, setView] = useState<ViewState>(() => readViewFromUrl());
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
   const [searchInput, setSearchInput] = useState(view.query);
-  /** CSS pixels per image pixel (128 → 512 at 4). */
-  const [zoom, setZoom] = useState(4);
-  /** Alternate Pass first ↔ last so proper motion pops. */
   const [blinkPasses, setBlinkPasses] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [displayPx, setDisplayPx] = useState(560);
+  const stageRef = useRef<HTMLElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
 
   const patchView = useCallback((partial: Partial<ViewState>) => {
     setView((prev) => {
@@ -93,6 +110,19 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  useEffect(() => {
+    const el = measureRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      setDisplayPx(Math.max(280, Math.min(720, Math.floor(w))));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const loadKnownTarget = useCallback(
     async (key: string, signal: AbortSignal) => {
       const known = targetByKey(key);
@@ -103,7 +133,7 @@ export default function App() {
       if (!known.bundleUrl) {
         setLoad({
           status: "error",
-          message: `${known.label} will load from a static bundle once backend step B6 ships it. Try Barnard's Star for now, or search by coordinates when the service is up.`,
+          message: `${known.label} is not ready yet. Try Barnard's Star — it works offline from the sample.`,
         });
         return;
       }
@@ -126,18 +156,17 @@ export default function App() {
 
   const loadFromService = useCallback(
     async (target: Target, signal: AbortSignal) => {
-      setLoad({ status: "loading", message: "Resolving exposures…" });
+      setLoad({ status: "loading", message: "Looking up this patch of sky…" });
       const { target: t, grid, exposures } = await fetchExposures(target, {}, signal);
       if (signal.aborted) return;
       if (exposures.length === 0) {
         setLoad({
           status: "error",
-          message: "SPHEREx has no exposures at this position (or the list is empty).",
+          message: "SPHEREx has no images here yet. Try Barnard's Star.",
         });
         return;
       }
 
-      // Prefer detector 2 first (matches sample / architecture default view).
       const preferred = exposures.filter((e) => e.detector === 2);
       const queue =
         preferred.length > 0
@@ -148,7 +177,7 @@ export default function App() {
       let loaded = 0;
       setLoad({
         status: "loading",
-        message: `Loading frames…`,
+        message: `Loading images…`,
         loaded: 0,
         total: queue.length,
       });
@@ -184,7 +213,7 @@ export default function App() {
                   ...prev,
                   loaded,
                   total: queue.length,
-                  message: `Loading frames… ${loaded}/${queue.length}`,
+                  message: `Loading images… ${loaded}/${queue.length}`,
                 }
               : prev,
           );
@@ -207,7 +236,6 @@ export default function App() {
     [patchView],
   );
 
-  // Initial + targetKey changes
   useEffect(() => {
     const ac = new AbortController();
     void (async () => {
@@ -235,26 +263,21 @@ export default function App() {
       }
     })();
     return () => ac.abort();
-    // Only reload when the selected known target changes, not every view tweak.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.targetKey]);
 
-  // Frames for Single play / stack / track: respect Pass All|1|2|3.
   const filtered = useMemo(() => {
     if (load.status !== "ready") return [];
     const byPass = filterFrames(load.data.frames, { pass: view.pass, detector: view.detector });
     return filterNearWavelength(byPass, view.waveUm, view.waveTolUm);
   }, [load, view.pass, view.detector, view.waveUm, view.waveTolUm]);
 
-  // Difference must see BOTH passes. Never apply the Pass 1/2/3 filter here
-  // (that was the bug: Pass 1 alone made pass B empty → nonsense image).
   const forDifference = useMemo(() => {
     if (load.status !== "ready") return [];
     const byDet = filterFrames(load.data.frames, { pass: null, detector: view.detector });
     return filterNearWavelength(byDet, view.waveUm, view.waveTolUm);
   }, [load, view.detector, view.waveUm, view.waveTolUm]);
 
-  // Keep frame index in range
   useEffect(() => {
     if (filtered.length === 0) return;
     if (view.frameIndex >= filtered.length) {
@@ -265,7 +288,6 @@ export default function App() {
   const onPlayerFrame = useCallback((index: number) => {
     setView((prev) => {
       if (prev.frameIndex === index) return prev;
-      // Metadata only — never touch the URL here (that flashed the whole tab).
       return { ...prev, frameIndex: index };
     });
   }, []);
@@ -281,7 +303,7 @@ export default function App() {
       if (nA === 0 || nB === 0) {
         return {
           kind: "difference" as const,
-          error: `Need frames in both passes. Pass ${view.diffPassA} has ${nA}, pass ${view.diffPassB} has ${nB}.`,
+          error: `Need images from both visits. Visit ${view.diffPassA} has ${nA}, visit ${view.diffPassB} has ${nB}.`,
           size,
         };
       }
@@ -370,8 +392,9 @@ export default function App() {
   );
   const blinkA = passes[0] ?? null;
   const blinkB = passes.length >= 2 ? passes[passes.length - 1]! : null;
+  const detectors = load.status === "ready" ? uniqueDetectors(load.data.frames) : [];
+  const uiMode = uiModeFromView(view.mode, blinkPasses);
 
-  // Blink first ↔ last pass so the ~3–4 px proper motion is obvious.
   useEffect(() => {
     if (!blinkPasses || view.mode !== "single" || blinkA == null || blinkB == null) return;
     let toggle = false;
@@ -382,18 +405,44 @@ export default function App() {
     }, 500);
     return () => window.clearInterval(id);
   }, [blinkPasses, view.mode, blinkA, blinkB, patchView]);
-  const detectors = load.status === "ready" ? uniqueDetectors(load.data.frames) : [];
-  const matchPreviewCount =
-    load.status === "ready" && display && "meta" in display && display.meta
-      ? filterNearWavelength(
-          filterFrames(load.data.frames, {
-            pass: view.mode === "difference" ? null : view.pass,
-            detector: view.detector,
-          }),
-          Number(display.meta.frame.wavelength_um.toFixed(4)),
-          view.waveTolUm,
-        ).length
-      : 0;
+
+  function setUiMode(next: UiMode) {
+    setBlinkPasses(false);
+    if (next === "watch") {
+      patchView({ mode: "single", pass: null, frameIndex: 0, playing: false });
+      return;
+    }
+    if (next === "compare") {
+      patchView({ mode: "single", playing: false, frameIndex: 0 });
+      setBlinkPasses(true);
+      return;
+    }
+    if (next === "difference") {
+      patchView({
+        mode: "difference",
+        pass: null,
+        playing: false,
+        diffPassA: passes[0] ?? 1,
+        diffPassB: passes[passes.length - 1] ?? 3,
+      });
+      return;
+    }
+    patchView({ mode: "stack", playing: false });
+  }
+
+  async function toggleFullscreen() {
+    const el = stageRef.current;
+    if (!el) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await el.requestFullscreen();
+      }
+    } catch {
+      // Browsers may deny without a gesture; ignore.
+    }
+  }
 
   async function onSearch(e: FormEvent) {
     e.preventDefault();
@@ -415,7 +464,7 @@ export default function App() {
         await loadFromService(coords, ac.signal);
         return;
       }
-      setLoad({ status: "loading", message: `Resolving “${raw}”…` });
+      setLoad({ status: "loading", message: `Looking up “${raw}”…` });
       const target = await resolveName(raw, ac.signal);
       patchView({ targetKey: "custom", query: raw });
       await loadFromService(target, ac.signal);
@@ -432,67 +481,128 @@ export default function App() {
     }
   }
 
+  const targetName =
+    load.status === "ready"
+      ? (load.data.target.name ?? view.query)
+      : view.query || "Barnard's Star";
+
+  const guideMode =
+    uiMode === "compare"
+      ? "blink"
+      : uiMode === "difference"
+        ? "difference"
+        : view.mode === "stack"
+          ? "stack"
+          : view.mode === "track"
+            ? "track"
+            : "watch";
+
   return (
     <div className="app">
+      <div className="sky-wash" aria-hidden="true" />
+
       <header className="top">
         <div className="brand-block">
-          <p className="brand">SPHEREx Explorer</p>
-          <p className="tagline">Watch the near-infrared sky move — NASA Space Apps 2026</p>
+          <p className="eyebrow">NASA Space Apps 2026 · FZKL</p>
+          <h1 className="brand">SPHEREx Explorer</h1>
+          <p className="tagline">
+            Watch a real star drift across the infrared sky — built so a classroom can see it in
+            under a minute.
+          </p>
         </div>
-        <HealthBadge />
-      </header>
-
-      <nav className="targets" aria-label="Challenge test targets">
-        {KNOWN_TARGETS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            className={`target-btn${view.targetKey === t.key ? " active" : ""}`}
-            onClick={() => patchView({ targetKey: t.key })}
-            title={t.bundleUrl ? t.blurb : `${t.blurb} (bundle not ready yet)`}
-          >
-            {t.label}
-            {!t.bundleUrl && <span className="soon">soon</span>}
+        <div className="top-actions">
+          <HealthBadge />
+          <button type="button" className="ghost" onClick={() => patchView({ showHelp: !view.showHelp })}>
+            How to demo
           </button>
-        ))}
-        <button
-          type="button"
-          className="ghost"
-          onClick={() => patchView({ showHelp: !view.showHelp })}
-        >
-          Help
-        </button>
-      </nav>
-
-      <form className="search" onSubmit={onSearch}>
-        <label className="sr-only" htmlFor="sky-query">
-          Object name or RA Dec
-        </label>
-        <input
-          id="sky-query"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Name or RA Dec (e.g. 269.45 4.69)"
-          autoComplete="off"
-        />
-        <button type="submit">Go</button>
-      </form>
+        </div>
+      </header>
 
       <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
 
-      <main className="main">
-        <section className="viewer-pane">
-          {load.status === "loading" && (
-            <div className="status-banner">
-              {load.message}
-              {load.total != null && load.loaded != null && (
-                <progress value={load.loaded} max={load.total} />
-              )}
+      <section className="picker" aria-label="Choose a star">
+        <div className="picker-head">
+          <h2>Pick a star</h2>
+          <p>Start with Barnard's Star — it moves the fastest of any nearby star.</p>
+        </div>
+        <div className="target-row">
+          {KNOWN_TARGETS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              className={`target-card${view.targetKey === t.key ? " active" : ""}`}
+              onClick={() => {
+                setBlinkPasses(false);
+                patchView({ targetKey: t.key, mode: "single", pass: null });
+              }}
+              disabled={!t.bundleUrl && t.key !== view.targetKey}
+            >
+              <span className="target-name">{t.label}</span>
+              <span className="target-blurb">{t.bundleUrl ? t.blurb : "Coming soon"}</span>
+            </button>
+          ))}
+        </div>
+        <form className="search" onSubmit={onSearch}>
+          <label className="sr-only" htmlFor="sky-query">
+            Search by name or coordinates
+          </label>
+          <input
+            id="sky-query"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Or type a name / sky coordinates"
+            autoComplete="off"
+          />
+          <button type="submit" className="primary">
+            Look up
+          </button>
+        </form>
+      </section>
+
+      <nav className="mode-tabs" aria-label="What do you want to do?">
+        {(
+          [
+            ["watch", "1 · Watch the movie"],
+            ["compare", "2 · Blink visits"],
+            ["difference", "3 · Show the move"],
+            ["more", "More views"],
+          ] as [UiMode, string][]
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={uiMode === id ? "active" : ""}
+            onClick={() => setUiMode(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      <main className="workspace">
+        <section className="stage" ref={stageRef}>
+          <div className="stage-bar">
+            <div>
+              <p className="stage-kicker">Now viewing</p>
+              <h2 className="stage-title">{targetName}</h2>
             </div>
-          )}
-          {load.status === "error" && <div className="status-banner error">{load.message}</div>}
-          {display && view.mode === "single" && display.kind === "single" && (
-            <>
+            <button type="button" className="primary" onClick={() => void toggleFullscreen()}>
+              Fullscreen
+            </button>
+          </div>
+
+          <div className="stage-measure" ref={measureRef}>
+            {load.status === "loading" && (
+              <div className="status-banner">
+                {load.message}
+                {load.total != null && load.loaded != null && (
+                  <progress value={load.loaded} max={load.total} />
+                )}
+              </div>
+            )}
+            {load.status === "error" && <div className="status-banner error">{load.message}</div>}
+
+            {display && view.mode === "single" && display.kind === "single" && (
               <SkyPlayer
                 frames={filtered}
                 frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
@@ -502,10 +612,53 @@ export default function App() {
                 hi={display.hi}
                 size={display.size}
                 colorMap={view.colorMap}
-                scale={zoom}
+                displayPx={displayPx}
                 trail={trail}
                 onFrameIndexChange={onPlayerFrame}
               />
+            )}
+
+            {display && view.mode === "difference" && display.kind === "difference" && (
+              <>
+                {"error" in display && display.error ? (
+                  <div className="status-banner error">{display.error}</div>
+                ) : (
+                  <FrameCanvas
+                    pixels={display.pixels!}
+                    mask={display.mask!}
+                    size={display.size}
+                    lo={display.lo!}
+                    hi={display.hi!}
+                    background={0}
+                    colorMap={view.colorMap}
+                    targetXy={display.targetXy}
+                    trail={trail}
+                    displayPx={displayPx}
+                  />
+                )}
+              </>
+            )}
+
+            {display &&
+              (view.mode === "stack" || view.mode === "track") &&
+              display.kind === "compose" && (
+                <FrameCanvas
+                  pixels={display.pixels}
+                  mask={display.mask}
+                  size={display.size}
+                  lo={display.lo}
+                  hi={display.hi}
+                  background={display.background}
+                  colorMap={view.colorMap}
+                  targetXy={display.targetXy}
+                  trail={trail}
+                  displayPx={displayPx}
+                />
+              )}
+          </div>
+
+          {display && view.mode === "single" && display.kind === "single" && (
+            <>
               <FrameCaption
                 frames={filtered}
                 frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
@@ -514,12 +667,13 @@ export default function App() {
               <div className="transport">
                 <button
                   type="button"
+                  className="primary play-btn"
                   onClick={() => {
                     setBlinkPasses(false);
-                    patchView({ playing: !view.playing });
+                    patchView({ playing: !view.playing, mode: "single" });
                   }}
                 >
-                  {view.playing ? "Pause" : "Play"}
+                  {view.playing ? "Pause" : "Play movie"}
                 </button>
                 <input
                   type="range"
@@ -530,216 +684,118 @@ export default function App() {
                     patchView({ frameIndex: Number(e.target.value), playing: false })
                   }
                   disabled={filtered.length === 0}
-                  aria-label="Frame"
+                  aria-label="Scrub through frames"
                 />
-                <label>
-                  FPS
-                  <input
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={view.fps}
-                    onChange={(e) => patchView({ fps: Number(e.target.value) || 8 })}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className={blinkPasses ? "active" : ""}
-                  disabled={passes.length < 2}
-                  title="Alternate first and last pass so the star jump is obvious"
-                  onClick={() => {
-                    setBlinkPasses((v) => {
-                      const next = !v;
-                      if (!next) patchView({ pass: null, frameIndex: 0 });
-                      else patchView({ playing: false });
-                      return next;
-                    });
-                  }}
-                >
-                  Blink {passes[0] ?? 1}↔{passes[passes.length - 1] ?? 3}
-                </button>
-                <div className="zoom-controls" role="group" aria-label="Zoom">
-                  <button
-                    type="button"
-                    disabled={zoom <= 2}
-                    onClick={() => setZoom((z) => Math.max(2, z - 1))}
-                  >
-                    −
-                  </button>
-                  <span>{Math.round((zoom / 4) * 100)}%</span>
-                  <button
-                    type="button"
-                    disabled={zoom >= 8}
-                    onClick={() => setZoom((z) => Math.min(8, z + 1))}
-                  >
-                    +
-                  </button>
-                </div>
               </div>
-              <p className="overlay-hint">
-                Orange cross = catalogue position (+ proper motion), not the brightest pixel. Colored
-                P1/P2/P3 dots = mean position per visit (~3–4 px north over a year for Barnard).
-              </p>
-              <ViewerGuide
-                targetName={load.status === "ready" ? load.data.target.name : undefined}
-                pass={view.pass}
-              />
             </>
           )}
-          {display && view.mode === "difference" && display.kind === "difference" && (
-            <>
-              {"error" in display && display.error ? (
-                <div className="status-banner error">{display.error}</div>
-              ) : (
-                <FrameCanvas
-                  pixels={display.pixels!}
-                  mask={display.mask!}
-                  size={display.size}
-                  lo={display.lo!}
-                  hi={display.hi!}
-                  background={0}
-                  colorMap={view.colorMap}
-                  targetXy={display.targetXy}
-                  trail={trail}
-                  scale={zoom}
-                />
-              )}
-              <div className="transport">
-                <div className="zoom-controls" role="group" aria-label="Zoom">
-                  <button
-                    type="button"
-                    disabled={zoom <= 2}
-                    onClick={() => setZoom((z) => Math.max(2, z - 1))}
-                  >
-                    −
-                  </button>
-                  <span>{Math.round((zoom / 4) * 100)}%</span>
-                  <button
-                    type="button"
-                    disabled={zoom >= 8}
-                    onClick={() => setZoom((z) => Math.min(8, z + 1))}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <p className="mode-note">
-                <strong>
-                  Pass {view.diffPassA} (−{display.countA ?? "?"} frames) minus pass{" "}
-                  {view.diffPassB} (−{display.countB ?? "?"} frames)
-                </strong>
-                . Bright / dark dipoles = the star moved between visits. Pick A and B below — the
-                Pass All/1/2/3 filter is for Single play only.
-              </p>
-            </>
+
+          {view.mode === "difference" && display?.kind === "difference" && !("error" in display && display.error) && (
+            <p className="mode-note">
+              Visit {view.diffPassA} minus visit {view.diffPassB}. A bright/dark pair near the
+              center means the star moved.
+            </p>
           )}
-          {display &&
-            (view.mode === "stack" || view.mode === "track") &&
-            display.kind === "compose" && (
-              <FrameCanvas
-                pixels={display.pixels}
-                mask={display.mask}
-                size={display.size}
-                lo={display.lo}
-                hi={display.hi}
-                background={display.background}
-                colorMap={view.colorMap}
-                targetXy={display.targetXy}
-                trail={trail}
-                scale={zoom}
-              />
-            )}
+
+          <ViewerGuide targetName={targetName} mode={guideMode} />
+
+          <div className="legend-row" aria-hidden="true">
+            <span>
+              <i className="swatch heat" /> Brighter infrared
+            </span>
+            <span>
+              <i className="swatch cross" /> Predicted star position
+            </span>
+            <span>
+              <i className="swatch bead" /> Visit 1 → 2 → 3 path
+            </span>
+          </div>
         </section>
 
-        <aside className="side">
-          <div className="controls">
-            {view.mode !== "difference" && (
-              <fieldset>
-                <legend>Pass (which visit to play)</legend>
-                <button
-                  type="button"
-                  className={view.pass == null && !blinkPasses ? "active" : ""}
-                  onClick={() => {
-                    setBlinkPasses(false);
-                    patchView({ pass: null, frameIndex: 0 });
-                  }}
-                >
-                  All
-                </button>
-                {passes.map((p) => (
+        <aside className="rail">
+          <div className="rail-card">
+            <h3>Controls for this step</h3>
+            <p className="rail-hint">
+              Only the buttons for the selected step are active. Switch steps with the tabs above.
+            </p>
+
+            {uiMode === "watch" && (
+              <div className="control-block">
+                <p className="control-label">Which visit to play</p>
+                <div className="chip-row">
                   <button
-                    key={p}
                     type="button"
-                    className={view.pass === p && !blinkPasses ? "active" : ""}
+                    className={view.pass == null ? "active" : ""}
+                    onClick={() => patchView({ pass: null, frameIndex: 0 })}
+                  >
+                    All visits
+                  </button>
+                  {passes.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={view.pass === p ? "active" : ""}
+                      onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                    >
+                      Visit {p}
+                    </button>
+                  ))}
+                </div>
+                <p className="control-label">Keep one infrared color?</p>
+                <div className="chip-row">
+                  <button
+                    type="button"
+                    className={view.waveUm == null ? "active" : ""}
+                    onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
+                  >
+                    All colors
+                  </button>
+                  <button
+                    type="button"
+                    className={view.waveUm != null ? "active" : ""}
+                    disabled={!display || !("meta" in display) || !display.meta}
                     onClick={() => {
-                      setBlinkPasses(false);
-                      patchView({ pass: p, frameIndex: 0 });
+                      if (!display || !("meta" in display) || !display.meta) return;
+                      patchView({
+                        waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
+                        frameIndex: 0,
+                        playing: false,
+                      });
                     }}
                   >
-                    {p}
+                    Lock this color
                   </button>
-                ))}
-              </fieldset>
+                </div>
+                <p className="micro">
+                  {view.waveUm == null
+                    ? `Playing ${filtered.length} frames across many infrared colors.`
+                    : `Locked near ${view.waveUm.toFixed(2)} µm · ${filtered.length} frames.`}
+                </p>
+              </div>
             )}
 
-            {detectors.length > 1 && (
-              <fieldset>
-                <legend>Detector</legend>
+            {uiMode === "compare" && (
+              <div className="control-block">
+                <p className="lead">
+                  Blinking Visit {blinkA ?? 1} ↔ Visit {blinkB ?? 3}. Watch the bright star hop north.
+                </p>
                 <button
                   type="button"
-                  className={view.detector == null ? "active" : ""}
-                  onClick={() => patchView({ detector: null, frameIndex: 0 })}
+                  className="primary"
+                  onClick={() => {
+                    setBlinkPasses(false);
+                    patchView({ pass: null, mode: "single" });
+                  }}
                 >
-                  All
+                  Stop blinking
                 </button>
-                {detectors.map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    className={view.detector === d ? "active" : ""}
-                    onClick={() => patchView({ detector: d, frameIndex: 0 })}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </fieldset>
+              </div>
             )}
 
-            <fieldset>
-              <legend>Mode</legend>
-              {(
-                [
-                  ["single", "Single"],
-                  ["stack", "Stack"],
-                  ["difference", "Difference"],
-                  ["track", "Track"],
-                ] as [ComposeMode, string][]
-              ).map(([mode, label]) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={view.mode === mode ? "active" : ""}
-                  onClick={() =>
-                    patchView({
-                      mode,
-                      playing: mode === "single" ? view.playing : false,
-                      // Difference uses A/B only — clear the Single pass filter.
-                      pass: mode === "difference" ? null : view.pass,
-                      diffPassA: mode === "difference" ? 1 : view.diffPassA,
-                      diffPassB: mode === "difference" ? 3 : view.diffPassB,
-                    })
-                  }
-                >
-                  {label}
-                </button>
-              ))}
-            </fieldset>
-
-            {view.mode === "difference" && (
-              <fieldset>
-                <legend>Difference: pass A − pass B</legend>
-                <div className="diff-row">
-                  <span>A (minus)</span>
+            {uiMode === "difference" && (
+              <div className="control-block">
+                <p className="control-label">Earlier visit</p>
+                <div className="chip-row">
                   {passes.map((p) => (
                     <button
                       key={`a-${p}`}
@@ -747,12 +803,12 @@ export default function App() {
                       className={view.diffPassA === p ? "active" : ""}
                       onClick={() => patchView({ diffPassA: p })}
                     >
-                      {p}
+                      Visit {p}
                     </button>
                   ))}
                 </div>
-                <div className="diff-row">
-                  <span>B (from)</span>
+                <p className="control-label">Later visit</p>
+                <div className="chip-row">
                   {passes.map((p) => (
                     <button
                       key={`b-${p}`}
@@ -760,61 +816,64 @@ export default function App() {
                       className={view.diffPassB === p ? "active" : ""}
                       onClick={() => patchView({ diffPassB: p })}
                     >
-                      {p}
+                      Visit {p}
                     </button>
                   ))}
                 </div>
-                <p className="wave-chip">
-                  Showing mean(pass {view.diffPassA}) − mean(pass {view.diffPassB}). Try 1 − 3.
-                </p>
-              </fieldset>
+                <p className="micro">Tip: Visit 1 minus Visit 3 shows the biggest jump.</p>
+              </div>
             )}
 
-            {view.mode === "single" && (
-              <fieldset>
-                <legend>Wavelength</legend>
-                <button
-                  type="button"
-                  className={view.waveUm == null ? "active" : ""}
-                  onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
-                >
-                  All λ
-                </button>
-                <button
-                  type="button"
-                  className={view.waveUm != null ? "active" : ""}
-                  disabled={!display || !("meta" in display) || !display.meta}
-                  title="Keep only frames near this frame’s wavelength"
-                  onClick={() => {
-                    if (!display || !("meta" in display) || !display.meta) return;
-                    const wave = Number(display.meta.frame.wavelength_um.toFixed(4));
-                    patchView({
-                      waveUm: wave,
-                      frameIndex: 0,
-                      playing: false,
-                    });
-                  }}
-                >
-                  Match this λ
-                </button>
-                {view.waveUm != null ? (
-                  <span className="wave-chip">
-                    Locked {view.waveUm.toFixed(3)} ± {view.waveTolUm.toFixed(3)} µm →{" "}
-                    <strong>{filtered.length} frames</strong> (was more with All λ)
-                  </span>
-                ) : (
-                  <span className="wave-chip">
-                    All λ: {filtered.length} frames. Match would keep ~{matchPreviewCount} near this
-                    frame.
-                  </span>
+            {uiMode === "more" && (
+              <div className="control-block">
+                <p className="control-label">Extra science views</p>
+                <div className="chip-row">
+                  <button
+                    type="button"
+                    className={view.mode === "stack" ? "active" : ""}
+                    onClick={() => patchView({ mode: "stack", playing: false })}
+                  >
+                    Average stack
+                  </button>
+                  <button
+                    type="button"
+                    className={view.mode === "track" ? "active" : ""}
+                    onClick={() => patchView({ mode: "track", playing: false })}
+                  >
+                    Keep star centered
+                  </button>
+                </div>
+                {view.mode !== "difference" && (
+                  <>
+                    <p className="control-label">Visit filter</p>
+                    <div className="chip-row">
+                      <button
+                        type="button"
+                        className={view.pass == null ? "active" : ""}
+                        onClick={() => patchView({ pass: null, frameIndex: 0 })}
+                      >
+                        All
+                      </button>
+                      {passes.map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          className={view.pass === p ? "active" : ""}
+                          onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
-              </fieldset>
+              </div>
             )}
 
-            <fieldset className="contrast-field">
-              <legend>Contrast</legend>
-              <label>
-                <span className="sr-only">Contrast</span>
+            <div className="control-block soft">
+              <p className="control-label">Look</p>
+              <label className="slider-row">
+                <span>Contrast</span>
                 <input
                   type="range"
                   min={0.4}
@@ -822,53 +881,85 @@ export default function App() {
                   step={0.1}
                   value={view.contrast}
                   onChange={(e) => patchView({ contrast: Number(e.target.value) })}
-                  aria-label="Contrast"
                 />
-                <span>{view.contrast.toFixed(1)}×</span>
               </label>
-            </fieldset>
+              <div className="chip-row">
+                <button
+                  type="button"
+                  className={view.colorMap === "heat" ? "active" : ""}
+                  onClick={() => patchView({ colorMap: "heat" })}
+                >
+                  Warm IR
+                </button>
+                <button
+                  type="button"
+                  className={view.colorMap === "gray" ? "active" : ""}
+                  onClick={() => patchView({ colorMap: "gray" })}
+                >
+                  Gray
+                </button>
+              </div>
+            </div>
 
-            <fieldset>
-              <legend>Color</legend>
-              <button
-                type="button"
-                className={view.colorMap === "heat" ? "active" : ""}
-                onClick={() => patchView({ colorMap: "heat" })}
-              >
-                IR heat
-              </button>
-              <button
-                type="button"
-                className={view.colorMap === "gray" ? "active" : ""}
-                onClick={() => patchView({ colorMap: "gray" })}
-              >
-                Gray
-              </button>
-            </fieldset>
+            {detectors.length > 1 && showAdvanced && (
+              <div className="control-block soft">
+                <p className="control-label">Camera (detector)</p>
+                <div className="chip-row">
+                  <button
+                    type="button"
+                    className={view.detector == null ? "active" : ""}
+                    onClick={() => patchView({ detector: null, frameIndex: 0 })}
+                  >
+                    All
+                  </button>
+                  {detectors.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      className={view.detector === d ? "active" : ""}
+                      onClick={() => patchView({ detector: d, frameIndex: 0 })}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {display && load.status === "ready" && display.meta && (
-            <MetadataPanel
-              target={load.data.target}
-              grid={load.data.grid}
-              frame={display.meta}
-              filteredCount={
-                view.mode === "difference" ? forDifference.length : filtered.length
-              }
-              mode={view.mode}
-            />
+          {load.status === "ready" && view.mode === "single" && (
+            <div className="rail-card">
+              <Charts
+                frames={filtered}
+                activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                onSelectFrame={(index) => {
+                  setBlinkPasses(false);
+                  patchView({ frameIndex: index, playing: false, mode: "single" });
+                }}
+              />
+            </div>
           )}
 
-          {load.status === "ready" && (
-            <Charts
-              frames={filtered}
-              activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-              onSelectFrame={(index) => {
-                setBlinkPasses(false);
-                patchView({ frameIndex: index, playing: false });
-              }}
-            />
-          )}
+          <details
+            className="rail-card details"
+            open={showAdvanced}
+            onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}
+          >
+            <summary>Details for teachers</summary>
+            {display && load.status === "ready" && display.meta ? (
+              <TeacherDetails
+                target={load.data.target}
+                grid={load.data.grid}
+                frame={display.meta}
+                filteredCount={
+                  view.mode === "difference" ? forDifference.length : filtered.length
+                }
+                mode={view.mode}
+              />
+            ) : (
+              <p className="micro">Load a star to see technical metadata.</p>
+            )}
+          </details>
         </aside>
       </main>
 
@@ -880,7 +971,7 @@ export default function App() {
   );
 }
 
-function MetadataPanel({
+function TeacherDetails({
   target,
   grid,
   frame,
@@ -902,7 +993,7 @@ function MetadataPanel({
         <dd>{target.name ?? `${target.ra.toFixed(5)}, ${target.dec.toFixed(5)}`}</dd>
       </div>
       <div>
-        <dt>Date</dt>
+        <dt>UTC date</dt>
         <dd>{f.time_iso}</dd>
       </div>
       <div>
@@ -912,13 +1003,13 @@ function MetadataPanel({
         </dd>
       </div>
       <div>
-        <dt>Pass / detector</dt>
+        <dt>Visit / detector</dt>
         <dd>
           {e.pass} / {e.detector} · {e.collection}
         </dd>
       </div>
       <div>
-        <dt>Target pixel</dt>
+        <dt>Catalogue pixel</dt>
         <dd>
           ({f.target_xy[0].toFixed(2)}, {f.target_xy[1].toFixed(2)})
         </dd>
@@ -928,7 +1019,7 @@ function MetadataPanel({
         <dd>
           {f.photometry.flux_mjy != null
             ? `${f.photometry.flux_mjy.toFixed(3)} ± ${f.photometry.error_mjy?.toFixed(3)} mJy`
-            : "—"}{" "}
+            : "Unavailable (saturated)"}{" "}
           <span className="quality">{f.photometry.quality}</span>
         </dd>
       </div>
@@ -939,11 +1030,11 @@ function MetadataPanel({
         </dd>
       </div>
       <div>
-        <dt>Valid</dt>
+        <dt>Valid pixels</dt>
         <dd>{(f.valid_fraction * 100).toFixed(0)}%</dd>
       </div>
       <div>
-        <dt>Grid</dt>
+        <dt>Cutout</dt>
         <dd>
           {grid.size}² · {grid.fov_deg}° · {mode} · {filteredCount} frames
         </dd>

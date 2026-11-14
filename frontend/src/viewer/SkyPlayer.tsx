@@ -12,8 +12,8 @@ export interface SkyPlayerProps {
   hi: number;
   size: number;
   colorMap?: ColorMap;
-  scale?: number;
-  /** Mean catalog position per pass (motion trail). */
+  /** CSS display size in px (square). */
+  displayPx?: number;
   trail?: TrailPoint[];
   className?: string;
   onFrameIndexChange?: (index: number) => void;
@@ -21,8 +21,7 @@ export interface SkyPlayerProps {
 
 /**
  * Static when paused: one blit, then the canvas is left alone (no rAF).
- * Playback uses setInterval only — never requestAnimationFrame at display Hz,
- * which was driving GPU coil-whine on some machines.
+ * Playback uses setInterval only — never requestAnimationFrame at display Hz.
  */
 export function SkyPlayer({
   frames,
@@ -33,7 +32,7 @@ export function SkyPlayer({
   hi,
   size,
   colorMap = "heat",
-  scale = 4,
+  displayPx,
   trail = [],
   className,
   onFrameIndexChange,
@@ -49,6 +48,7 @@ export function SkyPlayer({
   onChangeRef.current = onFrameIndexChange;
 
   const cacheKey = `${size}|${lo}|${hi}|${colorMap}|${frames.length}|${frames[0]?.frame.id ?? ""}|${frames[frames.length - 1]?.frame.id ?? ""}`;
+  const css = displayPx ?? size * 4;
 
   function ensureCtx(): CanvasRenderingContext2D | null {
     const canvas = canvasRef.current;
@@ -88,7 +88,6 @@ export function SkyPlayer({
     drawTargetOverlay(ctx, f.frame.target_xy, trailRef.current);
   }
 
-  // Still frame: one blit, then stop. Never leave a timer running while paused.
   useEffect(() => {
     if (playing) return;
     indexRef.current = frameIndex;
@@ -97,7 +96,6 @@ export function SkyPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, frameIndex, cacheKey, trail]);
 
-  // Playback: setInterval only (no rAF). Notify React so the date caption updates.
   useEffect(() => {
     if (!playing || frames.length < 2) return;
 
@@ -115,8 +113,6 @@ export function SkyPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, fps, frames.length, cacheKey]);
 
-  const css = size * scale;
-
   return (
     <canvas
       ref={canvasRef}
@@ -126,6 +122,7 @@ export function SkyPlayer({
       style={{
         width: css,
         height: css,
+        maxWidth: "100%",
         imageRendering: "pixelated",
         background: "#05080e",
       }}
