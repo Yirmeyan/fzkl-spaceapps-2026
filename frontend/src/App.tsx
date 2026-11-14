@@ -182,7 +182,7 @@ export default function App() {
 
   const loadFromService = useCallback(
     async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
-      setLoad({ status: "loading", message: "Live SPHEREx — listing exposures…" });
+      setLoad({ status: "loading", message: "SPHEREx archive — listing exposures…" });
       const { target: t, grid, exposures } = await fetchExposures(target, {}, signal);
       if (signal.aborted) return;
       if (exposures.length === 0) {
@@ -236,7 +236,7 @@ export default function App() {
         if (di === 0) {
           setLoad({
             status: "loading",
-            message: `Live SPHEREx — detector ${det}…`,
+            message: `SPHEREx archive — detector ${det}…`,
             loaded: 0,
             total: grandTotal,
           });
@@ -266,7 +266,7 @@ export default function App() {
                     ...prev,
                     loaded: loadedTotal,
                     total: grandTotal,
-                    message: `Live SPHEREx — D${det} ${batchLoaded}/${queue.length} · ${loadedTotal}/${grandTotal}`,
+                    message: `Archive — D${det} ${batchLoaded}/${queue.length} · ${loadedTotal}/${grandTotal}`,
                   }
                 : prev,
             );
@@ -320,7 +320,7 @@ export default function App() {
       }
       const canLive = known.ra != null && known.dec != null;
       if (preferLive && canLive) {
-        setLoad({ status: "loading", message: `Live SPHEREx feed for ${known.label}…` });
+        setLoad({ status: "loading", message: `Loading ${known.label} from SPHEREx archive…` });
         await loadFromService(
           {
             name: known.label,
@@ -337,7 +337,7 @@ export default function App() {
       }
       if (!known.bundleUrl) {
         if (canLive) {
-          setLoad({ status: "loading", message: `Live SPHEREx feed for ${known.label}…` });
+          setLoad({ status: "loading", message: `Loading ${known.label} from SPHEREx archive…` });
           await loadFromService(
             {
               name: known.label,
@@ -354,7 +354,7 @@ export default function App() {
         }
         setLoad({
           status: "error",
-          message: `${known.label} needs a bundle or coordinates. Try Barnard's Star or Live feed.`,
+          message: `${known.label} needs a bundle or coordinates. Try Barnard's Star.`,
         });
         return;
       }
@@ -1003,7 +1003,7 @@ export default function App() {
             >
               <span className="target-name">{t.label}</span>
               <span className="target-blurb">
-                {t.bundleUrl ? t.blurb : t.ra != null ? "Live feed available" : "Coming soon"}
+                {t.bundleUrl ? t.blurb : t.ra != null ? "Archive load available" : "Coming soon"}
               </span>
             </button>
           ))}
@@ -1071,14 +1071,14 @@ export default function App() {
                 Now viewing
                 {load.status === "ready" && (
                   <span
-                    className={`source-pill ${load.source === "live" ? "live" : "sample"}`}
+                    className={`source-pill ${load.source === "live" ? "archive" : "sample"}`}
                     title={
                       load.source === "live"
-                        ? "Frames from live Cloud Run SPHEREx API"
-                        : "Offline sample bundle"
+                        ? "Loaded from the SPHEREx archive API (past survey visits, not a live telescope stream)"
+                        : "Offline sample file bundled with the site"
                     }
                   >
-                    {load.source === "live" ? "LIVE" : "SAMPLE"}
+                    {load.source === "live" ? "ARCHIVE" : "SAMPLE"}
                   </span>
                 )}
               </p>
@@ -1093,7 +1093,7 @@ export default function App() {
                   type="button"
                   className="ghost"
                   disabled={load.status === "loading"}
-                  title="Reload this star from the live NASA SPHEREx service instead of the offline sample"
+                  title="Reload cutouts from the SPHEREx survey archive (past visits). Not a real-time telescope feed."
                   onClick={() => {
                     const ac = new AbortController();
                     void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
@@ -1103,13 +1103,13 @@ export default function App() {
                             ? err.message
                             : err instanceof Error
                               ? err.message
-                              : "Could not load from SPHEREx";
+                              : "Could not load from the SPHEREx archive";
                         setLoad({ status: "error", message });
                       },
                     );
                   }}
                 >
-                  Load from SPHEREx
+                  Load from archive
                 </button>
               )}
               <button

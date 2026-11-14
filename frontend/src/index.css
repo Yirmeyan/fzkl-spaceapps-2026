@@ -1155,11 +1155,10 @@ select {
   vertical-align: middle;
 }
 
-.source-pill.live {
+.source-pill.archive {
   color: #04120a;
   background: linear-gradient(120deg, #5dffb0, #2ecf7a);
   box-shadow: 0 0 12px rgba(46, 207, 122, 0.35);
-  animation: live-pulse 2.4s ease-in-out infinite;
 }
 
 .source-pill.sample {
