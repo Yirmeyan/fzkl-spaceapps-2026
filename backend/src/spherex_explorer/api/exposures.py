@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 
 from spherex_explorer.api.params import Dec, Epoch, Fov, PmDec, PmRa, Ra, Size
 from spherex_explorer.errors import UpstreamUnavailable
-from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE
+from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE, Grid
 from spherex_explorer.mjd import mjd_to_iso
-from spherex_explorer.pipeline import ExposureArchive, list_exposures
+from spherex_explorer.pipeline import ExposureArchive, ListedExposure, list_exposures
 from spherex_explorer.targets import Target
 
 router = APIRouter(tags=["exposures"])
@@ -51,6 +51,23 @@ class ExposuresOut(BaseModel):
     target: TargetOut
     grid: GridOut
     exposures: list[ExposureOut]
+
+
+def grid_out(grid: Grid) -> GridOut:
+    """A grid as the contract writes it."""
+    return GridOut(ra=grid.ra, dec=grid.dec, fov_deg=grid.fov_deg, size=grid.size)
+
+
+def exposure_out(listed: ListedExposure) -> ExposureOut:
+    """One line of the list of exposures as the contract writes it."""
+    return ExposureOut(
+        id=listed.exposure.id,
+        collection=listed.exposure.collection,
+        detector=listed.exposure.detector,
+        pass_number=listed.pass_number,
+        time_mjd=round(listed.exposure.time_mjd, _TIME_DECIMALS),
+        time_iso=mjd_to_iso(listed.exposure.time_mjd),
+    )
 
 
 def get_archive(request: Request) -> ExposureArchive:
@@ -95,21 +112,6 @@ async def read_exposures(
     response.headers["Cache-Control"] = _CACHE_CONTROL
     return ExposuresOut(
         target=TargetOut(ra=ra, dec=dec, epoch=epoch, pm_ra=pm_ra, pm_dec=pm_dec),
-        grid=GridOut(
-            ra=listing.grid.ra,
-            dec=listing.grid.dec,
-            fov_deg=listing.grid.fov_deg,
-            size=listing.grid.size,
-        ),
-        exposures=[
-            ExposureOut(
-                id=listed.exposure.id,
-                collection=listed.exposure.collection,
-                detector=listed.exposure.detector,
-                pass_number=listed.pass_number,
-                time_mjd=round(listed.exposure.time_mjd, _TIME_DECIMALS),
-                time_iso=mjd_to_iso(listed.exposure.time_mjd),
-            )
-            for listed in listing.exposures
-        ],
+        grid=grid_out(listing.grid),
+        exposures=[exposure_out(listed) for listed in listing.exposures],
     )
