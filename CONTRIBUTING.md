@@ -37,7 +37,7 @@ Commit messages follow the Conventional Commits format: `type(scope): summary`. 
 ## Pull requests
 
 - Open a pull request as soon as the step works, and fill in the template.
-- Checks must pass before merging, once continuous integration is in place.
+- Checks must pass before merging. The `backend` check runs on every pull request: lint, formatting, tests and the build of the container image.
 - Merge with "Squash and merge". The branch is deleted automatically.
 - Review is not mandatory. Ask for one when the change touches the other person's module or a shared interface.
 - After a merge, update your open branches:
