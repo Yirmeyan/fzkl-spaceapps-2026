@@ -55,6 +55,6 @@ git rebase origin/main
 
 ## AI usage, sources and licenses
 
-- The Space Apps rules allow AI tools and require their use to be disclosed. Commits created with an AI assistant carry a `Co-Authored-By` trailer, and the README keeps an "AI usage" section.
+- The Space Apps rules allow AI tools and require their use to be disclosed. The README keeps an "AI usage" section, and the project submission states how AI was used.
 - Every external resource is cited with its license: data, code, libraries and images. The submission form requires it.
 - The project is licensed under AGPL-3.0. Contributions are made under the same license.
