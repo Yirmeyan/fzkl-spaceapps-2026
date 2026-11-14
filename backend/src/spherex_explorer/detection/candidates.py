@@ -28,9 +28,11 @@ SMALLEST_CHANGE = 0.1
 # star outside the field touches one detector at one place, and comes back with the
 # season: it looks like a change.
 _DETECTORS_NEEDED = 2
-# Two visits draw a line whatever happened. It takes a third to check that a source
-# follows it, and a claim made without that check is never firm.
-_VISITS_TO_CHECK = 3
+# Two positions draw a line whatever happened. It takes more of them, a third visit or a
+# second detector, to check a motion at all: without that check it needs twice the
+# evidence to be claimed. And it takes three visits to see that the source keeps going
+# the same way: a claim made on two is never firm.
+_VISITS_TO_BE_FIRM = 3
 # A source that both moved by less than this and changed is reported as changed: the
 # center of light of a close pair shifts when one of the two fades.
 _SHIFT_OF_A_PAIR = 3.0 / 2.8125
@@ -70,7 +72,9 @@ def find_candidates(field: Field) -> tuple[Candidate, ...]:
     for source in field.sources:
         motion = source.motion
         shift = float(np.hypot(motion.shift_x, motion.shift_y)) if motion else 0.0
-        moved = motion is not None and motion.significance >= CLAIM and shift >= SMALLEST_SHIFT
+        checked = motion is not None and motion.checked
+        needed = CLAIM if checked else _FIRM
+        moved = motion is not None and motion.significance >= needed and shift >= SMALLEST_SHIFT
         changes = _clear_changes(source)
         changed = len(changes) >= _DETECTORS_NEEDED
         if changed and not (moved and shift >= _SHIFT_OF_A_PAIR):
@@ -78,7 +82,7 @@ def find_candidates(field: Field) -> tuple[Candidate, ...]:
             confidence = HIGH if significance >= _FIRM else MEDIUM
             candidates.append(Candidate(CHANGED, confidence, significance, source, changes))
         elif moved and motion is not None:
-            checked = len(source.sightings) >= _VISITS_TO_CHECK
-            confidence = HIGH if checked and motion.significance >= _FIRM else MEDIUM
+            followed = checked and len(source.sightings) >= _VISITS_TO_BE_FIRM
+            confidence = HIGH if followed and motion.significance >= _FIRM else MEDIUM
             candidates.append(Candidate(MOVED, confidence, motion.significance, source, changes))
     return tuple(sorted(candidates, key=lambda candidate: -candidate.significance))

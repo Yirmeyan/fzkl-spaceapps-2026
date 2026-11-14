@@ -43,12 +43,12 @@ What the candidates files say, with no position given to the detection:
 | Target | Candidate | Measured | Catalog (SIMBAD) |
 | --- | --- | --- | --- |
 | Barnard's Star | `moved`, high, in detectors 5 and 6 | 10.5 ± 0.9 arcseconds per year toward 349 degrees | 10.39 toward 356 |
-| Epsilon Indi B | `moved`, high, in the six detectors | 4.63 ± 0.06 arcseconds per year toward 122 degrees. Parallax 0.31 ± 0.04 arcsecond: 10.7 light-years | 4.68 toward 122. 0.271: 12.0 light-years |
-| WISE 0855 | `moved`, medium, in detectors 5 and 6 | 7.5 ± 0.8 arcseconds per year toward 284 degrees | 8.15 toward 275 |
+| Epsilon Indi B | `moved`, high, in the six detectors | 4.63 ± 0.06 arcseconds per year toward 122 degrees. Parallax 0.30 ± 0.04 arcsecond: 11.0 light-years, between 9.8 and 12.6 | 4.68 toward 122. 0.271: 12.0 light-years |
+| WISE 0855 | `moved`, medium, in detectors 5 and 6 | 7.5 ± 0.9 arcseconds per year toward 284 degrees | 8.15 toward 275 |
 | RW Aurigae | `changed`, high | Half as bright from 3.8 to 5 micrometers between the first and the last visit, 1.3 to 1.4 times brighter under 1.6 | A T Tauri star known for its deep fadings |
 | R Draconis | None. Listed as saturated in the six detectors | | |
 
-No other source of the five fields is a candidate: 95 sources followed, 4 candidates, all of them the targets.
+No other source of the five fields is a candidate: 92 sources followed, 4 candidates, all of them the targets. The same code was run on 53 other fields: see [how it was checked](../docs/api-contract.md#how-it-was-checked).
 
 ## Checking the files
 
