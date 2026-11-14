@@ -56,6 +56,7 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Is north up and east left? | Five 2MASS stars of the field of Barnard's Star are where the grid puts them, within half a pixel |
 | Does the motion match? | The saturated heart of Barnard's Star moves by 3.4 pixels of the view between the first and the last visit. Its catalog proper motion predicts 3.7 |
 | Is the flux right? | 8 steady stars compared with 2MASS and AllWISE in 38 pairs of star and band: the median of measured over catalog is 0.998 |
+| Does another team measure the same spectrum? | SPIFF, a published library of SPHEREx spectra of brown dwarfs (Gagné et al. 2026), measures three of our objects another way and on another data release: Epsilon Indi B, Luhman 16 and LP 944-20. Over 297 bands from 0.74 to 5 micrometers, the median of ours over theirs is 1.016, and nine bands in ten agree within 10 percent |
 | Is the uncertainty honest? | Exposures of a steady star differ by 1 to 3 percent, more than the files alone predict. The stated uncertainty includes it |
 | Do two ways of measuring agree? | The 1,044 fluxes of the spectrum files equal those of the image files, exposure for exposure |
 | Does it find what moves, with no position given? | 16 of the 17 nearby stars tried that move by more than 1 arcsecond, the three test targets among them, each with a speed within two sigma of its catalog. The one missed, Ross 128, is too bright and too slow. 32 quiet fields, 831 sources, give no candidate |
