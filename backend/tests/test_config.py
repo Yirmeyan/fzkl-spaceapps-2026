@@ -59,6 +59,7 @@ def test_search_address_loses_its_trailing_slash():
         {"archive_timeout_s": 0},
         {"archive_budget_s": -1},
         {"archive_attempts": 0},
+        {"archive_attempts": 11},
         {"max_exposures": 0},
     ],
 )

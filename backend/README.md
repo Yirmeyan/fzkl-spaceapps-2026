@@ -58,5 +58,5 @@ Every setting is an environment variable that starts with `SPX_`. Copy `.env.exa
 | `SPX_SEARCH_RADIUS_DEG` | `0.01` | Radius of the search around the target, in degrees |
 | `SPX_ARCHIVE_TIMEOUT_S` | `25` | Longest wait for one answer of the archive, in seconds |
 | `SPX_ARCHIVE_BUDGET_S` | `45` | Longest time one request spends on the archive, all searches and attempts together. Keep it below the request timeout of the host, 60 seconds on Cloud Run |
-| `SPX_ARCHIVE_ATTEMPTS` | `3` | Attempts before the service answers 503 |
+| `SPX_ARCHIVE_ATTEMPTS` | `6` | Attempts before the service answers 503. The pauses between them grow from 1 to 3 seconds, about 12 seconds in all |
 | `SPX_MAX_EXPOSURES` | `5000` | Most exposures asked from the archive for one position |

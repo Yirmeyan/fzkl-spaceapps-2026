@@ -35,7 +35,9 @@ class Settings(BaseSettings):
     # must stay below the request timeout of the host, 60 seconds on Cloud Run.
     archive_timeout_s: float = Field(default=25.0, gt=0, le=60)
     archive_budget_s: float = Field(default=45.0, gt=0, le=120)
-    archive_attempts: int = Field(default=3, ge=1, le=5)
+    # The archive fails in bursts of a few seconds. Six attempts and the pauses between
+    # them last about twelve seconds, enough to outlast the bursts seen so far.
+    archive_attempts: int = Field(default=6, ge=1, le=10)
     max_exposures: int = Field(default=5000, ge=1, le=50000)
 
     @field_validator("log_level")

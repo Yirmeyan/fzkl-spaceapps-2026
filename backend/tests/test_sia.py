@@ -7,6 +7,7 @@ import httpx2
 import pytest
 
 from spherex_explorer.archive import SiaArchive, key_from_id, parse_sia_response
+from spherex_explorer.config import Settings
 from spherex_explorer.errors import UpstreamError, UpstreamUnavailable
 
 BUCKET = "nasa-irsa-spherex"
@@ -219,6 +220,18 @@ def test_busy_archive_is_asked_again_after_a_bounded_pause():
     assert len(exposures) == 1
     assert len(recorder.requests) == 2
     assert recorder.pauses == [3.0]
+
+
+def test_burst_of_failures_is_outlasted_with_the_default_number_of_attempts():
+    bad_gateway = httpx2.Response(502, text="Bad Gateway")
+    recorder = Recorder(*[bad_gateway] * 5, ok(votable([row(key())])))
+
+    exposures = search(recorder, attempts=Settings(_env_file=None).archive_attempts)
+
+    assert len(exposures) == 1
+    assert len(recorder.requests) == 6
+    # Twelve seconds of patience: the bursts seen on the archive last four to five.
+    assert recorder.pauses == [1.0, 2.0, 3.0, 3.0, 3.0]
 
 
 def test_archive_that_stays_busy_is_reported_as_unavailable():

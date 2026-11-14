@@ -181,9 +181,10 @@ class SiaArchive:
     async def _fetch(self, ra: float, dec: float) -> bytes:
         """Ask the service, again if it is busy, within the time budget of one request.
 
-        The archive usually answers in two seconds and sometimes in twenty. A long
-        wait is therefore allowed, and the budget keeps the total below what the
-        caller of this service accepts.
+        The archive usually answers in two seconds and sometimes in twenty, so a long
+        wait is allowed. It also refuses every request for a few seconds at a time,
+        so the pauses grow from one attempt to the next. The budget keeps the total
+        below what the caller of this service accepts.
         """
         params = [("COLLECTION", name) for name in self._collections]
         params.append(("POS", f"circle {ra:.7f} {dec:.7f} {self._radius_deg:g}"))
