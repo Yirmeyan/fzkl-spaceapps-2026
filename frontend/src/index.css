@@ -1848,10 +1848,17 @@ select {
   border-color: rgba(255, 255, 255, 0.35);
 }
 
+.candidates-det-warn {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  color: #fdba74;
+}
+
 .candidates-sat {
   margin: 0.15rem 0 0;
   font-size: 0.72rem;
-  color: #93a4b8;
+  color: #f87171;
 }
 
 .app--fit .candidates-title {

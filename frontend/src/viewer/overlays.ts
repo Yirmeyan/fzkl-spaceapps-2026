@@ -1,4 +1,5 @@
-import type { Candidate } from "../data/candidates";
+import type { Candidate, SaturatedStar } from "../data/candidates";
+import { candidateXyForPass } from "../data/candidates";
 import type { Grid } from "../data/contract";
 import { skyToPixel } from "../data/contract";
 
@@ -79,6 +80,8 @@ export function drawCandidatesOverlay(
   viewGrid: Grid,
   candidatesGrid: Grid,
   activeIndex: number | null,
+  currentPass: number | null = null,
+  saturated: SaturatedStar[] = [],
 ): void {
   const sameGrid =
     Math.abs(viewGrid.ra - candidatesGrid.ra) < 1e-6 &&
@@ -86,9 +89,27 @@ export function drawCandidatesOverlay(
     viewGrid.size === candidatesGrid.size &&
     Math.abs(viewGrid.fov_deg - candidatesGrid.fov_deg) < 1e-9;
 
+  for (const s of saturated) {
+    const [sx, sy] = sameGrid ? s.xy : skyToPixel(viewGrid, s.ra, s.dec);
+    const rPx = (s.radius_arcsec / 3600 / viewGrid.fov_deg) * viewGrid.size;
+    ctx.save();
+    ctx.strokeStyle = "rgba(248, 113, 113, 0.7)";
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(sx, sy, Math.max(4, rPx), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(248, 113, 113, 0.85)";
+    ctx.font = "6px sans-serif";
+    ctx.fillText("sat", sx + Math.max(4, rPx) + 2, sy + 2);
+    ctx.restore();
+  }
+
   candidates.forEach((c, i) => {
     const active = activeIndex === i;
-    const [cx, cy] = sameGrid ? c.xy : skyToPixel(viewGrid, c.ra, c.dec);
+    const xy = candidateXyForPass(c, currentPass);
+    const [cx, cy] = sameGrid ? xy : skyToPixel(viewGrid, c.ra, c.dec);
     const color = c.kind === "changed" ? "#38bdf8" : "#fbbf24";
 
     ctx.save();

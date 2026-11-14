@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { Candidate } from "../data/candidates";
+import type { Candidate, SaturatedStar } from "../data/candidates";
 import { type ColorMap, type Grid, renderFrameToRgba } from "../data/contract";
 import type { DecodedFrame } from "../data/decode";
 import { drawCandidatesOverlay, drawTargetOverlay, type TrailPoint } from "./overlays";
@@ -22,6 +22,7 @@ export interface SkyPlayerProps {
   candidatesGrid?: Grid | null;
   viewGrid?: Grid | null;
   activeCandidate?: number | null;
+  saturated?: SaturatedStar[];
   className?: string;
   onFrameIndexChange?: (index: number) => void;
 }
@@ -46,6 +47,7 @@ export function SkyPlayer({
   candidatesGrid = null,
   viewGrid = null,
   activeCandidate = null,
+  saturated = [],
   className,
   onFrameIndexChange,
 }: SkyPlayerProps) {
@@ -56,8 +58,20 @@ export function SkyPlayer({
   const cacheKeyRef = useRef("");
   const trailRef = useRef(trail);
   trailRef.current = trail;
-  const candidatesRef = useRef({ candidates, candidatesGrid, viewGrid, activeCandidate });
-  candidatesRef.current = { candidates, candidatesGrid, viewGrid, activeCandidate };
+  const candidatesRef = useRef({
+    candidates,
+    candidatesGrid,
+    viewGrid,
+    activeCandidate,
+    saturated,
+  });
+  candidatesRef.current = {
+    candidates,
+    candidatesGrid,
+    viewGrid,
+    activeCandidate,
+    saturated,
+  };
   const onChangeRef = useRef(onFrameIndexChange);
   onChangeRef.current = onFrameIndexChange;
 
@@ -110,13 +124,19 @@ export function SkyPlayer({
     if (!f) return;
     drawTargetOverlay(ctx, f.frame.target_xy, trailRef.current);
     const overlay = candidatesRef.current;
-    if (overlay.candidates.length > 0 && overlay.candidatesGrid && overlay.viewGrid) {
+    if (
+      (overlay.candidates.length > 0 || overlay.saturated.length > 0) &&
+      overlay.candidatesGrid &&
+      overlay.viewGrid
+    ) {
       drawCandidatesOverlay(
         ctx,
         overlay.candidates,
         overlay.viewGrid,
         overlay.candidatesGrid,
         overlay.activeCandidate,
+        f.exposure.pass,
+        overlay.saturated,
       );
     }
   }
@@ -127,7 +147,17 @@ export function SkyPlayer({
     blit(frameIndex);
     onChangeRef.current?.(frameIndex);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, frameIndex, cacheKey, trail, candidates, candidatesGrid, viewGrid, activeCandidate]);
+  }, [
+    playing,
+    frameIndex,
+    cacheKey,
+    trail,
+    candidates,
+    candidatesGrid,
+    viewGrid,
+    activeCandidate,
+    saturated,
+  ]);
 
   useEffect(() => {
     if (!playing || frames.length < 2) return;

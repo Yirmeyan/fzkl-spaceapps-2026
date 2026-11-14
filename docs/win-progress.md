@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Item 6 on main** (#39). Waiting on Tommy’s candidates API + sample files (#40 shipped the measure library only) before the “What moved or changed here” panel.
+**Blind discovery on screen** — service candidates drawn as rings/arrows with plain sentences; Study this loads that place (#43 / Tommy addition A). Live `GET /api/candidates` wired too (#44).
 
 ## Backlog (phenomenal)
 

@@ -1760,6 +1760,7 @@ export default function App() {
                   candidatesGrid={candidatesFile?.grid ?? null}
                   viewGrid={load.status === "ready" ? load.data.grid : null}
                   activeCandidate={activeCandidate}
+                  saturated={candidatesFile?.saturated ?? []}
                   onFrameIndexChange={onPlayerFrame}
                 />
               )}
@@ -1788,6 +1789,8 @@ export default function App() {
                   candidatesGrid={candidatesFile?.grid ?? null}
                   viewGrid={load.status === "ready" ? load.data.grid : null}
                   activeCandidate={activeCandidate}
+                  candidatePass={view.pass}
+                  saturated={candidatesFile?.saturated ?? []}
                   displayPx={displayPx}
                 />
               ))}
@@ -1832,6 +1835,8 @@ export default function App() {
                   candidatesGrid={candidatesFile?.grid ?? null}
                   viewGrid={load.status === "ready" ? load.data.grid : null}
                   activeCandidate={activeCandidate}
+                  candidatePass={view.pass}
+                  saturated={candidatesFile?.saturated ?? []}
                   displayPx={displayPx}
                 />
               )}
@@ -1970,6 +1975,7 @@ export default function App() {
                 data={candidatesFile}
                 waiting={candidatesWaiting}
                 activeIndex={activeCandidate}
+                detector={view.detector}
                 onPick={(index) => setActiveCandidate(index)}
                 onStudy={(index) => {
                   const c = candidatesFile?.candidates[index];
