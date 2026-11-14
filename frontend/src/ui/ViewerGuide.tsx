@@ -46,6 +46,11 @@ export function ViewerGuide({ targetName, pass }: ViewerGuideProps) {
           A <strong>pass</strong> is one SPHEREx visit (~days). Pass 1, 2, 3 are three visits months
           apart — each can be its own mini-video (click Pass 1 then Play, etc.).
         </li>
+        <li>
+          The side <strong>Wavelength</strong> strip is not a flux spectrum yet: it shows which λ
+          the current frame is sampling as Play advances. Use <strong>Blink 1↔3</strong> or zoom +
+          to see the motion trail (P1→P3).
+        </li>
       </ul>
     </div>
   );

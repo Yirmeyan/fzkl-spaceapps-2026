@@ -30,7 +30,23 @@ import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { FrameCanvas } from "./viewer/FrameCanvas";
+import type { TrailPoint } from "./viewer/overlays";
 import { SkyPlayer } from "./viewer/SkyPlayer";
+
+function meanPassTrail(frames: DecodedFrame[]): TrailPoint[] {
+  const map = new Map<number, { sx: number; sy: number; n: number }>();
+  for (const f of frames) {
+    const p = f.exposure.pass;
+    const cur = map.get(p) ?? { sx: 0, sy: 0, n: 0 };
+    cur.sx += f.frame.target_xy[0];
+    cur.sy += f.frame.target_xy[1];
+    cur.n += 1;
+    map.set(p, cur);
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([pass, v]) => ({ pass, x: v.sx / v.n, y: v.sy / v.n }));
+}
 
 type LoadState =
   | { status: "idle" }
@@ -58,6 +74,10 @@ export default function App() {
   const [view, setView] = useState<ViewState>(() => readViewFromUrl());
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
   const [searchInput, setSearchInput] = useState(view.query);
+  /** CSS pixels per image pixel (128 → 512 at 4). */
+  const [zoom, setZoom] = useState(4);
+  /** Alternate Pass first ↔ last so proper motion pops. */
+  const [blinkPasses, setBlinkPasses] = useState(false);
 
   const patchView = useCallback((partial: Partial<ViewState>) => {
     setView((prev) => {
@@ -340,7 +360,28 @@ export default function App() {
     view.contrast,
   ]);
 
-  const passes = load.status === "ready" ? uniquePasses(load.data.frames) : [];
+  const passes = useMemo(
+    () => (load.status === "ready" ? uniquePasses(load.data.frames) : []),
+    [load],
+  );
+  const trail = useMemo(
+    () => (load.status === "ready" ? meanPassTrail(load.data.frames) : []),
+    [load],
+  );
+  const blinkA = passes[0] ?? null;
+  const blinkB = passes.length >= 2 ? passes[passes.length - 1]! : null;
+
+  // Blink first ↔ last pass so the ~3–4 px proper motion is obvious.
+  useEffect(() => {
+    if (!blinkPasses || view.mode !== "single" || blinkA == null || blinkB == null) return;
+    let toggle = false;
+    patchView({ pass: blinkA, frameIndex: 0, playing: false });
+    const id = window.setInterval(() => {
+      toggle = !toggle;
+      patchView({ pass: toggle ? blinkB : blinkA, frameIndex: 0, playing: false });
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [blinkPasses, view.mode, blinkA, blinkB, patchView]);
   const detectors = load.status === "ready" ? uniqueDetectors(load.data.frames) : [];
   const matchPreviewCount =
     load.status === "ready" && display && "meta" in display && display.meta
@@ -461,6 +502,8 @@ export default function App() {
                 hi={display.hi}
                 size={display.size}
                 colorMap={view.colorMap}
+                scale={zoom}
+                trail={trail}
                 onFrameIndexChange={onPlayerFrame}
               />
               <FrameCaption
@@ -469,7 +512,13 @@ export default function App() {
                 playing={view.playing}
               />
               <div className="transport">
-                <button type="button" onClick={() => patchView({ playing: !view.playing })}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBlinkPasses(false);
+                    patchView({ playing: !view.playing });
+                  }}
+                >
                   {view.playing ? "Pause" : "Play"}
                 </button>
                 <input
@@ -493,7 +542,44 @@ export default function App() {
                     onChange={(e) => patchView({ fps: Number(e.target.value) || 8 })}
                   />
                 </label>
+                <button
+                  type="button"
+                  className={blinkPasses ? "active" : ""}
+                  disabled={passes.length < 2}
+                  title="Alternate first and last pass so the star jump is obvious"
+                  onClick={() => {
+                    setBlinkPasses((v) => {
+                      const next = !v;
+                      if (!next) patchView({ pass: null, frameIndex: 0 });
+                      else patchView({ playing: false });
+                      return next;
+                    });
+                  }}
+                >
+                  Blink {passes[0] ?? 1}↔{passes[passes.length - 1] ?? 3}
+                </button>
+                <div className="zoom-controls" role="group" aria-label="Zoom">
+                  <button
+                    type="button"
+                    disabled={zoom <= 2}
+                    onClick={() => setZoom((z) => Math.max(2, z - 1))}
+                  >
+                    −
+                  </button>
+                  <span>{Math.round((zoom / 4) * 100)}%</span>
+                  <button
+                    type="button"
+                    disabled={zoom >= 8}
+                    onClick={() => setZoom((z) => Math.min(8, z + 1))}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
+              <p className="overlay-hint">
+                Orange cross = catalogue position (+ proper motion), not the brightest pixel. Colored
+                P1/P2/P3 dots = mean position per visit (~3–4 px north over a year for Barnard).
+              </p>
               <ViewerGuide
                 targetName={load.status === "ready" ? load.data.target.name : undefined}
                 pass={view.pass}
@@ -514,8 +600,29 @@ export default function App() {
                   background={0}
                   colorMap={view.colorMap}
                   targetXy={display.targetXy}
+                  trail={trail}
+                  scale={zoom}
                 />
               )}
+              <div className="transport">
+                <div className="zoom-controls" role="group" aria-label="Zoom">
+                  <button
+                    type="button"
+                    disabled={zoom <= 2}
+                    onClick={() => setZoom((z) => Math.max(2, z - 1))}
+                  >
+                    −
+                  </button>
+                  <span>{Math.round((zoom / 4) * 100)}%</span>
+                  <button
+                    type="button"
+                    disabled={zoom >= 8}
+                    onClick={() => setZoom((z) => Math.min(8, z + 1))}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
               <p className="mode-note">
                 <strong>
                   Pass {view.diffPassA} (−{display.countA ?? "?"} frames) minus pass{" "}
@@ -538,6 +645,8 @@ export default function App() {
                 background={display.background}
                 colorMap={view.colorMap}
                 targetXy={display.targetXy}
+                trail={trail}
+                scale={zoom}
               />
             )}
         </section>
@@ -549,8 +658,11 @@ export default function App() {
                 <legend>Pass (which visit to play)</legend>
                 <button
                   type="button"
-                  className={view.pass == null ? "active" : ""}
-                  onClick={() => patchView({ pass: null, frameIndex: 0 })}
+                  className={view.pass == null && !blinkPasses ? "active" : ""}
+                  onClick={() => {
+                    setBlinkPasses(false);
+                    patchView({ pass: null, frameIndex: 0 });
+                  }}
                 >
                   All
                 </button>
@@ -558,8 +670,11 @@ export default function App() {
                   <button
                     key={p}
                     type="button"
-                    className={view.pass === p ? "active" : ""}
-                    onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                    className={view.pass === p && !blinkPasses ? "active" : ""}
+                    onClick={() => {
+                      setBlinkPasses(false);
+                      patchView({ pass: p, frameIndex: 0 });
+                    }}
                   >
                     {p}
                   </button>
@@ -748,6 +863,10 @@ export default function App() {
             <Charts
               frames={filtered}
               activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+              onSelectFrame={(index) => {
+                setBlinkPasses(false);
+                patchView({ frameIndex: index, playing: false });
+              }}
             />
           )}
         </aside>

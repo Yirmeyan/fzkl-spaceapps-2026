@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { type ColorMap, renderFrameToRgba } from "../data/contract";
+import { drawTargetOverlay, type TrailPoint } from "./overlays";
 
 export interface FrameCanvasProps {
   pixels: Float32Array;
@@ -11,6 +12,7 @@ export interface FrameCanvasProps {
   colorMap?: ColorMap;
   /** Optional marker at target position [x, y] in grid pixels */
   targetXy?: [number, number] | null;
+  trail?: TrailPoint[];
   className?: string;
   /** Display scale (CSS pixels per image pixel). Default 4 → 512px for 128. */
   scale?: number;
@@ -25,6 +27,7 @@ export function FrameCanvas({
   background,
   colorMap = "heat",
   targetXy,
+  trail = [],
   className,
   scale = 4,
 }: FrameCanvasProps) {
@@ -44,20 +47,9 @@ export function FrameCanvas({
     ctx.putImageData(imageData, 0, 0);
 
     if (targetXy) {
-      const [tx, ty] = targetXy;
-      ctx.save();
-      ctx.strokeStyle = "rgba(255, 176, 64, 0.95)";
-      ctx.lineWidth = 1;
-      const r = 4;
-      ctx.beginPath();
-      ctx.moveTo(tx - r, ty);
-      ctx.lineTo(tx + r, ty);
-      ctx.moveTo(tx, ty - r);
-      ctx.lineTo(tx, ty + r);
-      ctx.stroke();
-      ctx.restore();
+      drawTargetOverlay(ctx, targetXy, trail);
     }
-  }, [pixels, mask, size, lo, hi, background, colorMap, targetXy]);
+  }, [pixels, mask, size, lo, hi, background, colorMap, targetXy, trail]);
 
   const css = size * scale;
 
