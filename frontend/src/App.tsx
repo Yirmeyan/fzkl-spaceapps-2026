@@ -32,13 +32,16 @@ import type { Bundle, Frame, Grid, Target } from "./data/contract";
 import { computeDisplayLimits, mjdToDate } from "./data/contract";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
 import {
+  clearSampleIndexCache,
   detectorBundleUrl,
   fetchSampleIndex,
   orderedDetectors,
   sampleTargetByUiKey,
+  spectrumFileUrl,
 } from "./data/sampleIndex";
 import { KNOWN_TARGETS, TARGET_MISSION_TIP, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
+import { fetchSpectrumFile, type SpectrumPoint } from "./spectrum/spectrumPoints";
 import { wavelengthHue } from "./spectrum/waveHue";
 import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
@@ -109,6 +112,7 @@ export default function App() {
   const [blinkPasses, setBlinkPasses] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [displayPx, setDisplayPx] = useState(560);
   const [splitVisits, setSplitVisits] = useState(false);
   const [ghostVisits, setGhostVisits] = useState(false);
@@ -333,6 +337,8 @@ export default function App() {
         setLoad({ status: "error", message: `Unknown target “${key}”.` });
         return;
       }
+      setSpectrumPoints(null);
+      clearSampleIndexCache();
 
       // Tommy Need: target/grid come from index.json (correct epoch + PM), not stale targets.ts.
       let indexEntry: ReturnType<typeof sampleTargetByUiKey>;
@@ -366,6 +372,20 @@ export default function App() {
       try {
         const entry = indexEntry;
         if (entry && entry.detectors.length > 0) {
+          // Spectrum file in parallel with first bundle (tens of kB): chart can paint
+          // before multi-MB detector JSON finishes (Tommy Need item 2).
+          if (entry.spectrum) {
+            void (async () => {
+              try {
+                const pts = await fetchSpectrumFile(spectrumFileUrl(entry.spectrum!.file), signal);
+                if (!signal.aborted) setSpectrumPoints(pts);
+              } catch {
+                if (!signal.aborted) setSpectrumPoints(null);
+              }
+            })();
+          } else if (!signal.aborted) {
+            setSpectrumPoints(null);
+          }
           const order = orderedDetectors(key, entry);
           const first = order[0]!;
           setLoad({
@@ -662,6 +682,7 @@ export default function App() {
       setTimelineOpen(true);
       return;
     }
+    // Barnard / R Dra: few flux points + "too bright" line belong on the timeline.
     patchView({
       targetKey: key,
       query: label,
@@ -672,7 +693,7 @@ export default function App() {
       playing: false,
       waveUm: null,
     });
-    setTimelineOpen(false);
+    setTimelineOpen(key === "barnard" || key === "rdra");
   }
 
   useEffect(() => {
@@ -1925,6 +1946,8 @@ export default function App() {
               </summary>
               <Charts
                 frames={filtered}
+                spectrumPoints={spectrumPoints ?? undefined}
+                highlightDetector={view.detector}
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                 onSelectFrame={(index) => {
                   clearPresentationOverlays();
