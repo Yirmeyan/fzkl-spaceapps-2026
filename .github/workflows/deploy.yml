@@ -105,7 +105,7 @@ jobs:
             --execution-environment=gen2 \
             --min-instances=0 \
             --max-instances=3 \
-            --concurrency=20 \
+            --concurrency=80 \
             --timeout=60s \
             --cpu-boost \
             --update-labels="managed-by=github-actions,commit-sha=${GITHUB_SHA}" \

@@ -23,7 +23,7 @@ The same workflow can be started by hand from the Actions tab, on `main` only.
 
 ## Settings
 
-The settings of the service are in the workflow: 2 CPUs, 1 GiB of memory, the second generation execution environment, 0 to 3 instances, 20 requests at a time per instance, 60 seconds per request. The container starts one worker process per CPU (`WEB_CONCURRENCY` in the Dockerfile): keep the two numbers equal. To change one, change the workflow in a pull request.
+The settings of the service are in the workflow: 2 CPUs, 1 GiB of memory, the second generation execution environment, 0 to 3 instances, 80 requests at a time per instance, 60 seconds per request. One view asks for the 62 frames of a detector at once: an instance must take them all, because a second instance starts cold and makes its share of the frames wait for seconds. The container starts one worker process per CPU (`WEB_CONCURRENCY` in the Dockerfile): keep the two numbers equal. To change one, change the workflow in a pull request.
 
 What depends on the environment is a repository variable on GitHub (Settings, Secrets and variables, Actions, Variables). None of them is a secret.
 
