@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:18 ET — From: Nic — Kind: Shipped
+
+**Smart B4 defaults:** WISE 0855 opens Average stack on detector 6; Epsilon Indi B / RW Aur open the Infrared timeline. Mission tips stay on the dark stage.
+
 ### 2026-11-14 15:15 ET — From: Nic — Kind: Shipped
 
 One-line **mission tip** under the stage title per preset (Tommy B4 roles: mover / spectrum / faint / variable / saturated). Dark mission desk already restored.

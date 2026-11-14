@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **98%** | Cinema + B4 spectrum rules shipped |
-| Team win / top-tier | **88%** | B4 five targets + flux live; FE charts wired |
+| Unblocked Nic lane | **98%** | Dark mission desk + B4 smart defaults |
+| Team win / top-tier | **88%** | B4 five targets + flux; FE charts + presets |
 
 ## This loop’s wow
 
-**Target mission tip** — one dark-stage line per preset (mover / spectrum / faint / variable / saturated) from Tommy B4.
+**Smart B4 defaults** — WISE opens Average stack on D6; Epsilon Indi opens the spectrum timeline.
 
 ## Backlog (phenomenal)
 

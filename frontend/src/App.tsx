@@ -108,6 +108,7 @@ export default function App() {
   const [searchInput, setSearchInput] = useState(view.query);
   const [blinkPasses, setBlinkPasses] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const [displayPx, setDisplayPx] = useState(560);
   const [splitVisits, setSplitVisits] = useState(false);
   const [ghostVisits, setGhostVisits] = useState(false);
@@ -306,7 +307,6 @@ export default function App() {
         }
       }
 
-      patchView({ detector: null });
       setLoad({
         status: "ready",
         data: decodeBundle({
@@ -320,6 +320,8 @@ export default function App() {
         }),
         source: "live",
       });
+      const known = targetByKey(targetKey);
+      applyPresetDefaults(targetKey, known?.label ?? t.name ?? targetKey);
     },
     [patchView],
   );
@@ -364,12 +366,15 @@ export default function App() {
           if (signal.aborted) return;
           let merged = decodeBundle(firstBundle);
           setLoad({ status: "ready", data: merged, source: "sample" });
+          // First paint on preferred detector; full defaults after cascade.
           patchView({
             targetKey: key,
             frameIndex: 0,
             pass: null,
             detector: first.detector,
             query: known.label,
+            playing: false,
+            mode: "single",
           });
           setSearchInput(known.label);
 
@@ -403,7 +408,7 @@ export default function App() {
               setLoad({ status: "ready", data: merged, source: "sample" });
             });
           }
-          patchView({ detector: null });
+          applyPresetDefaults(key, known.label);
           return;
         }
       } catch {
@@ -438,14 +443,7 @@ export default function App() {
       if (signal.aborted) return;
       const data = decodeBundle(bundle);
       setLoad({ status: "ready", data, source: "sample" });
-      patchView({
-        targetKey: key,
-        frameIndex: 0,
-        pass: null,
-        detector: null,
-        query: known.label,
-      });
-      setSearchInput(known.label);
+      applyPresetDefaults(key, known.label);
     },
     [patchView, loadFromService],
   );
@@ -629,6 +627,53 @@ export default function App() {
     setGhostVisits(false);
     setSplitVisits(false);
     setSpotMover(false);
+  }
+
+  /** Tommy B4: each preset opens in the view that shows what it’s for. */
+  function applyPresetDefaults(key: string, label: string) {
+    clearPresentationOverlays();
+    setSearchInput(label);
+    if (key === "wise0855") {
+      // Faint — only visible when stacking detector 6.
+      patchView({
+        targetKey: key,
+        query: label,
+        frameIndex: 0,
+        pass: null,
+        detector: 6,
+        mode: "stack",
+        playing: false,
+        waveUm: null,
+      });
+      setTimelineOpen(false);
+      return;
+    }
+    if (key === "epsindi" || key === "rwaur") {
+      // Spectrum / variable — show the infrared timeline.
+      patchView({
+        targetKey: key,
+        query: label,
+        frameIndex: 0,
+        pass: null,
+        detector: null,
+        mode: "single",
+        playing: false,
+        waveUm: null,
+      });
+      setTimelineOpen(true);
+      return;
+    }
+    patchView({
+      targetKey: key,
+      query: label,
+      frameIndex: 0,
+      pass: null,
+      detector: null,
+      mode: "single",
+      playing: false,
+      waveUm: null,
+    });
+    setTimelineOpen(false);
   }
 
   useEffect(() => {
@@ -1871,9 +1916,13 @@ export default function App() {
           </div>
           </details>
 
-          {load.status === "ready" && view.mode === "single" && (
-            <details className="rail-card details">
-              <summary title="Wavelength and visit timeline — optional for deeper look">
+          {load.status === "ready" && (
+            <details
+              className="rail-card details"
+              open={timelineOpen}
+              onToggle={(e) => setTimelineOpen((e.target as HTMLDetailsElement).open)}
+            >
+              <summary title="Spectrum and light curve — open for Epsilon Indi B / RW Aur">
                 Infrared timeline
               </summary>
               <Charts
@@ -1882,6 +1931,7 @@ export default function App() {
                 onSelectFrame={(index) => {
                   clearPresentationOverlays();
                   patchView({ frameIndex: index, playing: false, mode: "single" });
+                  setTimelineOpen(true);
                 }}
               />
             </details>
