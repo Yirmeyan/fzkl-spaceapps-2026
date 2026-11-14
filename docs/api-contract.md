@@ -207,6 +207,7 @@ Lists the SPHEREx exposures that cover the target, and sets the grid of the view
 - The center of the grid is the position of the target at the middle of the period covered by the list. For an object with no proper motion, it is the position that was asked.
 - For Barnard's Star, the list holds 364 exposures in 3 passes, 59 to 62 per detector.
 - The archive usually answers in 2 seconds and sometimes in 20. It also fails in bursts of a few seconds, and the service then tries again, which can add up to 12 seconds. The service waits up to 45 seconds in total, then answers 503 with a `Retry-After` header.
+- The service remembers the list of a position for an hour and answers at once in the meantime. When the archive does not answer, a list up to a day old is given instead of a 503: the exposures of a place change by a few additions a week.
 
 Passes are what reveals a moving object: it is at the same place within a pass and at another place in the next one.
 
@@ -442,7 +443,7 @@ An error is an HTTP status and this body:
 | Status | `code` | When | What the browser does |
 | --- | --- | --- | --- |
 | 404 | `not_found` | The name is unknown, or the archive has no such exposure | Tell the user, do not retry |
-| 422 | `invalid_request` | A parameter or an identifier is missing or invalid | Fix the request. It is a bug of the caller |
+| 422 | `invalid_request` | A parameter or an identifier is missing or invalid. The message names it: `ra is required; dec should be less than or equal to 90` | Fix the request. It is a bug of the caller |
 | 503 | `upstream_unavailable` | IRSA, the SPHEREx storage or the CDS did not answer | Wait for the number of seconds of the `Retry-After` header and retry, three times at most |
 | 500 | `internal_error` | A bug of the service. Details stay in its logs | Tell the user, do not retry |
 | Other | `http_error` | An error raised by the framework, for example an unknown route | Treat as a bug |

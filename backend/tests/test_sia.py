@@ -294,3 +294,129 @@ def test_exposure_published_twice_is_kept_from_the_preferred_release():
         "qr3.2026W33_2A_0594_3D5.l2b-v27-2026-241",
         "qr3.2026W33_2A_0594_3D6.l2b-v27-2026-241",
     ]
+
+
+# Remembering the lists
+
+HERE = (269.44623, 4.768703)
+ELSEWHERE = (76.956526, 30.401438)
+ONE = votable([row(key())])
+TWO = votable([row(key()), row(key(detector=5))])
+
+
+def searches(recorder: Recorder, *steps, **settings):
+    """Searches made one after the other on the same archive.
+
+    A step is a position to search, or a number of seconds that pass. A search the
+    archive leaves unanswered gives its exception in place of a list.
+    """
+
+    async def run():
+        async with httpx2.AsyncClient(transport=httpx2.MockTransport(recorder.handle)) as client:
+            archive = SiaArchive(
+                client,
+                url=URL,
+                collections=COLLECTIONS,
+                bucket=BUCKET,
+                radius_deg=0.01,
+                timeout_s=25.0,
+                budget_s=45.0,
+                attempts=3,
+                max_exposures=5000,
+                sleep=recorder.sleep,
+                clock=recorder.clock,
+                **settings,
+            )
+            results = []
+            for step in steps:
+                if isinstance(step, tuple):
+                    try:
+                        results.append(await archive.find_exposures(*step))
+                    except UpstreamUnavailable as failure:
+                        results.append(failure)
+                else:
+                    recorder.now += step
+            return results
+
+    return asyncio.run(run())
+
+
+def test_list_of_a_position_is_asked_once_while_it_is_fresh():
+    recorder = Recorder(ok(ONE))
+
+    first, second = searches(recorder, HERE, 1800, HERE)
+
+    assert len(recorder.requests) == 1
+    assert [exposure.id for exposure in second] == [exposure.id for exposure in first]
+
+
+def test_list_is_asked_again_after_an_hour():
+    recorder = Recorder(ok(ONE), ok(TWO))
+
+    first, second = searches(recorder, HERE, 3700, HERE)
+
+    assert len(recorder.requests) == 2
+    assert (len(first), len(second)) == (1, 2)
+
+
+def test_other_position_gets_its_own_search():
+    recorder = Recorder(ok(ONE), ok(TWO))
+
+    here, elsewhere = searches(recorder, HERE, ELSEWHERE)
+
+    assert (len(here), len(elsewhere)) == (1, 2)
+
+
+def test_older_list_stands_in_when_the_archive_does_not_answer():
+    recorder = Recorder(ok(ONE), busy(), busy(), busy())
+
+    first, second = searches(recorder, HERE, 3700, HERE)
+
+    assert len(recorder.requests) == 4
+    assert [exposure.id for exposure in second] == [exposure.id for exposure in first]
+
+
+def test_archive_is_not_waited_for_long_when_an_older_list_can_stand_in():
+    slow = httpx2.ReadTimeout("too slow")
+    recorder = Recorder(ok(ONE), slow, answer_time_s=8.0)
+
+    _, second = searches(recorder, HERE, 3700, HERE)
+
+    assert len(second) == 1
+    # Eight seconds for the whole refresh, not the 45 of a first search.
+    assert [request.extensions["timeout"]["read"] for request in recorder.requests] == [25.0, 8.0]
+
+
+def test_list_of_the_day_before_does_not_stand_in():
+    recorder = Recorder(ok(ONE), busy(), busy(), busy())
+
+    _, second = searches(recorder, HERE, 90000, HERE)
+
+    assert isinstance(second, UpstreamUnavailable)
+
+
+def test_failure_is_not_remembered():
+    recorder = Recorder(busy(), busy(), busy(), ok(ONE))
+
+    first, second = searches(recorder, HERE, HERE)
+
+    assert isinstance(first, UpstreamUnavailable)
+    assert len(second) == 1
+
+
+def test_reader_of_a_list_cannot_change_what_is_remembered():
+    recorder = Recorder(ok(ONE))
+
+    first, second = searches(recorder, HERE, HERE)
+    first.clear()
+
+    assert len(second) == 1
+    assert len(searches(Recorder(ok(ONE)), HERE)[0]) == 1
+
+
+def test_only_the_latest_positions_are_remembered():
+    recorder = Recorder(ok(ONE), ok(TWO), ok(ONE))
+
+    searches(recorder, HERE, ELSEWHERE, HERE, remembered=1)
+
+    assert len(recorder.requests) == 3

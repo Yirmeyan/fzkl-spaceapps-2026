@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # them last about twelve seconds, enough to outlast the bursts seen so far.
     archive_attempts: int = Field(default=6, ge=1, le=10)
     max_exposures: int = Field(default=5000, ge=1, le=50000)
+    # A list of exposures is reused as it is for the first duration. When the archive
+    # does not answer, it is reused up to the second one.
+    search_fresh_s: float = Field(default=3600.0, ge=0, le=86400)
+    search_stale_s: float = Field(default=86400.0, ge=0, le=604800)
 
     # Reads of parts of the files. A read brings 1 MB at most and the storage is fast,
     # so the wait is short. One view asks for hundreds of ranges: the limit is on how
