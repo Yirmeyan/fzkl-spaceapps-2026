@@ -61,8 +61,31 @@ def test_search_address_loses_its_trailing_slash():
         {"archive_attempts": 0},
         {"archive_attempts": 11},
         {"max_exposures": 0},
+        {"storage_timeout_s": 0},
+        {"storage_attempts": 0},
+        {"storage_concurrency": 0},
     ],
 )
 def test_limit_that_makes_no_sense_is_rejected(setting):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, **setting)
+
+
+def test_storage_address_is_built_from_the_bucket_and_its_region():
+    settings = Settings(_env_file=None)
+
+    assert settings.storage_url == "https://nasa-irsa-spherex.s3.us-east-1.amazonaws.com"
+
+
+@pytest.mark.parametrize(
+    "setting",
+    [
+        {"archive_bucket": "bucket.example/other"},
+        {"archive_bucket": ""},
+        {"archive_region": "us-east-1.evil.example"},
+        {"archive_region": "US-EAST-1"},
+    ],
+)
+def test_bucket_or_region_that_could_change_the_address_is_rejected(setting):
     with pytest.raises(ValidationError):
         Settings(_env_file=None, **setting)

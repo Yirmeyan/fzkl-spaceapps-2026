@@ -1,12 +1,15 @@
 """Tests that call the real archive. Run them on demand: uv run python -m pytest -m network"""
 
 import asyncio
+import io
 
 import httpx2
+import numpy as np
 import pytest
+from astropy.io import fits
 
 from conftest import BARNARD
-from spherex_explorer.archive import SiaArchive
+from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive, Window, key_from_id
 from spherex_explorer.config import Settings
 from spherex_explorer.pipeline import list_exposures
 from spherex_explorer.targets import Target
@@ -45,3 +48,50 @@ def test_barnards_star_in_the_real_archive(sample_bundle):
     assert {entry["id"] for entry in sample_bundle["exposures"]} <= found
     assert listing.grid.ra == pytest.approx(sample_bundle["grid"]["ra"], abs=1e-4)
     assert listing.grid.dec == pytest.approx(sample_bundle["grid"]["dec"], abs=1e-4)
+
+
+def test_window_of_a_real_file_is_identical_to_the_cutout_of_the_archive():
+    """The archive cuts the same exposure itself: its pixels are the reference."""
+    exposure_id = "dr1.2025W34_2B_0090_4D2.l2b-v27-2026-229"
+    cutout_url = (
+        f"https://irsa.ipac.caltech.edu/ibe/data/spherex/{key_from_id(exposure_id)}"
+        "?center=269.44623,4.768703&size=0.1"
+    )
+    settings = Settings(_env_file=None)
+
+    async def run():
+        async with httpx2.AsyncClient(timeout=60, follow_redirects=True) as client:
+            response = await client.get(cutout_url)
+            response.raise_for_status()
+            reader = Level2Reader(
+                S3Reader(
+                    client,
+                    base_url=settings.storage_url,
+                    timeout_s=settings.storage_timeout_s,
+                    attempts=settings.storage_attempts,
+                    concurrency=settings.storage_concurrency,
+                )
+            )
+            layout = await reader.layout(exposure_id)
+            with fits.open(io.BytesIO(response.content)) as cutout:
+                image = cutout["IMAGE"]
+                # A cutout keeps the sky coordinates of the file and moves their reference
+                # pixel: the shift is the corner of the cutout in the full image.
+                x0 = layout.header["CRPIX1"] - image.header["CRPIX1"]
+                y0 = layout.header["CRPIX2"] - image.header["CRPIX2"]
+                assert x0 == round(x0) and y0 == round(y0)
+                height, width = image.data.shape
+                window = Window(round(x0), round(y0), round(x0) + width, round(y0) + height)
+                raw = await reader.read_window(exposure_id, window)
+                table = await reader.wavelength_table(exposure_id)
+                expected = cutout["WCS-WAVE"].data
+
+                assert width >= 50 and height >= 50
+                assert np.array_equal(raw.image, image.data, equal_nan=True)
+                assert np.array_equal(raw.variance, cutout["VARIANCE"].data, equal_nan=True)
+                assert np.array_equal(raw.flags, cutout["FLAGS"].data)
+                assert np.array_equal(table.x, expected["X"][0])
+                assert np.array_equal(table.y, expected["Y"][0])
+                assert np.array_equal(table.values, expected["VALUES"][0])
+
+    asyncio.run(run())
