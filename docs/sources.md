@@ -31,6 +31,19 @@ Versions are locked in `backend/uv.lock`, which also lists the transitive depend
 
 Licenses come from the metadata of each installed package, except Hatchling and uv, taken from their repositories.
 
+## Frontend dependencies
+
+Versions are locked in `frontend/package-lock.json`.
+
+| Package | Use | License |
+| --- | --- | --- |
+| [React](https://react.dev/) | UI | MIT |
+| [Vite](https://vite.dev/) | Dev server and bundler | MIT |
+| [TypeScript](https://www.typescriptlang.org/) | Types | Apache-2.0 |
+| [Biome](https://biomejs.dev/) | Lint and format | MIT OR Apache-2.0 |
+| [Vitest](https://vitest.dev/) | Tests | MIT |
+| [IBM Plex Sans](https://fonts.google.com/specimen/IBM+Plex+Sans) and [Syne](https://fonts.google.com/specimen/Syne), via Google Fonts | Interface typography | OFL-1.1 |
+
 ## Continuous integration
 
 GitHub Actions used by the workflows in `.github/workflows/`. Each one is pinned to a commit.
@@ -41,3 +54,4 @@ GitHub Actions used by the workflows in `.github/workflows/`. Each one is pinned
 | [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) | Installs uv in the workflow | MIT |
 | [google-github-actions/auth](https://github.com/google-github-actions/auth) | Signs the deployment workflow in to Google Cloud without a key | Apache-2.0 |
 | [google-github-actions/setup-gcloud](https://github.com/google-github-actions/setup-gcloud) | Installs the Google Cloud CLI that deploys the service | Apache-2.0 |
+| [actions/setup-node](https://github.com/actions/setup-node) | Installs Node.js for the frontend job | MIT |
