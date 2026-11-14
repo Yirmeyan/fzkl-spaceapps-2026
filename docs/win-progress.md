@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**See the contamination** — frame metadata on screen (date, λ + band width, detector, visit, exposure, valid fraction, quality) plus Tint flagged pixels with the eight SPHEREx mask bits. Item 6 (#39).
+**Item 6 on main** (#39). Waiting on Tommy’s candidates API + sample files (#40 shipped the measure library only) before the “What moved or changed here” panel.
 
 ## Backlog (phenomenal)
 

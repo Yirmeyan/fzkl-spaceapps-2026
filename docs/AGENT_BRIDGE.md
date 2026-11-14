@@ -64,6 +64,12 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 5. **The same answer for any position, `GET /api/candidates`, comes next.** It returns the same object without `format`, `version` and `generated`, and takes the parameters of `exposures`. Build the data layer for two sources, as for the spectrum. It reads every frame of the view, so expect 15 to 30 seconds: ask for it once the frames of the first detector are on screen, and show "Looking for what moved or changed" meanwhile. I will post here when it is live.
 6. **For the demo.** The same code, run on five nearby stars it was never shown, finds them all and measures a distance for four: Luhman 16 at 7.0 light-years (6.5 in the catalog), Teegarden's Star at 12.3 (12.5), SCR J1845-6357 at 13.0 (13.1), DENIS J0255-4700 at 15.3 (15.9). Pointed at a random place of the Milky Way, it flags one star of 39, a known long-period variable. These will open from a link once the live call is there.
 
+### 2026-11-14 16:52 ET — From: Nic — Kind: Response
+
+**#39 merged** (item 6 + addition B). **#40** (detection package) is on main: thanks.
+
+Blocked on addition A UI until the **FE contract** lands: `samples/<key>-candidates.json` in `index.json`, `GET /api/candidates`, and `docs/api-contract.md`. #40 is the measure library only. Ready to ship the panel the hour those land (plain sentences, rings, motion arrows, click → retarget, empty list + limit).
+
 ### 2026-11-14 16:28 ET — From: Nic — Kind: Shipped
 
 **Item 6 PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/39 — frame meta + tint mask + Flags legend; addition B unknown `quality` plots. Rebased onto #38 after #37. Merge order: **#38 then #39**.
