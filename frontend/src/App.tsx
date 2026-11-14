@@ -133,6 +133,8 @@ export default function App() {
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
   const [searchInput, setSearchInput] = useState(view.query);
   const [blinkPasses, setBlinkPasses] = useState(false);
+  /** Hide chrome; sky fills the viewport like looking through an eyepiece (E). */
+  const [eyepiece, setEyepiece] = useState(false);
   /** Brief double-exposure of the previous visit while blinking (hop afterimage). */
   const [hopGhost, setHopGhost] = useState<{
     pixels: Float32Array;
@@ -249,10 +251,13 @@ export default function App() {
     if (!el) return;
     const update = () => {
       // Classic desk: square fits the viewport with chrome. no page scroll.
+      // Eyepiece: grow the cutout toward the full viewport.
       const colW = el.clientWidth;
       const maxByWidth = Math.floor(colW - 12);
-      const maxByHeight = Math.floor(window.innerHeight * 0.52);
-      const px = Math.max(280, Math.min(440, maxByWidth, maxByHeight));
+      const maxByHeight = Math.floor(window.innerHeight * (eyepiece ? 0.78 : 0.52));
+      const cap = eyepiece ? 720 : 440;
+      const floor = eyepiece ? 360 : 280;
+      const px = Math.max(floor, Math.min(cap, maxByWidth, maxByHeight));
       setDisplayPx(px);
     };
     update();
@@ -263,7 +268,7 @@ export default function App() {
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [eyepiece]);
 
   const loadFromService = useCallback(
     async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
@@ -963,6 +968,10 @@ export default function App() {
         return;
       }
       if (e.key === "Escape") {
+        if (eyepiece) {
+          setEyepiece(false);
+          return;
+        }
         if (demoPhase !== "idle") {
           stopAutoDemo();
           return;
@@ -979,6 +988,11 @@ export default function App() {
         if (blinkPasses || overlayActive) {
           patchView({ pass: null, mode: "single", playing: false });
         }
+        return;
+      }
+      if (e.key === "e" || e.key === "E") {
+        e.preventDefault();
+        if (load.status === "ready") setEyepiece((v) => !v);
         return;
       }
       if (e.key === " " || e.key === "k" || e.key === "K") {
@@ -1052,6 +1066,8 @@ export default function App() {
     ghostVisits,
     spotMover,
     overlayActive,
+    eyepiece,
+    load.status,
   ]);
 
   async function toggleFullscreen() {
@@ -1519,10 +1535,12 @@ export default function App() {
   const cinema = load.status === "ready";
 
   return (
-    <div className={cinema ? "app app--fit app--ready" : "app app--fit"}>
+    <div
+      className={`app app--fit${cinema ? " app--ready" : ""}${eyepiece ? " app--eyepiece" : ""}`}
+    >
       <div className="sky-wash" aria-hidden="true" />
 
-      {showBriefing && load.status === "ready" && (
+      {showBriefing && load.status === "ready" && !eyepiece && (
         <MissionBriefing
           targetName={targetName}
           onEnter={() => dismissBriefing(true)}
@@ -1537,10 +1555,20 @@ export default function App() {
         </div>
         <div className="top-actions">
           <HealthBadge />
+          {cinema && (
+            <button
+              type="button"
+              className={eyepiece ? "primary" : "ghost"}
+              onClick={() => setEyepiece((v) => !v)}
+              title={eyepiece ? "Leave eyepiece (Esc or E)" : "Eyepiece: sky only (E)"}
+            >
+              {eyepiece ? "Leave eyepiece" : "Eyepiece"}
+            </button>
+          )}
           <button
             type="button"
             className="ghost"
-            disabled={load.status !== "ready" || demoPhase !== "idle"}
+            disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
             onClick={() => runAutoDemo()}
             title="Timed walkthrough for judges (J)"
           >
@@ -2055,6 +2083,7 @@ export default function App() {
                   />
                 )}
               </div>
+              {eyepiece && <p className="app--eyepiece-hint">Eyepiece on · Esc or E to leave</p>}
             </>
           )}
 
@@ -2067,7 +2096,7 @@ export default function App() {
               </p>
             )}
 
-          {cinema && !candidatesFile && !candidatesWaiting && (
+          {cinema && !eyepiece && !candidatesFile && !candidatesWaiting && (
             <ViewerGuide targetName={targetName} mode={guideMode} />
           )}
         </section>
