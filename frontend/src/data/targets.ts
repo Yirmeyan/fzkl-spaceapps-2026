@@ -66,3 +66,12 @@ export const KNOWN_TARGETS: KnownTarget[] = [
 export function targetByKey(key: string): KnownTarget | undefined {
   return KNOWN_TARGETS.find((t) => t.key === key);
 }
+
+/** One-line stage tip — what this preset is for (Tommy B4). */
+export const TARGET_MISSION_TIP: Record<string, string> = {
+  barnard: "The mover — watch the bright core hop between visits.",
+  epsindi: "The spectrum — open Infrared timeline for water & methane bands.",
+  wise0855: "The faint one — single frames hide it; try More → Average stack on D6.",
+  rwaur: "The variable — compare visits; the spectrum curves cross by pass.",
+  rdra: "The saturated one — images only; too bright for a flux number.",
+};

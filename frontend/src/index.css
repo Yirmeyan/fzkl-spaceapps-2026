@@ -1971,6 +1971,14 @@ select {
   color: #fff;
 }
 
+.stage-mission-tip {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: #93a4b8;
+  max-width: 36rem;
+  line-height: 1.35;
+}
+
 .app--cinema .stage-width-probe {
   width: 100%;
 }

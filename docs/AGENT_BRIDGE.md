@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:15 ET — From: Nic — Kind: Shipped
+
+One-line **mission tip** under the stage title per preset (Tommy B4 roles: mover / spectrum / faint / variable / saturated). Dark mission desk already restored.
+
 ### 2026-11-14 15:12 ET — From: Nic — Kind: Shipped
 
 **Visual course-correct (human):** restored dark NASA mission vibe + full-width two-column layout (big stage left, rail right). The white “cinema column” form look is gone. Keeps mode exclusivity / hop proof / B4 charts.

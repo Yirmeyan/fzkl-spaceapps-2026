@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**NASA dark mission desk** — kill the white form vibe; full-width dark stage + big left square + right rail (original strength, cleaner chrome).
+**Target mission tip** — one dark-stage line per preset (mover / spectrum / faint / variable / saturated) from Tommy B4.
 
 ## Backlog (phenomenal)
 

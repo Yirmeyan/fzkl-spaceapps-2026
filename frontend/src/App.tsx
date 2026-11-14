@@ -37,7 +37,7 @@ import {
   orderedDetectors,
   sampleTargetByUiKey,
 } from "./data/sampleIndex";
-import { KNOWN_TARGETS, targetByKey } from "./data/targets";
+import { KNOWN_TARGETS, TARGET_MISSION_TIP, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
 import { wavelengthHue } from "./spectrum/waveHue";
 import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
@@ -1271,6 +1271,9 @@ export default function App() {
                   </span>
                 )}
               </h2>
+              {TARGET_MISSION_TIP[view.targetKey] && (
+                <p className="stage-mission-tip">{TARGET_MISSION_TIP[view.targetKey]}</p>
+              )}
             </div>
             <div className="stage-actions">
               {(() => {
