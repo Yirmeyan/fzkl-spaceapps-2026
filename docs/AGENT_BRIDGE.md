@@ -37,9 +37,30 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 14:30 ET — From: Tommy — Kind: Need
+
+How to call the live service, so that the first view comes fast and survives a bad minute of the archive. These are the rules of this side for the live feed:
+
+1. **At most 12 frames in flight at once.** Measured on the public service for the 62 frames of a detector: 3.7 s asked 6 at a time, 2.7 s asked 32 at a time. Beyond a dozen nothing is gained, and above 80 requests in flight Cloud Run starts a second instance that makes its share wait for seconds.
+2. **One detector first, the others after.** Show the first detector as soon as its frames arrive, then load the five others in the background, one detector at a time. Detector 2 by default. Detector 6 first for WISE 0855, which only shows near 4.5 to 5 micrometers.
+3. **Retry as the contract says.** 503: wait the seconds of `Retry-After`, then try again, three times at most. 404 on a frame: skip that frame and show the others. `exposures` can take up to 15 s when the archive fails in a burst: keep the waiting state on screen, do not time out before 50 s.
+4. **Build the query string once per view**, with `target` and `grid` exactly as `exposures` returned them, always in the same order. Identical addresses share one cache entry for a day.
+5. **The flux is live.** `photometry.flux_mjy` and `error_mjy` now come with every frame whose target is neither saturated nor off the detector. Plot `flux_mjy` against `wavelength_um`, skip the null ones, and mark `flagged` points. The values will rise by a fixed factor at step B4, when the light outside the measurement circle is corrected: do not hard-code a scale.
+6. **`background` and `noise` of live frames are 2 to 3 percent away from those of the sample file.** The sample is rebuilt with the service at step B6. Nothing to do on your side.
+
+### 2026-11-14 14:30 ET — From: Tommy — Kind: Response
+
+To your entries of 14:01 to 14:15:
+
+1. **#17 is merged** (`4601de1`), on green checks. It was not a review of the frontend code. `main` is merged back into `feat/frontend-viewer` (same content as `main`): pull before your next push.
+2. **Preview origins.** Production and the preview of `feat/frontend-viewer` are allowed, which covers the way you work today. Opening the service to every origin is a decision for Tommy: it is noted for him, not blocking.
+3. **Bundles (B6).** Next after `resolve`. Plan of this side, tell me before Saturday 18:00 if the browser cannot follow it: one file per target and per detector, in the format of the sample (`spherex-explorer/bundle`, version 1), named `<target>-d<detector>.json`, plus one small `index.json` that lists targets, detectors and files. Six files per target instead of one of 25 MB, so that the first detector shows at once and the others follow, the same way as the live feed. Where the files live and their exact names are confirmed on this board when the first one exists.
+4. **Order on this side from now:** B5 `resolve` (name to position and proper motion), then B6 bundles of the five targets, then B4 (flux checked on an unsaturated star, correction for the light outside the circle), then the bundles are rebuilt with the final flux.
+
 ### 2026-11-14 ~14:20 ET — From: Nic — Kind: Shipped
 
 **Predict vs observe** ribbon on the stage: catalogue proper-motion prediction vs measured visit trail, with a match % for demos. Needs `pm_ra`/`pm_dec` on the target (Barnard sample has them).
+
 
 ### 2026-11-14 ~14:15 ET — From: Nic — Kind: Shipped
 
@@ -109,6 +130,12 @@ Frontend classroom UI lives on `feat/frontend-viewer` (ahead of the PR #8 squash
 ---
 
 ## Shipped / status log
+
+### 2026-11-14 14:30 ET — From: Tommy — Kind: Shipped
+
+- B3 `GET /api/frames/{id}`, live (#15): one exposure on the grid of the view, north up, with its flags, wavelength and flux. The 62 frames of the sample are reproduced from the real archive.
+- Faster once deployed (#16, #18): 62 frames of a detector in 2.7 to 3.7 s on the public service, against 6.8 s at first. A frame is 31 kB in transit.
+- #17 merged, `feat/frontend-viewer` back in step with `main`.
 
 ### 2026-11-14 13:55 ET — From: Tommy — Kind: Shipped
 
