@@ -1,5 +1,6 @@
 import type { CandidatesFile } from "../data/candidates";
 import { candidateLines, emptyCandidatesSentence } from "../data/candidates";
+import type { CatalogSlice } from "../data/catalog";
 
 interface CandidatesPanelProps {
   data: CandidatesFile | null;
@@ -7,9 +8,11 @@ interface CandidatesPanelProps {
   activeIndex: number | null;
   /** Active detector filter; warn when a candidate is invisible here. */
   detector?: number | null;
-  /** Catalog proper motion of the loaded target (mas/yr), for the judge line. */
+  /** Catalog proper motion of the loaded target (mas/yr), legacy fallback. */
   catalogPmRa?: number | null;
   catalogPmDec?: number | null;
+  /** Gaia slice of the view catalog (Tommy 19:00 knownAs lines). */
+  gaiaCatalog?: CatalogSlice | null;
   onPick: (index: number) => void;
   onStudy: (index: number) => void;
 }
@@ -22,6 +25,7 @@ export function CandidatesPanel({
   detector = null,
   catalogPmRa = null,
   catalogPmDec = null,
+  gaiaCatalog = null,
   onPick,
   onStudy,
 }: CandidatesPanelProps) {
@@ -50,7 +54,7 @@ export function CandidatesPanel({
           {list.map((c, i) => {
             const hidden =
               detector != null && c.detectors.length > 0 && !c.detectors.includes(detector);
-            const lines = candidateLines(c, catalogPmRa, catalogPmDec);
+            const lines = candidateLines(c, catalogPmRa, catalogPmDec, gaiaCatalog);
             return (
               <li key={`${c.kind}-${c.ra}-${c.dec}-${i}`}>
                 <button

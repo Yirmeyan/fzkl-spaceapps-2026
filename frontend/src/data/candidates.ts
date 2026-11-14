@@ -1,4 +1,55 @@
+import type { CatalogSlice, CatalogSource } from "./catalog";
 import type { Grid, Target } from "./contract";
+import { targetAt } from "./contract";
+
+const DEG = Math.PI / 180;
+
+/**
+ * The source of a catalog that is the candidate, or null.
+ * Contract: docs/api-contract.md § Is a candidate known? (Tommy 19:00).
+ */
+export function knownAs(
+  candidate: Candidate,
+  catalog: CatalogSlice,
+  withinArcsec = 3,
+): { source: CatalogSource; separation: number } | null {
+  const date = 51544.5 + (candidate.epoch - 2000) * 365.25;
+  let best: { source: CatalogSource; separation: number } | null = null;
+  for (const source of catalog.sources) {
+    const [ra, dec] = targetAt(
+      {
+        ra: source.ra,
+        dec: source.dec,
+        epoch: catalog.epoch,
+        pm_ra: source.pm_ra,
+        pm_dec: source.pm_dec,
+      },
+      date,
+    );
+    const east = (((ra - candidate.ra + 540) % 360) - 180) * Math.cos(candidate.dec * DEG) * 3600;
+    const north = (dec - candidate.dec) * 3600;
+    const separation = Math.hypot(east, north);
+    if (separation <= withinArcsec && (best === null || separation < best.separation)) {
+      best = { source, separation };
+    }
+  }
+  return best;
+}
+
+/** Panel / verdict line for a Gaia match (Tommy 19:00). */
+export function gaiaKnowsLine(
+  candidate: Candidate,
+  match: { source: CatalogSource; separation: number } | null,
+): string {
+  if (!match) return "Gaia DR3 holds no source here";
+  if (candidate.kind === "moved") {
+    const rate = Math.hypot(match.source.pm_ra ?? 0, match.source.pm_dec ?? 0) / 1000;
+    const plx = match.source.parallax_mas;
+    const dist = plx != null && plx >= 5 ? `, ${(3261.6 / plx).toFixed(2)} light-years away` : "";
+    return `Gaia DR3 knows it: ${rate.toFixed(2)}″ per year${dist}`;
+  }
+  return `A star Gaia DR3 knows · ${match.source.id}`;
+}
 
 /** Contract: docs/api-contract.md § Candidates */
 
@@ -107,13 +158,14 @@ export interface CandidateLines {
 }
 
 /**
- * Short lines for the panel (Tommy 17:40 / 18:20): what happened, how far, how sure.
- * Catalog rate only beside a measured motion — never on a `changed` candidate.
+ * Short lines for the panel (Tommy 17:40 / 18:20 / 19:00).
+ * The Gaia line replaces the old resolver "Catalog: X″ per year".
  */
 export function candidateLines(
   c: Candidate,
-  catalogPmRa: number | null | undefined,
-  catalogPmDec: number | null | undefined,
+  _catalogPmRa: number | null | undefined,
+  _catalogPmDec: number | null | undefined,
+  gaia: CatalogSlice | null = null,
 ): CandidateLines {
   const conf = c.confidence === "high" ? "high confidence" : "medium confidence";
   const sure = `Candidate, ${conf}.`;
@@ -121,6 +173,8 @@ export function candidateLines(
     c.method === "halo"
       ? "Read on the halo of light around the star. The star itself is too bright for SPHEREx."
       : null;
+  const match = gaia ? knownAs(c, gaia) : null;
+  const catalog = gaia ? gaiaKnowsLine(c, match) : null;
 
   if (c.kind === "moved" && c.motion) {
     const m = c.motion;
@@ -129,14 +183,6 @@ export function candidateLines(
       m.distance_ly != null && m.distance_ly_range
         ? `About ${m.distance_ly.toFixed(1)} light-years away, between ${m.distance_ly_range[0].toFixed(1)} and ${m.distance_ly_range[1].toFixed(1)}, from its swing with the seasons`
         : null;
-    let catalog: string | null = null;
-    if (c.is_target) {
-      const ra = catalogPmRa ?? 0;
-      const dec = catalogPmDec ?? 0;
-      if (ra !== 0 || dec !== 0) {
-        catalog = `Catalog: ${(Math.hypot(ra, dec) / 1000).toFixed(2)}″ per year`;
-      }
-    }
     return { what, howFar, sure, catalog, howMeasured };
   }
   if (c.kind === "changed" && c.changes.length > 0) {
@@ -151,7 +197,7 @@ export function candidateLines(
       what: `${how} near ${wave} between Visit ${ch.from_pass} and Visit ${ch.to_pass}`,
       howFar: null,
       sure,
-      catalog: null,
+      catalog,
       howMeasured,
     };
   }
@@ -159,7 +205,7 @@ export function candidateLines(
     what: c.is_target ? "This is the object you asked for" : "Another object in this field",
     howFar: null,
     sure: `Candidate marked “${c.kind}”, ${conf}.`,
-    catalog: null,
+    catalog,
     howMeasured,
   };
 }

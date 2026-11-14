@@ -2600,7 +2600,7 @@ select {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(260px, 320px);
   gap: 0.75rem;
-  align-items: stretch;
+  align-items: center;
   width: 100%;
   max-width: none;
   margin: 0;
@@ -2613,6 +2613,9 @@ select {
   min-height: 0;
   overflow: auto;
   border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .app--fit .stage-title {
@@ -2896,4 +2899,71 @@ select {
 
 .app--fit .discovery-flash-line {
   font-size: 1.05rem;
+}
+
+.catalog-hit-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: inherit;
+  background: transparent;
+  cursor: crosshair;
+}
+
+.catalog-tip {
+  color: #c4b5fd;
+}
+
+.catalog-unavail {
+  color: var(--warn);
+}
+
+/* Saturated-heart bloom when a halo candidate is first found (R Dra jury beat). */
+.halo-pulse {
+  position: absolute;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.halo-pulse-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--halo-r, 40px) * 2);
+  height: calc(var(--halo-r, 40px) * 2);
+  margin: calc(var(--halo-r, 40px) * -1) 0 0 calc(var(--halo-r, 40px) * -1);
+  border-radius: 50%;
+  border: 2px dashed rgba(125, 211, 252, 0.85);
+  box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.25);
+  animation: halo-pulse-bloom 2.6s ease-out forwards;
+}
+
+.halo-pulse-ring--late {
+  animation-delay: 0.35s;
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+@keyframes halo-pulse-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
 }

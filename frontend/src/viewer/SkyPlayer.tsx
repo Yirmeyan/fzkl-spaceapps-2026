@@ -1,8 +1,14 @@
 import { useEffect, useRef } from "react";
 import type { Candidate, SaturatedStar } from "../data/candidates";
+import type { CatalogSlice } from "../data/catalog";
 import { type ColorMap, type Grid, renderFrameToRgba } from "../data/contract";
 import type { DecodedFrame } from "../data/decode";
-import { drawCandidatesOverlay, drawTargetOverlay, type TrailPoint } from "./overlays";
+import {
+  drawCandidatesOverlay,
+  drawCatalogOverlay,
+  drawTargetOverlay,
+  type TrailPoint,
+} from "./overlays";
 
 export interface SkyPlayerProps {
   frames: DecodedFrame[];
@@ -23,6 +29,9 @@ export interface SkyPlayerProps {
   viewGrid?: Grid | null;
   activeCandidate?: number | null;
   saturated?: SaturatedStar[];
+  catalogSlices?: CatalogSlice[];
+  catalogEnabled?: Set<string>;
+  catalogHighlightId?: string | null;
   className?: string;
   onFrameIndexChange?: (index: number) => void;
 }
@@ -48,6 +57,9 @@ export function SkyPlayer({
   viewGrid = null,
   activeCandidate = null,
   saturated = [],
+  catalogSlices = [],
+  catalogEnabled,
+  catalogHighlightId = null,
   className,
   onFrameIndexChange,
 }: SkyPlayerProps) {
@@ -64,6 +76,9 @@ export function SkyPlayer({
     viewGrid,
     activeCandidate,
     saturated,
+    catalogSlices,
+    catalogEnabled: catalogEnabled ?? new Set<string>(),
+    catalogHighlightId,
   });
   candidatesRef.current = {
     candidates,
@@ -71,6 +86,9 @@ export function SkyPlayer({
     viewGrid,
     activeCandidate,
     saturated,
+    catalogSlices,
+    catalogEnabled: catalogEnabled ?? new Set<string>(),
+    catalogHighlightId,
   };
   const onChangeRef = useRef(onFrameIndexChange);
   onChangeRef.current = onFrameIndexChange;
@@ -139,6 +157,17 @@ export function SkyPlayer({
         overlay.saturated,
       );
     }
+    if (overlay.viewGrid && overlay.catalogEnabled.size > 0 && overlay.catalogSlices.length > 0) {
+      drawCatalogOverlay(
+        ctx,
+        overlay.catalogSlices,
+        overlay.catalogEnabled,
+        overlay.viewGrid,
+        f.frame.time_mjd,
+        100,
+        overlay.catalogHighlightId,
+      );
+    }
   }
 
   useEffect(() => {
@@ -157,6 +186,9 @@ export function SkyPlayer({
     viewGrid,
     activeCandidate,
     saturated,
+    catalogSlices,
+    catalogEnabled,
+    catalogHighlightId,
   ]);
 
   useEffect(() => {

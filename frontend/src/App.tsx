@@ -26,19 +26,36 @@ import {
 } from "./compose/stack";
 import { type CandidatesFile, discoveryFlashLine, fetchCandidatesFile } from "./data/candidates";
 import {
+  type CatalogKey,
+  type CatalogResponse,
+  catalogSourceTip,
+  catalogUnavailableMessage,
+  fetchCatalogFile,
+  gaiaSlice,
+  middleFrameEpochYear,
+} from "./data/catalog";
+import {
   ApiError,
   fetchBundle,
   fetchCandidates,
+  fetchCatalog,
   fetchExposures,
   fetchSpectrum,
   loadFramesProgressive,
   resolveName,
 } from "./data/client";
 import type { Bundle, Frame, Grid, Target } from "./data/contract";
-import { computeDisplayLimits, MASK_BIT_LEGEND, mjdToDate } from "./data/contract";
+import {
+  computeDisplayLimits,
+  MASK_BIT_LEGEND,
+  mjdToDate,
+  skyToPixel,
+  targetAt,
+} from "./data/contract";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
 import {
   candidatesFileUrl,
+  catalogFileUrl,
   clearSampleIndexCache,
   detectorBundleUrl,
   fetchSampleIndex,
@@ -162,6 +179,14 @@ export default function App() {
   const [showAdvanced, setShowAdvanced] = useState(true);
   /** Tommy item 6: tint non-zero mask pixels on the stage. */
   const [tintMask, setTintMask] = useState(false);
+  /** Tommy F8: catalog overlay switches (off until first asked). */
+  const [showGaia, setShowGaia] = useState(false);
+  const [showAllwise, setShowAllwise] = useState(false);
+  const [catalogFile, setCatalogFile] = useState<CatalogResponse | null>(null);
+  const [catalogWaiting, setCatalogWaiting] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogTip, setCatalogTip] = useState<string | null>(null);
+  const [catalogHighlightId, setCatalogHighlightId] = useState<string | null>(null);
   const [fieldPreset, setFieldPreset] = useState<FieldPreset>("default");
   const fieldPresetRef = useRef<FieldPreset>("default");
   fieldPresetRef.current = fieldPreset;
@@ -173,6 +198,13 @@ export default function App() {
   const [activeCandidate, setActiveCandidate] = useState<number | null>(null);
   /** Brief stage whisper when the service first finds a target mover. */
   const [discoveryFlash, setDiscoveryFlash] = useState<string | null>(null);
+  const [discoveryIsHalo, setDiscoveryIsHalo] = useState(false);
+  /** Expanding ring on stage when the target was read through its saturated halo. */
+  const [haloPulse, setHaloPulse] = useState<{
+    xFrac: number;
+    yFrac: number;
+    rPx: number;
+  } | null>(null);
   const discoverySeenRef = useRef<string | null>(null);
   const [skyTarget, setSkyTarget] = useState<TargetExtras | null>(() => readSkyFromUrl());
   const skyTargetRef = useRef(skyTarget);
@@ -700,6 +732,65 @@ export default function App() {
     return filterNearWavelength(byPass, view.waveUm, view.waveTolUm);
   }, [load, view.pass, view.detector, view.waveUm, view.waveTolUm]);
 
+  // Tommy F8 / #59 / 19:00: load catalog for overlay OR candidates (knownAs).
+  // Prefer static preset file; otherwise GET /api/catalog.
+  useEffect(() => {
+    const need = showGaia || showAllwise || candidatesFile != null;
+    if (!need || load.status !== "ready") return;
+    const ac = new AbortController();
+    const grid = load.data.grid;
+    const epoch = middleFrameEpochYear(load.data.frames.map((f) => f.frame.time_mjd));
+    setCatalogWaiting(true);
+    setCatalogError(null);
+
+    void (async () => {
+      try {
+        let data: CatalogResponse | null = null;
+        try {
+          const index = await fetchSampleIndex(ac.signal);
+          const entry = sampleTargetByUiKey(index, view.targetKey);
+          const defaultFov = FIELD_PRESETS.default.fov;
+          if (
+            entry?.catalog &&
+            fieldPreset === "default" &&
+            Math.abs(grid.fov_deg - defaultFov) < 1e-9
+          ) {
+            data = await fetchCatalogFile(catalogFileUrl(entry.catalog.file), ac.signal);
+          }
+        } catch {
+          /* fall through to live call */
+        }
+        if (!data) {
+          data = await fetchCatalog(
+            { ra: grid.ra, dec: grid.dec, fov: grid.fov_deg, epoch },
+            ac.signal,
+          );
+        }
+        if (ac.signal.aborted) return;
+        setCatalogFile(data);
+        setCatalogWaiting(false);
+      } catch (err) {
+        if (ac.signal.aborted) return;
+        setCatalogFile(null);
+        setCatalogWaiting(false);
+        if (showGaia || showAllwise) {
+          setCatalogError(catalogUnavailableMessage(err));
+          setShowGaia(false);
+          setShowAllwise(false);
+        }
+      }
+    })();
+
+    return () => ac.abort();
+  }, [showGaia, showAllwise, load, candidatesFile, view.targetKey, fieldPreset]);
+
+  useEffect(() => {
+    setCatalogFile(null);
+    setCatalogTip(null);
+    setCatalogHighlightId(null);
+    setCatalogError(null);
+  }, [view.targetKey, fieldPreset]);
+
   const forDifference = useMemo(() => {
     if (load.status !== "ready") return [];
     const byDet = filterFrames(load.data.frames, { pass: null, detector: view.detector });
@@ -963,6 +1054,8 @@ export default function App() {
   useEffect(() => {
     if (!candidatesFile) {
       discoverySeenRef.current = null;
+      setHaloPulse(null);
+      setDiscoveryIsHalo(false);
       return;
     }
     const hit = candidatesFile.candidates.find(
@@ -976,10 +1069,33 @@ export default function App() {
     const key = `${hit.ra.toFixed(5)},${hit.dec.toFixed(5)},${hit.kind},${line}`;
     if (discoverySeenRef.current === key) return;
     discoverySeenRef.current = key;
+    const isHalo = hit.method === "halo";
+    setDiscoveryIsHalo(isHalo);
     setDiscoveryFlash(line);
-    const t = window.setTimeout(() => setDiscoveryFlash(null), 3000);
-    return () => window.clearTimeout(t);
-  }, [candidatesFile]);
+
+    let pulseTimer: number | undefined;
+    if (isHalo) {
+      const grid = candidatesFile.grid;
+      const heart = hit.track[0];
+      const rArc = heart?.error_arcsec ?? 20;
+      const rGrid = (rArc / 3600 / grid.fov_deg) * grid.size;
+      setHaloPulse({
+        xFrac: hit.xy[0] / grid.size,
+        yFrac: hit.xy[1] / grid.size,
+        rPx: Math.max(28, rGrid * (displayPx / grid.size)),
+      });
+      pulseTimer = window.setTimeout(() => setHaloPulse(null), 2800);
+    }
+
+    const t = window.setTimeout(() => {
+      setDiscoveryFlash(null);
+      setDiscoveryIsHalo(false);
+    }, 3000);
+    return () => {
+      window.clearTimeout(t);
+      if (pulseTimer != null) window.clearTimeout(pulseTimer);
+    };
+  }, [candidatesFile, displayPx]);
 
   // Capture the previous visit for a short afterimage so the hop is visible as a double exposure.
   useEffect(() => {
@@ -1912,9 +2028,27 @@ export default function App() {
                 Infrared color · {display.meta.frame.wavelength_um.toFixed(2)} µm
               </p>
             )}
+            {haloPulse && (
+              <div
+                className="halo-pulse"
+                aria-hidden="true"
+                style={
+                  {
+                    left: `${haloPulse.xFrac * 100}%`,
+                    top: `${haloPulse.yFrac * 100}%`,
+                    "--halo-r": `${haloPulse.rPx}px`,
+                  } as CSSProperties
+                }
+              >
+                <span className="halo-pulse-ring" />
+                <span className="halo-pulse-ring halo-pulse-ring--late" />
+              </div>
+            )}
             {discoveryFlash && (
               <div className="discovery-flash" role="status" aria-live="polite">
-                <p className="discovery-flash-kicker">Service measurement</p>
+                <p className="discovery-flash-kicker">
+                  {discoveryIsHalo ? "Halo measurement" : "Service measurement"}
+                </p>
                 <p className="discovery-flash-line">{discoveryFlash}</p>
               </div>
             )}
@@ -2087,8 +2221,66 @@ export default function App() {
                     viewGrid={load.status === "ready" ? load.data.grid : null}
                     activeCandidate={activeCandidate}
                     saturated={candidatesFile?.saturated ?? []}
+                    catalogSlices={catalogFile?.catalogs ?? []}
+                    catalogEnabled={
+                      new Set(
+                        [showGaia ? "gaia" : null, showAllwise ? "allwise" : null].filter(
+                          Boolean,
+                        ) as CatalogKey[],
+                      )
+                    }
+                    catalogHighlightId={catalogHighlightId}
                     onFrameIndexChange={onPlayerFrame}
                   />
+                  {(showGaia || showAllwise) && catalogFile && load.status === "ready" && (
+                    <button
+                      type="button"
+                      className="catalog-hit-layer"
+                      aria-label="Identify a catalog source under the pointer"
+                      onClick={(e) => {
+                        const canvas = (e.currentTarget.parentElement?.querySelector("canvas") ??
+                          null) as HTMLCanvasElement | null;
+                        if (!canvas || load.status !== "ready") return;
+                        const rect = canvas.getBoundingClientRect();
+                        const x = ((e.clientX - rect.left) / rect.width) * load.data.grid.size;
+                        const y = ((e.clientY - rect.top) / rect.height) * load.data.grid.size;
+                        const frame =
+                          filtered[Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))];
+                        if (!frame) return;
+                        const tMjd = frame.frame.time_mjd;
+                        let best: { tip: string; id: string; d: number } | null = null;
+                        for (const slice of catalogFile.catalogs) {
+                          if (slice.key === "gaia" && !showGaia) continue;
+                          if (slice.key === "allwise" && !showAllwise) continue;
+                          for (const s of slice.sources.slice(0, 100)) {
+                            const [ra, dec] = targetAt(
+                              {
+                                ra: s.ra,
+                                dec: s.dec,
+                                epoch: slice.epoch,
+                                pm_ra: s.pm_ra,
+                                pm_dec: s.pm_dec,
+                              },
+                              tMjd,
+                            );
+                            const [cx, cy] = skyToPixel(load.data.grid, ra, dec);
+                            const d = Math.hypot(cx - x, cy - y);
+                            if (d > 6) continue;
+                            if (!best || d < best.d) {
+                              best = { tip: catalogSourceTip(slice, s), id: s.id, d };
+                            }
+                          }
+                        }
+                        if (best) {
+                          setCatalogTip(best.tip);
+                          setCatalogHighlightId(best.id);
+                        } else {
+                          setCatalogTip(null);
+                          setCatalogHighlightId(null);
+                        }
+                      }}
+                    />
+                  )}
                   {hopGhost && (
                     <div className="hop-ghost" aria-hidden="true">
                       <FrameCanvas
@@ -2238,6 +2430,7 @@ export default function App() {
                   candidates={candidatesFile.candidates}
                   catalogPmRa={load.data.target.pm_ra}
                   catalogPmDec={load.data.target.pm_dec}
+                  gaiaCatalog={gaiaSlice(catalogFile)}
                   targetName={load.data.target.name ?? targetName}
                 />
               )}
@@ -2355,6 +2548,7 @@ export default function App() {
                 detector={view.detector}
                 catalogPmRa={load.status === "ready" ? load.data.target.pm_ra : null}
                 catalogPmDec={load.status === "ready" ? load.data.target.pm_dec : null}
+                gaiaCatalog={gaiaSlice(catalogFile)}
                 onPick={(index) => setActiveCandidate(index)}
                 onStudy={(index) => {
                   const c = candidatesFile?.candidates[index];
@@ -2706,6 +2900,31 @@ export default function App() {
                   />
                   <span>Tint flagged pixels</span>
                 </label>
+                <p className="control-label">Other telescopes</p>
+                <label className="tint-mask-row">
+                  <input
+                    type="checkbox"
+                    checked={showGaia}
+                    disabled={catalogError != null && !catalogFile}
+                    onChange={(e) => setShowGaia(e.target.checked)}
+                  />
+                  <span>Gaia DR3</span>
+                </label>
+                <label className="tint-mask-row">
+                  <input
+                    type="checkbox"
+                    checked={showAllwise}
+                    disabled={catalogError != null && !catalogFile}
+                    onChange={(e) => setShowAllwise(e.target.checked)}
+                  />
+                  <span>AllWISE (the infrared sky in 2010)</span>
+                </label>
+                {catalogWaiting && <p className="micro">Asking the catalogs…</p>}
+                {catalogError && <p className="micro catalog-unavail">{catalogError}</p>}
+                {catalogFile?.catalogs.some((c) => c.truncated) && (
+                  <p className="micro">Showing the 300 brightest</p>
+                )}
+                {catalogTip && <p className="micro catalog-tip">{catalogTip}</p>}
                 <p className="control-label">Field of view</p>
                 <div className="chip-row">
                   <button

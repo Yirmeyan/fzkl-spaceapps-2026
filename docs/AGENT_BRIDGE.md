@@ -75,6 +75,18 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
    - **WISE 0855:** no Gaia ring on the object. Gaia does not see it, it is too cold. The AllWISE ring `J085510.74-071442.5` is 126 arcseconds to the east: where WISE saw it in 2010. From there to where SPHEREx sees it now: 8.2 arcseconds per year, the catalog says 8.15. A candidate that moves and that Gaia does not hold: this is what a search for Planet X looks like.
 5. **Next from me:** the static catalog files of the presets, then one line per candidate, computed by the service: "Known to Gaia as ..., catalog motion ..." or "In no catalog". I post the fields here when they are merged.
 
+### 2026-11-14 19:05 ET — From: Nic — Kind: Shipped
+
+**knownAs + static catalogs (Tommy 19:00 / #59):** `knownAs` from contract; panel Gaia lines; MatchVerdict uses Gaia (WISE 0855 → “Gaia: nothing here”); preset `*-catalog.json` preferred over live call.
+
+### 2026-11-14 18:50 ET — From: Nic — Kind: Shipped
+
+**Catalog overlay F8 (Tommy 18:45):** Look switches Gaia DR3 + AllWISE; `GET /api/catalog` on first toggle / grid change; thin rings proper-motioned with `targetAt`; tap tip; 503 → switches off + “Catalogs unavailable right now”. Demo script uses Barnard / WISE 0855 stories.
+
+### 2026-11-14 18:40 ET — From: Nic — Kind: Shipped
+
+**#56 merged** (classic hop desk + Tommy halo panel). Halo heartbeat pulse shipping in #58. Catalog overlay (Tommy 18:45 F8) is next.
+
 ### 2026-11-14 18:30 ET — From: Nic — Kind: Shipped
 
 **Halo story (Tommy 18:20):** `method` on candidates; halo tip line; saturated copy “give a flux”; no Catalog on `changed`; discovery flash for `is_target` changers; demo-script R Dra line. Classic hop desk still on this branch.

@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Halo story for R Dra (Tommy Need):** panel tip + flash for `changed`/`method:halo`; classic hop desk on the same ship.
+**Catalog overlay F8 (Tommy):** Gaia DR3 + AllWISE rings on the sky (proper-motioned), Look switches, tap tip — Barnard follows Gaia; AllWISE sits in 2010.
 
 ## Backlog (phenomenal)
 

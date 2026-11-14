@@ -1,7 +1,14 @@
 import type { Candidate, SaturatedStar } from "../data/candidates";
 import { candidateXyForPass } from "../data/candidates";
+import type { CatalogSlice } from "../data/catalog";
 import type { Grid } from "../data/contract";
-import { skyToPixel } from "../data/contract";
+import { skyToPixel, targetAt } from "../data/contract";
+
+/** Catalog ring colors — distinct from candidate yellow/cyan (Tommy F8). */
+const CATALOG_COLORS: Record<string, string> = {
+  gaia: "#a78bfa",
+  allwise: "#34d399",
+};
 
 /** Catalogue marker + pass trail (big numbered beads, not stick-figure crosses). */
 
@@ -148,6 +155,49 @@ export function drawCandidatesOverlay(
       drawArrow(ctx, x0, y0, x1, y1, color, active);
     }
   });
+}
+
+/**
+ * Thin rings for Gaia / AllWISE sources, proper-motioned to the frame date.
+ * Draw at most `maxDraw` brightest per catalog (already sorted by the service).
+ */
+export function drawCatalogOverlay(
+  ctx: CanvasRenderingContext2D,
+  slices: CatalogSlice[],
+  enabledKeys: Set<string>,
+  viewGrid: Grid,
+  timeMjd: number,
+  maxDraw = 100,
+  highlightId: string | null = null,
+): void {
+  for (const slice of slices) {
+    if (!enabledKeys.has(slice.key)) continue;
+    const color = CATALOG_COLORS[slice.key] ?? "#e2e8f0";
+    const list = slice.sources.slice(0, maxDraw);
+    for (const s of list) {
+      const [ra, dec] = targetAt(
+        {
+          ra: s.ra,
+          dec: s.dec,
+          epoch: slice.epoch,
+          pm_ra: s.pm_ra,
+          pm_dec: s.pm_dec,
+        },
+        timeMjd,
+      );
+      const [cx, cy] = skyToPixel(viewGrid, ra, dec);
+      if (cx < -2 || cy < -2 || cx > viewGrid.size + 2 || cy > viewGrid.size + 2) continue;
+      const hot = highlightId != null && highlightId === s.id;
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = hot ? 1.8 : 1;
+      ctx.globalAlpha = hot ? 1 : 0.75;
+      ctx.beginPath();
+      ctx.arc(cx, cy, hot ? 5.5 : 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
 }
 
 function drawArrow(
