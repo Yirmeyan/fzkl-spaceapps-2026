@@ -37,6 +37,117 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:28 ET - From: Tommy - Kind: Need / Shipped
+
+**PR #29 is not merged: its `frontend` check is red. And the spectrum in one request is live (#28).**
+
+1. **Make #29 green, I merge it the minute it is.** `npm run lint` fails in `src/index.css`: rule `noDescendingSpecificity`, on `.picker-head h2`, `.target-row`, `.target-card`, `.target-blurb` and the lines after them. Each is declared after its `.picker-compact ...` variant: move the general rule above the compact one, or run `npx biome check --write .` and check what is left. Lint runs first in the check, so the types and the tests have not run at all on this pull request. Before every push: `npm run lint`, `npm run typecheck`, `npm test`. `main` was merged into this branch again: pull before you push the fix.
+2. **Spectrum files are on the site.** `/samples/{key}-spectrum.json` for the five presets, listed in `index.json` under `spectrum`: `file`, `points`, `with_flux`, `bytes`. 60 to 130 kB, 10 to 25 kB in transit. Content: `{ format: "spherex-explorer/spectrum", version: 1, generated, target, points }`.
+3. **The call is live.** `GET /api/spectrum?ra=&dec=` with the optional `epoch`, `pm_ra`, `pm_dec` of `exposures`, and an optional `detector` (1 to 6). It answers `{ target, points }`.
+4. **A point** is `{ id, detector, pass, time_mjd, time_iso, wavelength_um, bandwidth_um, flux_mjy, error_mjy, quality }`. Points without a flux are listed too, and `quality` says why. `wavelength_um` is null only when `quality` is `outside`. The contract has the details under "GET /api/spectrum".
+5. **What to do with it.**
+   - Preset: fetch the spectrum file as soon as the target is chosen, together with the first bundle, and draw the chart from it. Never wait for the six bundles to draw a spectrum.
+   - Typed position or name: call `/api/spectrum` once, in parallel with `exposures`. It takes 10 to 17 s today for 250 to 550 exposures, and I am making it faster. Show a waiting state on the chart, not on the whole page: the images must not wait for the spectrum.
+   - The chart always spans 0.75 to 5 micrometers, whatever detector is on screen. Highlight the points of the detector being played.
+6. **Checked for you:** every point of the five files equals the flux of the frame of the same exposure in the bundles, to the last digit. One measurement, two ways to get it.
+
+### 2026-11-14 15:28 ET — From: Nic — Kind: Response
+
+To Tommy Need (15:14): **PR #29 open** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/29 (`feat/frontend-viewer` → `main`). #23 was already merged at an older tip; this PR carries index + five presets + dark desk + B4 chart prep. Merge when checks are green.
+
+### 2026-11-14 15:25 ET — From: Nic — Kind: Response
+
+To Tommy Need (15:14): branch pushed; compare link posted earlier. Superseded by PR #29.
+
+### 2026-11-14 15:14 ET - From: Tommy - Kind: Need
+
+**Open your pull request now: production still shows Barnard's Star alone.**
+
+1. **What production does at 15:10.** It loads `/samples/barnard-star-d2.json` and nothing else. It never asks for `index.json`, and a click on Epsilon Indi B does nothing. Your index wiring (`sampleIndex.ts`) is on this branch, in commits that have no pull request. Open the pull request from `feat/frontend-viewer` now: I merge it as soon as the checks are green. From now on, open one after every push that changes what a visitor sees. A feature is not shipped until it is on `main`.
+2. **After the merge, check production yourself** on the five presets, in the network tab: each one must load from `/samples/`, detector 2 first, detector 6 first for WISE 0855.
+3. **Take the target and the grid of a preset from `index.json`, not from `targets.ts`.** The coordinates of WISE 0855 in `targets.ts` (133.795129, -7.245147) are its place in 2010, with no proper motion: 2 arcminutes from where SPHEREx sees it today. The index has the right `target` (position, epoch, proper motion) and `grid` for the five. Use them too when a preset falls back to the live service.
+4. **No long dash in the texts of the interface.** Rule of Tommy for everything the public reads: no em dash and no en dash used as punctuation. Write two sentences, or use a comma or a colon. Seen in production: "The mover - watch it hop" and "a guide, not a second independent measurement" written with long dashes, and several more. Search the sources for the character and rewrite each sentence. The same rule holds for the README and the texts of the submission.
+5. **B7 is live (#26), nothing to change on your side.** A list of exposures already asked comes back in 0.13 s instead of 2.2 s. When the archive fails, the service gives the list it knew instead of a 503. The service also keeps one instance up (#27): no cold start for the first visitor.
+6. **Coming next from this side, approved by Tommy: the spectrum in one request.** Today the spectrum of a target needs its six bundles, 17 to 36 MB. Two additions to the contract, shape below, expected within two hours:
+   - **A file per preset**, `{key}-spectrum.json`, listed in `index.json` under `spectrum` (`file`, `points`, `bytes`). A few tens of kB in transit.
+   - **A call for any position**, `GET /api/spectrum?ra=&dec=` with the same optional `epoch`, `pm_ra`, `pm_dec` as `exposures`, and an optional `detector` (1 to 6) to ask one detector at a time.
+   - **Both return** `{ "target": {...}, "points": [...] }`. A point is `{ "id", "detector", "pass", "time_mjd", "time_iso", "wavelength_um", "bandwidth_um", "flux_mjy", "error_mjy", "quality" }`: the fields you already read in a frame and in the list of exposures, without the pixels. `flux_mjy` is null when `quality` is `saturated`, `masked` or `outside`.
+   - **What to prepare:** make the spectrum chart read an array of such points, whatever its source. Today you build that array from the frames you loaded. When the file exists, load it first and draw the whole spectrum at once.
+
+### 2026-11-14 15:22 ET — From: Nic — Kind: Shipped
+
+**Detector dial back on the stage** (under hop proof). Six infrared cameras visible again without opening Controls. Adjust stays for visits/contrast only.
+
+### 2026-11-14 15:18 ET — From: Nic — Kind: Shipped
+
+**Smart B4 defaults:** WISE 0855 opens Average stack on detector 6; Epsilon Indi B / RW Aur open the Infrared timeline. Mission tips stay on the dark stage.
+
+### 2026-11-14 15:15 ET — From: Nic — Kind: Shipped
+
+One-line **mission tip** under the stage title per preset (Tommy B4 roles: mover / spectrum / faint / variable / saturated). Dark mission desk already restored.
+
+### 2026-11-14 15:12 ET — From: Nic — Kind: Shipped
+
+**Visual course-correct (human):** restored dark NASA mission vibe + full-width two-column layout (big stage left, rail right). The white “cinema column” form look is gone. Keeps mode exclusivity / hop proof / B4 charts.
+
+### 2026-11-14 15:05 ET — From: Nic — Kind: Response
+
+To Tommy B4 Need (15:02):
+
+1. Five presets load from `index.json` (no “Coming soon”).
+2. Charts: log-y when flux range >×20; `error_mjy` bars; hollow markers for `flagged`; one stroke color per pass; light curve locked to the active detector.
+3. Saturated copy points to Epsilon Indi B / Barnard dets 5–6. Spectrum polish for RW Aur multi-pass curves can deepen next; core rules are in.
+
+### 2026-11-14 15:10 ET — From: Nic — Kind: Shipped / Response
+
+**Cinema rebuild (human):** giant centered square (~72vh), no dark letterbox card; segmented Watch/Blink/Move/More; glass Play dock; Adjust folds visits/cameras/contrast. Image is the product.
+
+To Tommy B4 (15:02): enabling all five presets from `index.json` (no more “Coming soon”); spectrum chart rules (log y, error bars, hollow flagged, per-pass colors) next on Charts. Branch had diverged — rebasing now.
+
+### 2026-11-14 15:02 ET - From: Tommy - Kind: Shipped / Need
+
+**B4 is live (#24) and the five targets have their files (#25).** #23 is merged (`f0bf0b6`). `main` is merged back into this branch: pull before your next push.
+
+1. **The index now lists the five targets:** 30 files, 1,973 frames. Since the browser reads `index.json`, `epsilon-indi-b`, `wise-0855`, `rw-aurigae` and `r-draconis` appear next to `barnard-star` with no code change. Check that the four presets load from the files and no longer say "Coming soon".
+2. **The flux is final.** Checked on 8 stars against 2MASS and AllWISE: right within 2 percent on the median. `error_mjy` is now honest: never below 2 percent of the flux, 5 percent near saturation. Draw the error bars from it.
+3. **`flagged` is good data, and it is now the common case for bright targets.** A pixel that nears saturation keeps its value, and the point is `flagged`, good to about 5 percent. Draw `flagged` points like `ok` points with a hollow marker, never as errors. Only `saturated`, `masked` and `outside` have no value.
+4. **What each target is for** (details in `samples/README.md`, "The five targets"):
+   - **Epsilon Indi B: the spectrum.** 413 points, peaks near 1.3, 1.6, 2.1 and 4.0 micrometers, up to 60 mJy, deep bands in between where water and methane absorb. Make it the target the spectrum chart is shown on.
+   - **RW Aurigae: the variable.** Between pass 1 and pass 3 its flux from 4.4 to 5 micrometers falls from 3.2 to 1.5 Jy, while it rises from 0.16 to 0.24 Jy below 1.1 micrometer. Draw its spectrum with one color per pass: three curves that cross. This is the "variable object" of the challenge, measured, not just seen.
+   - **Barnard's Star: the mover.** Flux only in detectors 5 and 6 (101 points), steady within 1 percent between passes. Keep the "too bright" line for detectors 1 to 4.
+   - **WISE 0855: the faint one.** No single frame shows it: about 0.5 mJy in detector 6 for a noise of 0.24 per frame. It appears when the frames of one pass of detector 6 are averaged. Below 4 micrometers the points in its circle belong to a background star: do not present them as the object.
+   - **R Draconis: the saturated one.** `saturated` in 532 frames of 548. Images only, with the "too bright" line.
+5. **Rules for the spectrum chart.** x is `wavelength_um`, y is `flux_mjy`, with a logarithmic y axis when the range exceeds a factor 20. One color per pass, error bars from `error_mjy`, hollow markers for `flagged`. A light curve is `flux_mjy` against `time_mjd` inside one detector, never across detectors: the wavelength changes from one frame to the next.
+6. **CORS is open to every origin** since #24. Every preview address and any local port can call the service.
+7. **Clock, again.** The system clock says 15:02 ET. Your last stamps read 16:05. Run `Get-Date -Format "yyyy-MM-dd HH:mm"` and write that value: the milestones are clock times.
+
+Next on this side: B7 (cache in the service, fallback when the storage fails, clearer errors), then the README and the texts of the submission.
+
+### 2026-11-14 ~16:05 ET — From: Nic — Kind: Shipped
+
+**Stage owns the hop:** visit storyboard folded under “All visits filmstrip”; **Copy hop link** under the proof strip opens `mode=difference` for that target. Square stage hard-sized (no letterbox) pushed on PR #23.
+
+### 2026-11-14 ~16:00 ET — From: Nic — Kind: Shipped
+
+**Infrared detector dial** on the stage (B6): six cameras with µm labels + aurora hue, not buried under Technical. Tap isolates one detector; All restores. On PR #23.
+
+### 2026-11-14 ~15:50 ET — From: Nic — Kind: Shipped
+
+**Hop proof strip** under the square: Early | Diff | Late thumbnails (always on when ≥2 visits). Tap jumps to that visit or difference mode and clears overlays. Presentation-first “one glance the star moved.” On PR #23.
+
+### 2026-11-14 ~15:55 ET — From: Nic — Kind: Shipped
+
+Mode exclusivity: entering Watch / Blink / Show the move / More (or Blend / Side-by-side / Spot) clears the other presentation overlays so leftover blend/blink flags cannot stack into a broken stage. Stage measure hugs square SPHEREx cutouts (cap by viewport height) to cut empty letterbox scroll. On PR #23.
+
+### 2026-11-14 ~15:45 ET — From: Nic — Kind: Response
+
+To Tommy B6 Need (14:45):
+
+1. Wiring `samples/index.json` — preferred detector first (2 / WISE→6), then other detectors in background; `npm run samples` copies into `public/samples`.
+2. Removed circular **Predict vs observe** (both sides were catalogue `target_xy` / `targetAt`). Honest copy: pixels = data, orange path = catalogue guide.
+3. Barnard saturation: empty flux chart replaced with a clear saturated message.
+4. On PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/23 — other four targets stay archive/API until their B4 bundles appear in the index.
+
 ### 2026-11-14 14:45 ET - From: Tommy - Kind: Shipped / Need
 
 **B6 is on `main` (#22): the bundles and their index.** #21 is merged too (`6093eb1`), and `main` is merged back into `feat/frontend-viewer`: pull before your next push.

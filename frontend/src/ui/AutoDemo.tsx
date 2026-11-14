@@ -15,7 +15,7 @@ export const DEMO_BEATS: {
   {
     phase: "play",
     ms: 5000,
-    line: "Play: each frame is a different infrared color — same place, new slice of the spectrum.",
+    line: "Play: each frame is a different infrared color. same place, new slice of the spectrum.",
   },
   {
     phase: "blink",
@@ -25,7 +25,7 @@ export const DEMO_BEATS: {
   {
     phase: "ghost",
     ms: 6000,
-    line: "Blend visits: early and late stacked together — the mover shimmers; fixed stars stay put.",
+    line: "Blend visits: early and late stacked together. the mover shimmers; fixed stars stay put.",
   },
   {
     phase: "difference",

@@ -1,51 +1,84 @@
 import type { DecodedFrame } from "../data/decode";
+import { type SpectrumPoint, spectrumPointsFromFrames } from "./spectrumPoints";
 
 interface ChartsProps {
   frames: DecodedFrame[];
+  /** Optional photometry-only points (index spectrum file / GET /api/spectrum). */
+  spectrumPoints?: SpectrumPoint[];
   activeIndex: number;
   onSelectFrame?: (index: number) => void;
 }
 
-/** Classroom-friendly wavelength / visit timeline. */
-export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
-  if (frames.length === 0) return null;
+const PASS_COLORS = ["#0f766e", "#d97706", "#7c3aed", "#2563eb", "#be123c"];
 
-  const withFlux = frames.filter((f) => f.frame.photometry.flux_mjy != null);
-  const spectrumPoints = [...frames].sort((a, b) => a.frame.wavelength_um - b.frame.wavelength_um);
-  const lightPoints = [...frames].sort((a, b) => a.frame.time_mjd - b.frame.time_mjd);
+function passColor(pass: number): string {
+  return PASS_COLORS[(pass - 1) % PASS_COLORS.length]!;
+}
+
+/** Classroom-friendly wavelength / visit charts. B4 photometry rules. */
+export function Charts({
+  frames,
+  spectrumPoints: spectrumPointsProp,
+  activeIndex,
+  onSelectFrame,
+}: ChartsProps) {
+  if (frames.length === 0 && !(spectrumPointsProp && spectrumPointsProp.length > 0)) return null;
+
+  const points = spectrumPointsProp ?? spectrumPointsFromFrames(frames);
+  const withFlux = points.filter((p) => p.flux_mjy != null);
+  const waveStrip = [...frames].sort((a, b) => a.frame.wavelength_um - b.frame.wavelength_um);
   const active = frames[activeIndex];
-  const activeWave = active?.frame.wavelength_um;
+  const activeWave = active?.frame.wavelength_um ?? null;
+  const activeDet = active?.exposure.detector ?? null;
+  const activeId = active?.frame.id;
+
+  // Light curve: one detector only (Tommy B4). Wavelength changes across detectors.
+  const lightPool = activeDet != null ? withFlux.filter((p) => p.detector === activeDet) : withFlux;
+  const lightPoints = [...lightPool].sort((a, b) => a.time_mjd - b.time_mjd);
+
+  const saturatedEverywhere = withFlux.length === 0;
 
   return (
     <div className="charts">
       <section className="chart-panel">
-        <h3>Infrared color of this frame</h3>
+        <h3>Spectrum</h3>
         <p className="chart-empty">
-          Each frame is a slightly different infrared “color.” The bright dot is the one you are
-          watching
-          {activeWave != null ? ` (${activeWave.toFixed(2)} µm)` : ""}. Click any dot to jump there.
-          {withFlux.length === 0
-            ? " Brightness points appear when archive photometry returns flux (saturated cores stay empty)."
-            : ` ${withFlux.length} flux point${withFlux.length === 1 ? "" : "s"} from archive photometry — flagged ones are marked.`}
+          Brightness vs infrared color (µm).
+          {activeWave != null ? ` Watching ${activeWave.toFixed(2)} µm.` : ""}
+          {saturatedEverywhere
+            ? " This target saturates SPHEREx here. No flux number; the movie still works."
+            : ` ${withFlux.length} points · one color per visit · hollow = flagged (still good).`}
         </p>
-        {withFlux.length > 0 && (
+        {saturatedEverywhere ? (
+          <p className="chart-saturated">
+            Too bright for a spectrum on these frames. Try Epsilon Indi B for a full infrared
+            spectrum, or detectors 5-6 on Barnard's Star.
+          </p>
+        ) : (
           <FluxSvg
             points={withFlux
               .slice()
-              .sort((a, b) => a.frame.wavelength_um - b.frame.wavelength_um)
-              .map((f) => ({
-                x: f.frame.wavelength_um,
-                y: f.frame.photometry.flux_mjy as number,
-                active: f === active,
-                flagged: f.frame.photometry.quality === "flagged",
+              .sort((a, b) => a.wavelength_um - b.wavelength_um)
+              .map((p) => ({
+                x: p.wavelength_um,
+                y: p.flux_mjy as number,
+                err: p.error_mjy,
+                pass: p.pass,
+                active: p.id === activeId,
+                flagged: p.quality === "flagged",
+                id: p.id,
               }))}
             xLabel="µm"
             yLabel="mJy"
+            onPick={(id) => {
+              const idx = frames.findIndex((f) => f.frame.id === id);
+              if (idx >= 0) onSelectFrame?.(idx);
+            }}
           />
         )}
         <DotStrip
-          frames={spectrumPoints}
-          activeId={active?.frame.id}
+          frames={waveStrip}
+          activeId={activeId}
           mode="wave"
           onPick={(id) => {
             const idx = frames.findIndex((f) => f.frame.id === id);
@@ -55,27 +88,36 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
       </section>
 
       <section className="chart-panel">
-        <h3>When SPHEREx looked</h3>
+        <h3>Light curve</h3>
         <p className="chart-empty">
-          Clusters of dots are the three visits months apart. Click to jump to that day.
+          Brightness over time inside one camera
+          {activeDet != null ? ` (detector ${activeDet})` : ""}. Never mixed across detectors.
         </p>
-        {withFlux.length > 0 && (
+        {lightPoints.length > 0 ? (
           <FluxSvg
-            points={withFlux
-              .slice()
-              .sort((a, b) => a.frame.time_mjd - b.frame.time_mjd)
-              .map((f) => ({
-                x: f.frame.time_mjd,
-                y: f.frame.photometry.flux_mjy as number,
-                active: f === active,
-                flagged: f.frame.photometry.quality === "flagged",
-              }))}
+            points={lightPoints.map((p) => ({
+              x: p.time_mjd,
+              y: p.flux_mjy as number,
+              err: p.error_mjy,
+              pass: p.pass,
+              active: p.id === activeId,
+              flagged: p.quality === "flagged",
+              id: p.id,
+            }))}
             xLabel="MJD"
             yLabel="mJy"
+            onPick={(id) => {
+              const idx = frames.findIndex((f) => f.frame.id === id);
+              if (idx >= 0) onSelectFrame?.(idx);
+            }}
           />
+        ) : (
+          <p className="chart-empty">No flux points in this camera yet.</p>
         )}
         <DotStrip
-          frames={lightPoints}
+          frames={[...frames]
+            .filter((f) => (activeDet == null ? true : f.exposure.detector === activeDet))
+            .sort((a, b) => a.frame.time_mjd - b.frame.time_mjd)}
           activeId={active?.frame.id}
           mode="time"
           onPick={(id) => {
@@ -121,8 +163,7 @@ function DotStrip({
         const x = 8 + ((value - min) / span) * 284;
         const active = f.frame.id === activeId;
         return (
-          // SVG hit target: <button> cannot wrap geometry; keyboard via tabIndex + Enter/Space.
-          // biome-ignore lint/a11y/useSemanticElements: SVG timeline dots need a <g> hit target, not HTML button
+          // biome-ignore lint/a11y/useSemanticElements: SVG timeline dots need a <g> hit target
           <g
             key={f.frame.id}
             role="button"
@@ -139,14 +180,14 @@ function DotStrip({
           >
             <title>
               {mode === "wave"
-                ? `${f.frame.wavelength_um.toFixed(3)} µm`
+                ? `${f.frame.wavelength_um.toFixed(3)} µm · Visit ${f.exposure.pass}`
                 : `Visit ${f.exposure.pass} · ${f.frame.time_iso}`}
             </title>
             <circle
               cx={x}
               cy={14}
               r={active ? 4.5 : 2.5}
-              fill={active ? "var(--accent)" : "var(--muted)"}
+              fill={active ? passColor(f.exposure.pass) : "var(--muted)"}
             />
           </g>
         );
@@ -161,44 +202,124 @@ function DotStrip({
   );
 }
 
+interface FluxPoint {
+  x: number;
+  y: number;
+  err: number | null;
+  pass: number;
+  active: boolean;
+  flagged: boolean;
+  id: string;
+}
+
 function FluxSvg({
   points,
   xLabel,
   yLabel,
+  onPick,
 }: {
-  points: { x: number; y: number; active: boolean; flagged: boolean }[];
+  points: FluxPoint[];
   xLabel: string;
   yLabel: string;
+  onPick?: (id: string) => void;
 }) {
-  const w = 300;
-  const h = 120;
-  const pad = 28;
+  const w = 320;
+  const h = 140;
+  const padL = 36;
+  const padR = 16;
+  const padT = 14;
+  const padB = 22;
   const xs = points.map((p) => p.x);
   const ys = points.map((p) => p.y);
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
-  const sx = (x: number) => pad + ((x - minX) / (maxX - minX || 1)) * (w - 2 * pad);
-  const sy = (y: number) => h - pad - ((y - minY) / (maxY - minY || 1)) * (h - 2 * pad);
-  const d = points.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.x)},${sy(p.y)}`).join(" ");
+  const ratio = maxY / Math.max(minY, 1e-9);
+  const useLog = ratio > 20 && minY > 0;
+
+  const yMin = useLog ? Math.log10(minY) : minY;
+  const yMax = useLog ? Math.log10(maxY) : maxY;
+  const sx = (x: number) => padL + ((x - minX) / (maxX - minX || 1)) * (w - padL - padR);
+  const sy = (y: number) => {
+    const v = useLog ? Math.log10(Math.max(y, 1e-12)) : y;
+    return h - padB - ((v - yMin) / (yMax - yMin || 1)) * (h - padT - padB);
+  };
+
+  const byPass = new Map<number, FluxPoint[]>();
+  for (const p of points) {
+    const list = byPass.get(p.pass) ?? [];
+    list.push(p);
+    byPass.set(p.pass, list);
+  }
 
   return (
     <svg className="flux-svg" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Flux chart">
-      <path d={d} fill="none" stroke="var(--accent)" strokeWidth="1.5" />
-      {points.map((p) => (
-        <circle
-          key={`${p.x}-${p.y}`}
-          cx={sx(p.x)}
-          cy={sy(p.y)}
-          r={p.active ? 4 : 2.5}
-          fill={p.flagged ? "var(--warn)" : "var(--accent)"}
-        />
-      ))}
-      <text x={pad} y={12} className="strip-label">
+      {[...byPass.entries()].map(([pass, pts]) => {
+        const sorted = [...pts].sort((a, b) => a.x - b.x);
+        const d = sorted.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.x)},${sy(p.y)}`).join(" ");
+        return (
+          <path
+            key={`line-${pass}`}
+            d={d}
+            fill="none"
+            stroke={passColor(pass)}
+            strokeWidth="1.4"
+            strokeOpacity="0.55"
+          />
+        );
+      })}
+      {points.map((p) => {
+        const color = passColor(p.pass);
+        const cx = sx(p.x);
+        const cy = sy(p.y);
+        const err = p.err != null && p.err > 0 ? p.err : null;
+        const yLo = err != null ? sy(Math.max(p.y - err, useLog ? p.y * 0.01 : p.y - err)) : cy;
+        const yHi = err != null ? sy(p.y + err) : cy;
+        return (
+          // biome-ignore lint/a11y/useSemanticElements: SVG point hit target
+          <g
+            key={p.id}
+            role="button"
+            tabIndex={0}
+            style={{ cursor: onPick ? "pointer" : undefined }}
+            onClick={() => onPick?.(p.id)}
+            onKeyDown={(e) => {
+              if (!onPick) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onPick(p.id);
+              }
+            }}
+          >
+            <title>{`Visit ${p.pass} · ${p.y.toFixed(3)} mJy${p.flagged ? " (flagged)" : ""}`}</title>
+            {err != null && (
+              <line
+                x1={cx}
+                x2={cx}
+                y1={yLo}
+                y2={yHi}
+                stroke={color}
+                strokeWidth="1"
+                strokeOpacity="0.7"
+              />
+            )}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={p.active ? 4.5 : 2.8}
+              fill={p.flagged ? "var(--panel)" : color}
+              stroke={color}
+              strokeWidth={p.flagged || p.active ? 1.6 : 0}
+            />
+          </g>
+        );
+      })}
+      <text x={padL} y={11} className="strip-label">
         {yLabel}
+        {useLog ? " (log)" : ""}
       </text>
-      <text x={w - pad} y={h - 6} textAnchor="end" className="strip-label">
+      <text x={w - padR} y={h - 6} textAnchor="end" className="strip-label">
         {xLabel}
       </text>
     </svg>

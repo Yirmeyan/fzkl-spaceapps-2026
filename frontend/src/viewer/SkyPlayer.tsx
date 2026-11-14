@@ -21,7 +21,7 @@ export interface SkyPlayerProps {
 
 /**
  * Static when paused: one blit, then the canvas is left alone (no rAF).
- * Playback uses setInterval only — never requestAnimationFrame at display Hz.
+ * Playback uses setInterval only. never requestAnimationFrame at display Hz.
  */
 export function SkyPlayer({
   frames,

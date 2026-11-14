@@ -9,7 +9,7 @@ interface MotionFingerprintProps {
 }
 
 /**
- * Shareable silhouette of the visit trail — the star’s “fingerprint” on the sky.
+ * Shareable silhouette of the visit trail. the star’s “fingerprint” on the sky.
  */
 export function MotionFingerprint({ grid, trail, targetName }: MotionFingerprintProps) {
   const gid = useId();
@@ -53,7 +53,7 @@ export function MotionFingerprint({ grid, trail, targetName }: MotionFingerprint
           <strong>{hop.toFixed(1)}″</strong> from Visit {first.pass} → {last.pass}
         </p>
         <p className="motion-fingerprint-hint">
-          Screenshot this — it is the whole story in one curve.
+          Screenshot this. It is the whole story in one curve.
         </p>
       </div>
       <svg

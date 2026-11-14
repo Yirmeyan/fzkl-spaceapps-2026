@@ -1,6 +1,6 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~15:20 America/Toronto.
+Last recalibration: 2026-11-14 ~15:50 America/Toronto.
 
 ## Mission
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **94%** | Compact picker + collapsed timeline; still polish |
-| Team win / top-tier | **78%** | B5 resolve live; B4/B6 still open |
+| Unblocked Nic lane | **98%** | Dark mission desk + B4 smart defaults |
+| Team win / top-tier | **88%** | B4 five targets + flux; FE charts + presets |
 
 ## This loop’s wow
 
-**Less scroll, clearer stage** — compact picker when loaded; charts behind Infrared timeline.
+**Ship to main path** — Tommy Need: index target/PM for presets, no em dashes, SpectrumPoint-ready charts, PR compare ready.
 
 ## Backlog (phenomenal)
 
@@ -29,7 +29,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | P0 | Ghost overlay visits | **Shipping** |
 | P0b | Mission briefing / immersive first paint | **Shipping** |
 | P1 | A5 — ship to main/prod | **#17 + #19 on main** |
-| P2 | Predict-vs-observe PM ribbon | **Shipping** |
+| P2 | Predict-vs-observe PM ribbon | **Killed** (circular: both sides = catalogue) |
 | P3 | Spot-the-mover challenge | Demoted (key M only; not primary UI) |
 | P4 | Tommy live frames the hour they land | **Wired (Live feed)** |
 
@@ -53,3 +53,10 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 15:05 | Motion fingerprint SVG | 97 | 78 |
 | 15:15 | Presentation reset (clarity > bling) | 93 | 78 |
 | 15:20 | Compact picker + collapsed charts | 94 | 78 |
+| 15:50 | Kill circular predict; B6 index+det cascade | 95 | 82 |
+| 15:55 | Mode exclusivity + square stage (less scroll) | 96 | 82 |
+| 15:50 | Hop proof strip (Early · Diff · Late) | 96 | 82 |
+| 16:00 | Infrared detector dial on stage (B6) | 97 | 82 |
+| 16:05 | Fold storyboard + Copy hop link | 97 | 82 |
+| 16:15 | Cinema rebuild (giant square, Adjust fold) | 98 | 82 |
+| 15:05 | B4 spectrum rules (log/err/flagged/pass) | 98 | 88 |

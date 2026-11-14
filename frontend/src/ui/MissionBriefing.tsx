@@ -4,7 +4,7 @@ interface MissionBriefingProps {
   onSkip: () => void;
 }
 
-/** First-run cinematic gate — feels like a mission, not a web form. */
+/** First-run cinematic gate. feels like a mission, not a web form. */
 export function MissionBriefing({ targetName, onEnter, onSkip }: MissionBriefingProps) {
   return (
     <div className="mission-briefing" role="dialog" aria-modal="true" aria-label="Mission briefing">

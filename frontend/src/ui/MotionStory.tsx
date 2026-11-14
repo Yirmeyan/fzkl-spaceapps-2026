@@ -39,7 +39,7 @@ export function MotionStory({ target, grid, trail }: MotionStoryProps) {
     <aside className="motion-story" aria-live="polite">
       <p className="motion-story-kicker">What changed between visits</p>
       <p className="motion-story-headline">
-        About <strong>{total.toFixed(1)}″</strong> across the sky — mostly{" "}
+        About <strong>{total.toFixed(1)}″</strong> across the sky. mostly{" "}
         <strong>{direction}</strong>
       </p>
       <p className="motion-story-body">

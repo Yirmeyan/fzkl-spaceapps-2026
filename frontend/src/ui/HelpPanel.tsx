@@ -15,7 +15,7 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
       </header>
       <ol>
         <li>
-          Open <strong>Barnard's Star</strong> — the fastest-moving nearby star.
+          Open <strong>Barnard's Star</strong>, the fastest-moving nearby star.
         </li>
         <li>
           Press <strong>Play movie</strong>. You walk through infrared “colors” the eye cannot see.
@@ -25,12 +25,12 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
           background stars stay put.
         </li>
         <li>
-          Try <strong>Blend visits</strong> — early and late images together so the hop is obvious —
-          or <strong>Show the move</strong> for a bright/dark difference pair.
+          Try <strong>Blend visits</strong>: early and late images together so the hop is obvious.
+          Or use <strong>Show the move</strong> for a bright/dark difference pair.
         </li>
         <li>
-          The right panel summarizes how far it moved and whether the catalogue agrees. Hover any
-          button for a short tip.
+          The right panel summarizes the hop. Trust the bright core in the image; the orange path is
+          a catalogue guide. Hover any button for a short tip.
         </li>
       </ol>
       <p className="help-foot">

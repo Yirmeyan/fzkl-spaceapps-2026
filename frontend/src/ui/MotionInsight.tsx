@@ -29,7 +29,7 @@ export function MotionInsight({ grid, trail, targetName }: MotionInsightProps) {
         </h3>
         <p className="motion-insight-body">
           The bright core in the image is the real SPHEREx data. The orange cross and numbered path
-          are the catalogue proper-motion track drawn on top — a guide, not a second independent
+          are the catalogue proper-motion track drawn on top: a guide, not a second independent
           measurement. Watch {targetName} hop; background stars stay put.
         </p>
       </header>

@@ -22,7 +22,7 @@ interface VisitStoryboardProps {
 }
 
 /**
- * Filmstrip of visit stacks — one glance across months of SPHEREx revisits.
+ * Filmstrip of visit stacks. one glance across months of SPHEREx revisits.
  */
 export function VisitStoryboard({
   size,
@@ -75,7 +75,7 @@ export function VisitStoryboard({
         })}
       </div>
       <p className="visit-storyboard-hint">
-        Tap a visit to jump there — watch the orange cross walk.
+        Tap a visit to jump there. Watch the orange cross walk.
       </p>
     </section>
   );
