@@ -22,8 +22,8 @@ If team win is still &lt; 90% because Tommy is blocked: **keep looping** on Nic 
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **68%** | +keys, mobile, demo script, de-school copy; A5 (latest UI on main) still open |
-| Team win / top-tier | **40%** | Still need live frames, 4 targets, P1; do not inflate |
+| Unblocked Nic lane | **74%** | +Auto demo, side-by-side visits, motion story arcsec readout; A5 still open |
+| Team win / top-tier | **42%** | Differentiator UX helps judges; data path still Tommy-gated |
 
 ## Checklist
 
@@ -31,7 +31,7 @@ If team win is still &lt; 90% because Tommy is blocked: **keep looping** on Nic 
 
 | ID | Item | Status |
 | --- | --- | --- |
-| A1 | 30s path: Barnard → Blink → Difference → Fullscreen | Better (script + keys) |
+| A1 | 30s path: Barnard → Blink → Difference → Fullscreen | **Auto demo button (J)** |
 | A2 | English, non-technical copy (not school-only) | Done this loop |
 | A3 | Mode tabs hide irrelevant controls | Done |
 | A4 | Tech metadata behind disclosure | Done (“Technical details”) |
@@ -73,6 +73,7 @@ If team win is still &lt; 90% because Tommy is blocked: **keep looping** on Nic 
 | --- | ---: | --- | ---: | ---: | --- |
 | 13:15 | 0 | Tracker created | 62 | 38 | Cut fake “90% F checklist” |
 | 13:30 | 1 | Keys, mobile, demo script, non-school copy; re-armed stop@90 both lanes | 68 | 40 | Team still honestly low |
+| 13:35 | 1b | Auto demo + side-by-side + motion arcsec story (judge differentiator) | 74 | 42 | Still not “pretty gradient”; A5/PR + Tommy remain |
 
 ## Loop instructions (for ticks)
 

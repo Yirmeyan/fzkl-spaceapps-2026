@@ -33,9 +33,11 @@ import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/deco
 import { KNOWN_TARGETS, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
 import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
+import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
 import { FrameCaption } from "./ui/FrameCaption";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
+import { MotionStory } from "./ui/MotionStory";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { FrameCanvas } from "./viewer/FrameCanvas";
 import type { TrailPoint } from "./viewer/overlays";
@@ -93,8 +95,12 @@ export default function App() {
   const [blinkPasses, setBlinkPasses] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [displayPx, setDisplayPx] = useState(560);
+  const [splitVisits, setSplitVisits] = useState(false);
+  const [demoPhase, setDemoPhase] = useState<DemoPhase>("idle");
+  const [demoLine, setDemoLine] = useState("");
   const stageRef = useRef<HTMLElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
+  const demoTimer = useRef<number | null>(null);
 
   const patchView = useCallback((partial: Partial<ViewState>) => {
     setView((prev) => {
@@ -443,6 +449,10 @@ export default function App() {
         return;
       }
       if (e.key === "Escape") {
+        if (demoPhase !== "idle") {
+          stopAutoDemo();
+          return;
+        }
         if (document.fullscreenElement) {
           void document.exitFullscreen();
           return;
@@ -455,6 +465,7 @@ export default function App() {
           setBlinkPasses(false);
           patchView({ pass: null });
         }
+        if (splitVisits) setSplitVisits(false);
         return;
       }
       if (e.key === " " || e.key === "k" || e.key === "K") {
@@ -485,11 +496,22 @@ export default function App() {
         e.preventDefault();
         void toggleFullscreen();
       }
+      if (e.key === "j" || e.key === "J") {
+        e.preventDefault();
+        if (demoPhase === "idle") runAutoDemo();
+        else stopAutoDemo();
+      }
+      if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        setBlinkPasses(false);
+        setSplitVisits((v) => !v);
+        patchView({ playing: false, mode: "single" });
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.playing, view.mode, view.showHelp, blinkPasses, passes, patchView]);
+  }, [view.playing, view.mode, view.showHelp, blinkPasses, passes, patchView, demoPhase, splitVisits]);
 
   async function toggleFullscreen() {
     const el = stageRef.current;
@@ -504,6 +526,93 @@ export default function App() {
       // Browsers may deny without a gesture; ignore.
     }
   }
+
+  function stopAutoDemo() {
+    if (demoTimer.current != null) {
+      window.clearTimeout(demoTimer.current);
+      demoTimer.current = null;
+    }
+    setDemoPhase("idle");
+    setDemoLine("");
+    setBlinkPasses(false);
+    patchView({ playing: false, pass: null, mode: "single" });
+  }
+
+  function runAutoDemo() {
+    if (load.status !== "ready") return;
+    if (demoTimer.current != null) window.clearTimeout(demoTimer.current);
+    setSplitVisits(false);
+    setShowAdvanced(false);
+    void toggleFullscreen();
+
+    let i = 0;
+    const step = () => {
+      const beat = DEMO_BEATS[i];
+      if (!beat) {
+        stopAutoDemo();
+        return;
+      }
+      setDemoPhase(beat.phase);
+      setDemoLine(beat.line);
+      if (beat.phase === "intro" || beat.phase === "play") {
+        setBlinkPasses(false);
+        setSplitVisits(false);
+        patchView({
+          mode: "single",
+          pass: null,
+          frameIndex: 0,
+          playing: beat.phase === "play",
+        });
+      } else if (beat.phase === "blink") {
+        setSplitVisits(false);
+        patchView({ mode: "single", playing: false, frameIndex: 0 });
+        setBlinkPasses(true);
+      } else if (beat.phase === "difference") {
+        setBlinkPasses(false);
+        setSplitVisits(false);
+        patchView({
+          mode: "difference",
+          playing: false,
+          pass: null,
+          diffPassA: passes[0] ?? 1,
+          diffPassB: passes[passes.length - 1] ?? 3,
+        });
+      } else if (beat.phase === "done") {
+        setBlinkPasses(false);
+        patchView({ playing: false });
+      }
+      i += 1;
+      demoTimer.current = window.setTimeout(step, beat.ms);
+    };
+    step();
+  }
+
+  const splitStacks = useMemo(() => {
+    if (load.status !== "ready" || !splitVisits || passes.length < 2) return null;
+    const a = passes[0]!;
+    const b = passes[passes.length - 1]!;
+    const pool = forDifference;
+    const stackA = stackFrames(pool.filter((f) => f.exposure.pass === a));
+    const stackB = stackFrames(pool.filter((f) => f.exposure.pass === b));
+    const limits = applyContrast(
+      computeDisplayLimits([
+        {
+          pixels: stackA.pixels,
+          mask: stackA.mask,
+          background: 0,
+          noise: stackA.noise,
+        },
+        {
+          pixels: stackB.pixels,
+          mask: stackB.mask,
+          background: 0,
+          noise: stackB.noise,
+        },
+      ]),
+      view.contrast,
+    );
+    return { a, b, stackA, stackB, limits, size: load.data.grid.size };
+  }, [load, splitVisits, passes, forDifference, view.contrast]);
 
   async function onSearch(e: FormEvent) {
     e.preventDefault();
@@ -573,11 +682,22 @@ export default function App() {
         </div>
         <div className="top-actions">
           <HealthBadge />
+          <button
+            type="button"
+            className="primary impress-btn"
+            disabled={load.status !== "ready" || demoPhase !== "idle"}
+            onClick={() => runAutoDemo()}
+            title="Timed walkthrough for judges (J)"
+          >
+            Auto demo (30s)
+          </button>
           <button type="button" className="ghost" onClick={() => patchView({ showHelp: !view.showHelp })}>
             Quick guide
           </button>
         </div>
       </header>
+
+      {demoPhase !== "idle" && <AutoDemoBanner line={demoLine} onSkip={stopAutoDemo} />}
 
       <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
 
@@ -668,7 +788,40 @@ export default function App() {
             )}
             {load.status === "error" && <div className="status-banner error">{load.message}</div>}
 
-            {display && view.mode === "single" && display.kind === "single" && (
+            {splitStacks && (
+              <div className="split-visits">
+                <figure>
+                  <FrameCanvas
+                    pixels={splitStacks.stackA.pixels}
+                    mask={splitStacks.stackA.mask}
+                    size={splitStacks.size}
+                    lo={splitStacks.limits.lo}
+                    hi={splitStacks.limits.hi}
+                    background={0}
+                    colorMap={view.colorMap}
+                    trail={trail}
+                    displayPx={Math.floor(displayPx * 0.48)}
+                  />
+                  <figcaption>Visit {splitStacks.a} (earlier)</figcaption>
+                </figure>
+                <figure>
+                  <FrameCanvas
+                    pixels={splitStacks.stackB.pixels}
+                    mask={splitStacks.stackB.mask}
+                    size={splitStacks.size}
+                    lo={splitStacks.limits.lo}
+                    hi={splitStacks.limits.hi}
+                    background={0}
+                    colorMap={view.colorMap}
+                    trail={trail}
+                    displayPx={Math.floor(displayPx * 0.48)}
+                  />
+                  <figcaption>Visit {splitStacks.b} (later)</figcaption>
+                </figure>
+              </div>
+            )}
+
+            {!splitStacks && display && view.mode === "single" && display.kind === "single" && (
               <SkyPlayer
                 frames={filtered}
                 frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
@@ -684,7 +837,7 @@ export default function App() {
               />
             )}
 
-            {display && view.mode === "difference" && display.kind === "difference" && (
+            {!splitStacks && display && view.mode === "difference" && display.kind === "difference" && (
               <>
                 {"error" in display && display.error ? (
                   <div className="status-banner error">{display.error}</div>
@@ -705,7 +858,8 @@ export default function App() {
               </>
             )}
 
-            {display &&
+            {!splitStacks &&
+              display &&
               (view.mode === "stack" || view.mode === "track") &&
               display.kind === "compose" && (
                 <FrameCanvas
@@ -723,6 +877,10 @@ export default function App() {
               )}
           </div>
 
+          {load.status === "ready" && (
+            <MotionStory target={load.data.target} grid={load.data.grid} trail={trail} />
+          )}
+
           {display && view.mode === "single" && display.kind === "single" && (
             <>
               <FrameCaption
@@ -736,10 +894,23 @@ export default function App() {
                   className="primary play-btn"
                   onClick={() => {
                     setBlinkPasses(false);
+                    setSplitVisits(false);
                     patchView({ playing: !view.playing, mode: "single" });
                   }}
                 >
                   {view.playing ? "Pause" : "Play movie"}
+                </button>
+                <button
+                  type="button"
+                  className={splitVisits ? "active" : ""}
+                  disabled={passes.length < 2}
+                  onClick={() => {
+                    setBlinkPasses(false);
+                    setSplitVisits((v) => !v);
+                    patchView({ playing: false, mode: "single" });
+                  }}
+                >
+                  Side-by-side visits
                 </button>
                 <input
                   type="range"

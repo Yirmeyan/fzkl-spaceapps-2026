@@ -398,6 +398,94 @@ select {
   white-space: nowrap;
 }
 
+.impress-btn {
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.28);
+}
+
+.auto-demo-banner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 16px;
+  background: var(--ink);
+  color: #fff;
+  box-shadow: var(--shadow);
+  animation: rise 320ms ease both;
+}
+
+.auto-demo-banner p {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1.1rem;
+  line-height: 1.35;
+}
+
+.auto-demo-banner .ghost {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.motion-story {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.2), rgba(217, 119, 6, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.motion-story-kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #93a4b8;
+}
+
+.motion-story-headline {
+  margin: 0 0 0.35rem;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.motion-story-body,
+.motion-story-punch {
+  margin: 0;
+  color: #c5d0de;
+  font-size: 0.88rem;
+}
+
+.motion-story-punch {
+  margin-top: 0.45rem;
+  color: #fdba74;
+}
+
+.split-visits {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem;
+}
+
+.split-visits figure {
+  margin: 0;
+  text-align: center;
+}
+
+.split-visits figcaption {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: #93a4b8;
+}
+
 .stage-kicker {
   margin: 0;
   font-size: 0.72rem;
