@@ -106,14 +106,21 @@ export default function App() {
   const [demoLine, setDemoLine] = useState("");
   const [showBriefing, setShowBriefing] = useState(() => {
     try {
+      if (new URLSearchParams(window.location.search).get("demo") === "1") return false;
       return sessionStorage.getItem("spx-briefing-done") !== "1";
     } catch {
       return true;
     }
   });
+  const [linkCopied, setLinkCopied] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const demoTimer = useRef<number | null>(null);
+  const demoFromUrl = useRef(
+    typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("demo") === "1",
+  );
+  const demoAutoStarted = useRef(false);
 
   function dismissBriefing(startDemo: boolean) {
     try {
@@ -125,6 +132,18 @@ export default function App() {
     if (startDemo) {
       window.setTimeout(() => runAutoDemo(), 200);
     }
+  }
+
+  function copyJudgeLink() {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("demo", "1");
+    url.searchParams.set("target", view.targetKey || "barnard");
+    const href = url.toString();
+    void navigator.clipboard.writeText(href).then(() => {
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    });
   }
 
   const patchView = useCallback((partial: Partial<ViewState>) => {
@@ -675,6 +694,23 @@ export default function App() {
     patchView({ playing: false, pass: null, mode: "single" });
   }
 
+  // Judge deep-link: ?demo=1 skips briefing and launches the walkthrough once data is ready.
+  useEffect(() => {
+    if (!demoFromUrl.current || demoAutoStarted.current) return;
+    if (load.status !== "ready") return;
+    demoAutoStarted.current = true;
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("demo");
+      window.history.replaceState(null, "", `${u.pathname}${u.search}${u.hash}`);
+      sessionStorage.setItem("spx-briefing-done", "1");
+    } catch {
+      /* ignore */
+    }
+    window.setTimeout(() => runAutoDemo(), 400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load.status]);
+
   function runAutoDemo() {
     if (load.status !== "ready") return;
     if (demoTimer.current != null) window.clearTimeout(demoTimer.current);
@@ -868,6 +904,14 @@ export default function App() {
             title="Timed walkthrough for judges (J)"
           >
             Auto demo (30s)
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => copyJudgeLink()}
+            title="Copy a link that auto-starts the jury demo"
+          >
+            {linkCopied ? "Link copied" : "Judge link"}
           </button>
           <button
             type="button"

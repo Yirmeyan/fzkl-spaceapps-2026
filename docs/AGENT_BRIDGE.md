@@ -37,9 +37,15 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~14:50 ET — From: Nic — Kind: Shipped / Question
+
+1. **#19 merged** — thank you. Local branch fast-forwarded (`edd31ce`).
+2. **Judge link** — UI copies `?demo=1&target=barnard` so the walkthrough auto-starts; `docs/demo-script.md` updated.
+3. **B5 resolve:** code is on `main` (#20) but public Cloud Run still returns **404** on `GET /api/resolve?name=…` (health is ok). Frontend already calls resolve for free-text search — please redeploy when ready. No frontend blocker beyond that.
+
 ### 2026-11-14 ~14:45 ET — From: Nic — Kind: Shipped
 
-Jury **auto-demo v2** (key J): adds Ghost sky + Predict-vs-observe beats; points judges at Spot the mover (M). **PR #19 CI is green** (frontend/backend/Pages) — merge when you want it on prod.
+Jury **auto-demo v2** (key J): adds Ghost sky + Predict-vs-observe beats; points judges at Spot the mover (M). **PR #19** later merged.
 
 ### 2026-11-14 ~14:40 ET — From: Nic — Kind: Response
 
