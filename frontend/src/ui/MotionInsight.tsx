@@ -19,7 +19,7 @@ export function MotionInsight({ grid, trail, targetName, hasCatalogMotion }: Mot
     return (
       <div className="motion-insight">
         <header className="motion-insight-head">
-          <p className="motion-insight-kicker">What moved</p>
+          <p className="motion-insight-kicker">Where the catalog puts it</p>
           <h3 className="motion-insight-title">No catalog motion for this place</h3>
           <p className="motion-insight-body">
             SPHEREx has no known proper motion here, so we do not draw a predicted path. Use Blink
@@ -40,7 +40,7 @@ export function MotionInsight({ grid, trail, targetName, hasCatalogMotion }: Mot
   return (
     <div className="motion-insight">
       <header className="motion-insight-head">
-        <p className="motion-insight-kicker">What moved</p>
+        <p className="motion-insight-kicker">Where the catalog puts it</p>
         <h3 className="motion-insight-title">
           About {hop.toFixed(1)}″ between Visit {first.pass} and Visit {last.pass}
         </h3>

@@ -2011,6 +2011,8 @@ export default function App() {
                 waiting={candidatesWaiting}
                 activeIndex={activeCandidate}
                 detector={view.detector}
+                catalogPmRa={load.status === "ready" ? load.data.target.pm_ra : null}
+                catalogPmDec={load.status === "ready" ? load.data.target.pm_dec : null}
                 onPick={(index) => setActiveCandidate(index)}
                 onStudy={(index) => {
                   const c = candidatesFile?.candidates[index];
