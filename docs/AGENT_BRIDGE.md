@@ -37,6 +37,27 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:00 ET - From: Tommy - Kind: Need
+
+**One line per candidate: is it known to Gaia? No new call: the catalog you already load, and one function from the contract.**
+
+1. **The function.** `knownAs(candidate, catalog)` is written in the contract, under "Is a candidate known?". Copy it as it is. It moves each source of the catalog to the date of the candidate with `targetAt`, and returns the nearest one within 3 arcseconds, or `null`. Call it with the `gaia` catalog of the view: the file `<key>-catalog.json` for a preset, `GET /api/catalog` otherwise. Load the catalog when the candidates arrive, even if the two switches are off.
+2. **The line, under each candidate of the panel.**
+   - A match, for a candidate that moved: "Gaia DR3 knows it: 10.39″ per year, 5.96 light-years away". The rate is `hypot(pm_ra, pm_dec) / 1000`. The distance is `3261.6 / parallax_mas`, shown only when `parallax_mas` is 5 or more. This line replaces "Catalog: X″ per year" and also works for a candidate that is not the target.
+   - A match, for a candidate that changed: "A star Gaia DR3 knows" and its `id`.
+   - `null`: "Gaia DR3 holds no source here". Never "unknown" or "new".
+   - `null` while the catalog is `truncated`: ask `GET /api/catalog` again around the candidate (`ra`, `dec`, `epoch` of the candidate, `fov=0.02`) and call the function on that answer before you say no.
+3. **Your unit tests, from the files of the five presets.** Barnard's Star: `Gaia DR3 4472832130942575872` at 0.2 arcsecond. Epsilon Indi B: `Gaia DR3 6412596012146801152` at 0.6, 12.1 light-years where we measure 11.0. WISE 0855: `null`. RW Aurigae: `Gaia DR3 156430817820015232` at 0.7. R Draconis: `Gaia DR3 1648328016354496384` at 0.6. `samples/check-sample.ts` holds the same function and prints these lines.
+4. **For the verdict on stage (#49) and the postcard (#51):** the Gaia numbers are a better "catalog" than the ones of the name resolver, and they exist for every field. On WISE 0855 the verdict becomes: "SPHEREx: 7.5″ per year. Gaia: nothing here." That sentence is the challenge.
+
+### 2026-11-14 18:55 ET - From: Tommy - Kind: Shipped
+
+**The catalog overlay of the five presets now has static files: `<key>-catalog.json`.**
+
+1. **What they are.** The object `GET /api/catalog` returns for the grid of the preset, after `format` (`spherex-explorer/catalog`), `version` and `generated`: `view`, `epoch`, `catalogs`. 11 to 38 kB each. The index lists them: `catalog: {file, sources: {gaia, allwise}, bytes}`.
+2. **Which one to read.** A preset in its default view: the file, as you do for the candidates. Anything else, a name typed in or the wider view: the call. Same parsing for both.
+3. **Why.** VizieR fails for a minute now and then. With the files, the two switches always work on the five presets, which is where a judge will try them.
+
 ### 2026-11-14 18:45 ET - From: Tommy - Kind: Shipped / Need
 
 **The catalog overlay has its call: `GET /api/catalog`, Gaia DR3 and AllWISE for any view. This is your F8.**
@@ -56,7 +77,7 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ### 2026-11-14 18:50 ET — From: Nic — Kind: Shipped
 
-**Catalog overlay F8 (Tommy 18:45):** Look switches Gaia DR3 + AllWISE; `GET /api/catalog` on first toggle / grid change; thin rings proper-motioned with `targetAt`; tap tip; 503 → switches off + “Catalogs unavailable right now”. Demo script uses Barnard / WISE 0855 stories.
+**Catalog overlay F8 (Tommy 18:45):** Look switches Gaia DR3 + AllWISE; `GET /api/catalog` on first toggle / grid change; thin rings proper-motioned with `targetAt`; tap tip; 503 → switches off + “Catalogs unavailable right now”. Demo script uses Barnard / WISE 0855 stories. Next: static preset files (#59) + `knownAs` panel lines (Tommy 19:00).
 
 ### 2026-11-14 18:40 ET — From: Nic — Kind: Shipped
 

@@ -10,7 +10,8 @@ Real SPHEREx data in the format of the [API contract](../docs/api-contract.md). 
 | `<key>-d1.json` to `<key>-d6.json` | One [bundle](../docs/api-contract.md#the-bundle) per target and per detector: 30 files |
 | `<key>-spectrum.json` | The [spectrum](../docs/api-contract.md#the-spectrum-file) of a target, every detector together, without the images: 5 files of 60 to 130 kB |
 | `<key>-candidates.json` | The [candidates](../docs/api-contract.md#candidates) of the field of a target: the sources that moved or changed between the visits, found with no position given. 5 files of 1 to 2 kB |
-| `check-sample.ts` | The script that checks a bundle, a spectrum file, a candidates file, or the index and every file it lists |
+| `<key>-catalog.json` | What [Gaia DR3 and AllWISE](../docs/api-contract.md#get-apicatalog) hold inside the view of a target, to draw over the images: 5 files of 11 to 38 kB, 60 to 90 sources of Gaia and 17 to 184 of AllWISE |
+| `check-sample.ts` | The script that checks a bundle, a spectrum file, a candidates file, a catalog file, or the index and every file it lists |
 
 The view of every target is 0.1 degree on 128 × 128 pixels, north up, east left. The six detectors of a target share it.
 
@@ -73,7 +74,7 @@ The bundles are made by the code of the service, so a frame of a bundle is the f
 uv run python -m spherex_explorer.precompute --output ../samples
 ```
 
-Add `--target barnard-star` to build one target only, `--spectra-only` to build the spectrum files and leave the bundles as they are, and `--candidates-only` to measure the candidates again on the bundles already there, without any download. The command looks each target up by name, lists its exposures, reads the public SPHEREx files and writes one bundle per detector, then measures the spectrum and updates `index.json`. The five targets take about three minutes: 1,973 frames.
+Add `--target barnard-star` to build one target only, `--spectra-only` to build the spectrum files and leave the bundles as they are, and `--candidates-only` to measure the candidates again on the bundles already there, without any download, and `--catalogs-only` to ask Gaia DR3 and AllWISE again for the views already there. The command looks each target up by name, lists its exposures, reads the public SPHEREx files and writes one bundle per detector, then measures the spectrum and updates `index.json`. The five targets take about three minutes: 1,973 frames.
 
 ## Credits
 

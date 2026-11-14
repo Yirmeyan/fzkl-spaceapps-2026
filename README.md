@@ -36,7 +36,7 @@ These are the five test targets of the challenge. Any other place works the same
 | Coordinates in the URL, to embed the tool elsewhere | Done. The address of the page holds the target, a preset, a name or coordinates, and the view: detector, visit, mode |
 | Adjustable field of view | The service accepts any width from 0.02 to 0.5 degree. The interface shows 0.1 degree |
 | Metadata such as the contamination flags | Done. Each image shows its date, its wavelength, its detector, its visit and the quality of its measurement, and a switch tints the flagged pixels. See [the frame](docs/api-contract.md#the-frame) |
-| Overlay catalogs of other telescopes | Done in the service: [`GET /api/catalog`](docs/api-contract.md#get-apicatalog) lists the sources of Gaia DR3 and of AllWISE inside a view, with their motion, so that a marker follows a fast star from frame to frame. The switch that draws them over the image is being added to the interface |
+| Overlay catalogs of other telescopes | Done in the service: [`GET /api/catalog`](docs/api-contract.md#get-apicatalog) lists the sources of Gaia DR3 and of AllWISE inside a view, with their motion, so that a marker follows a fast star from frame to frame. The five test targets have that list in a static file. The switch that draws them over the image is being added to the interface |
 
 ## What makes SPHEREx hard, and what we did about it
 
@@ -61,10 +61,11 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Does it find what moves, with no position given? | 16 of the 17 nearby stars tried that move by more than 1 arcsecond, the three test targets among them, each with a speed within two sigma of its catalog. The one missed, Ross 128, is too bright and too slow. 32 quiet fields, 831 sources, give no candidate |
 | Can it tell how far a moving object is? | For seven of them the swing with the seasons is measured, a twelfth to a thirtieth of a SPHEREx pixel, and gives the distance: Luhman 16 at 7.0 light-years for 6.5 in the catalog, Epsilon Indi B at 11.0 for 12.0, van Maanen's Star at 15.2 for 14.1 |
 | Does it find a star that varies, unasked? | RW Aurigae, and more: pointed at a place of the Milky Way taken at random, it flags one star of 35, IRAS 18372-0002, a long-period variable known to SIMBAD, to the AAVSO and to Gaia. Toward the center of the Milky Way it flags three, one of them a variable of Gaia |
+| Do other telescopes agree? | Moved to the date of the SPHEREx frames with its own motion, the source of Gaia DR3 falls 0.2 to 0.7 arcsecond from where we measure Barnard's Star, Epsilon Indi B, RW Aurigae and R Draconis: a tenth of a SPHEREx pixel. Gaia holds nothing at the place of WISE 0855, which is too cold for it. AllWISE saw that object in 2010, 126 arcseconds from where SPHEREx sees it now: 8.2 arcseconds per year, for 8.15 in the catalog |
 | Can it follow a star too bright to be measured? | Through the halo of light around it. R Draconis saturates the six detectors, and its halo says it faded by half between June 2025 and June 2026: a Mira variable going from its maximum to its minimum. Checked blind on 16 saturated stars chosen before the run: five of eight known long-period variables were flagged, each change in the direction the AAVSO index predicts, and none of eight steady giants |
 | How often is it wrong? | The one blind round, 21 fields chosen before the run, gave one false alarm in 16 quiet fields: a source cut by the edge of the view. Such positions are now refused. Every rule, and what it cost to find it, is in [the contract](docs/api-contract.md#how-it-was-checked) |
 
-The service has 510 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
+The service has 514 automated tests. Every pull request runs them, and checks the 45 static files against the contract.
 
 ## How it works
 

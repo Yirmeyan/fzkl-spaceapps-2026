@@ -31,7 +31,7 @@ A sixth one looks elsewhere: **what do other telescopes already know there?** `G
 | `GET /api/frames/{id}?ra=&dec=` | One frame | 0.6 s |
 | `GET /api/spectrum?ra=&dec=` | A target and one flux per exposure | 6 to 11 s for 250 to 550 exposures |
 | `GET /api/candidates?ra=&dec=` | The sources of the view that moved or changed | See [the call](#get-apicandidates): it reads every frame of the view |
-| `GET /api/catalog?ra=&dec=` | The sources of Gaia DR3 and of AllWISE inside a view | 1 to 4 s the first time, immediate for a day after |
+| `GET /api/catalog?ra=&dec=` | The sources of Gaia DR3 and of AllWISE inside a view | 1 to 2 s the first time for the default view, 3 to 5 s for a view of 0.3 degree in the Milky Way. Immediate after that, for a day |
 
 The times of `exposures` and `frames` are measured on the service, the second one from a laptop: 0.6 s for a first frame, 2.4 to 3.9 s for the 62 frames of a detector asked together. The time of `resolve` is that of the underlying request.
 
@@ -347,6 +347,7 @@ Both sources above are Barnard's Star: where Gaia saw it in 2016, and where WISE
 - **AllWISE gives no motion.** Its sources are drawn where they were seen. A fast object is then away from its marker, by 15 years of its motion.
 - **Pass `epoch`.** The middle of the dates of the frames on screen is right. It only decides which fast stars count as inside the view.
 - **The two catalogs are asked together, and the call fails as a whole.** A 503 means that the catalog service did not answer. Nothing else on the page depends on it: leave the overlay off and say so.
+- **The five test targets have the answer in a static file,** `<key>-catalog.json`, listed in the [index](#one-file-per-detector-and-an-index): the same object for the grid of the target, 11 to 38 kB. Read the file for a test target shown in its default view, and ask the call for anything else.
 - The catalogs are read at VizieR, the catalog service of the CDS, through its mirror at Harvard first. A site of VizieR fails for a minute now and then: the service asks each site twice before it answers 503, and remembers an answer for a day.
 
 ## The frame
@@ -543,7 +544,8 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
         { "detector": 1, "file": "barnard-star-d1.json", "frames": 60, "wavelength_um": [0.7413, 1.1074], "bytes": 3962335 }
       ],
       "spectrum": { "file": "barnard-star-spectrum.json", "points": 364, "with_flux": 101, "bytes": 83927 },
-      "candidates": { "file": "barnard-star-candidates.json", "count": 1, "moved": 1, "changed": 0, "bytes": 1627 }
+      "candidates": { "file": "barnard-star-candidates.json", "count": 1, "moved": 1, "changed": 0, "bytes": 1627 },
+      "catalog": { "file": "barnard-star-catalog.json", "sources": { "gaia": 85, "allwise": 184 }, "bytes": 37502 }
     }
   ]
 }
@@ -566,11 +568,15 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
 | `candidates.file` | string | Name of the [candidates file](#candidates), relative to the index |
 | `candidates.count`, `candidates.moved`, `candidates.changed` | integers | Number of candidates, and how many of each kind |
 | `candidates.bytes` | integer | Size of the candidates file |
+| `catalog.file` | string | Name of the catalog file, relative to the index: the answer of [`GET /api/catalog`](#get-apicatalog) for the grid of the target, at the middle of the dates of its frames |
+| `catalog.sources` | object | Number of sources of each catalog in the file, by its `key` |
+| `catalog.bytes` | integer | Size of the catalog file |
 
 - The keys of the five test targets are `barnard-star`, `epsilon-indi-b`, `wise-0855`, `rw-aurigae` and `r-draconis`.
 - An exposure whose file is gone from the archive is left out of both `exposures` and `frames`, so the two lists of a bundle always have the same length.
 - The bundles are built by the code of the service, with `python -m spherex_explorer.precompute`: a frame of a bundle is the frame the service returns for the same target and grid.
 - The candidates of a test target are measured on the frames of its bundles, the very ones the site shows. `python -m spherex_explorer.precompute --output samples --candidates-only` writes them again without any download.
+- The catalog file of a test target, `<key>-catalog.json`, is the object `GET /api/catalog` returns, after three fields that open it: `format`, which is `spherex-explorer/catalog`, `version` and `generated`. The overlay of a test target then works when the catalog service does not answer. `--catalogs-only` writes these files again: it asks the catalog service alone.
 
 ## Candidates
 
@@ -699,6 +705,45 @@ A star that saturates has no value left at its heart, and the spectrum call give
 - **What a halo does by itself.** The halo of a steady star is not perfectly steady. On fifteen saturated stars that are not known to change much, 205 comparisons of two visits, its usual wander is 4 percent in detectors 4 to 6 and 10 percent in detectors 1 to 3. The uncertainty of a change holds 5 and 15 percent for it, the scatter of the frames, and what the two rings disagree by. Now and then one detector alone jumps by much more, up to 50 percent in the giant Psi Ursae Majoris: the rule of the two detectors is there for that.
 - **What is read, and what is not.** The ratio is that of the star between two visits. It is not a flux: `changes` has no unit. A change the second ring cannot confirm is dropped, and so is a star whose rings leave the image by more than a third.
 - **One star, one candidate.** A star that saturates some detectors only is followed as a source in the others. When that already makes it a candidate, its halo is not reported a second time.
+
+### Is a candidate known?
+
+A candidate says that something moved or changed. The catalog of Gaia says whether that something is a star already known, and how it moves. Putting the two side by side is the browser's job, with the [catalog](#get-apicatalog) of the view and this function:
+
+```ts
+/** The source of a catalog that is the candidate, or null. Each source is moved to the
+ *  date of the candidate with its own motion. */
+function knownAs(candidate: Candidate, catalog: Catalog, withinArcsec = 3): { source: CatalogSource; separation: number } | null {
+  const date = 51544.5 + (candidate.epoch - 2000) * 365.25;
+  let best: { source: CatalogSource; separation: number } | null = null;
+  for (const source of catalog.sources) {
+    const [ra, dec] = targetAt({ ra: source.ra, dec: source.dec, epoch: catalog.epoch, pm_ra: source.pm_ra, pm_dec: source.pm_dec }, date);
+    const east = (((ra - candidate.ra + 540) % 360) - 180) * Math.cos(candidate.dec * DEG) * 3600;
+    const north = (dec - candidate.dec) * 3600;
+    const separation = Math.hypot(east, north);
+    if (separation <= withinArcsec && (best === null || separation < best.separation)) best = { source, separation };
+  }
+  return best;
+}
+```
+
+Call it with the `gaia` catalog. Three arcseconds is half a SPHEREx pixel: the candidates of the test targets are 0.2 to 0.7 arcsecond from their source of Gaia, and the nearest star that is not WISE 0855 is 6.3 arcseconds from it.
+
+| Test target | `knownAs(candidate, gaia)` | What Gaia says | What the candidate says |
+| --- | --- | --- | --- |
+| Barnard's Star | `Gaia DR3 4472832130942575872`, 0.2 arcsecond | 10.39 arcseconds per year, 5.96 light-years | 10.5 ± 0.9 |
+| Epsilon Indi B | `Gaia DR3 6412596012146801152`, 0.6 arcsecond | 4.68 arcseconds per year, 12.1 light-years | 4.63 ± 0.06, 11.0 light-years, between 9.8 and 12.6 |
+| WISE 0855 | `null` | Nothing: the object is too cold for Gaia | 7.5 ± 0.9 |
+| RW Aurigae | `Gaia DR3 156430817820015232`, 0.7 arcsecond | A star that barely moves | `changed` |
+| R Draconis | `Gaia DR3 1648328016354496384`, 0.6 arcsecond | A star that barely moves | `changed`, on its halo |
+
+- **The motion of Gaia** is `Math.hypot(source.pm_ra, source.pm_dec) / 1000` arcseconds per year, to set next to `motion.rate_arcsec_per_year` of a candidate that moved. It is there for any candidate of the field, not only for the target.
+- **The distance of Gaia** is `3261.6 / source.parallax_mas` light-years. Show it when `parallax_mas` is 5 or more, 650 light-years or closer: further out, the parallax of a faint star is not sure enough to be shown as a distance.
+- **`null` is the interesting answer.** Say "Gaia DR3 holds no source here". Gaia stops near magnitude 21 in visible light: an object too cold, like WISE 0855, is not in it. Do not say "unknown" or "new": other catalogs may hold it, as AllWISE holds WISE 0855.
+- **A truncated catalog cannot say no.** When `truncated` is true and the answer is `null`, the source may be among the faint ones left out. Ask `GET /api/catalog` again around the candidate, with its `ra`, `dec` and `epoch` and `fov=0.02`, and call the function on that answer.
+- **AllWISE is not matched this way** for a candidate that moved: it gives no motion, and the object is elsewhere in its list, where it was in 2010. For a candidate that did not move, the same function works with the `allwise` catalog.
+
+`node samples/check-sample.ts samples/index.json` runs this function on the files of the five test targets, and fails when a candidate that moved disagrees with the motion Gaia gives it.
 
 ### What is not claimed
 

@@ -1,11 +1,11 @@
 """Builds the files of the test targets ahead of time: python -m spherex_explorer.precompute.
 
 A bundle is the answer of `exposures` and of `frames` for one target and one detector,
-a spectrum file is the answer of `spectrum` and a candidates file that of `candidates`,
-all saved in the formats of docs/api-contract.md. The site shows the five test targets
-of the challenge from these files, at once, even when the service or the archive is
-asleep. The same code as the live service builds them, so both give the same frames,
-the same fluxes and the same candidates.
+a spectrum file is the answer of `spectrum`, a candidates file that of `candidates` and
+a catalog file that of `catalog`, all saved in the formats of docs/api-contract.md. The
+site shows the five test targets of the challenge from these files, at once, even when
+the service or the archive is asleep. The same code as the live service builds them, so
+both give the same frames, the same fluxes and the same candidates.
 """
 
 import argparse
@@ -24,23 +24,27 @@ import numpy as np
 
 from spherex_explorer import __version__
 from spherex_explorer.api.candidates import candidates_out
+from spherex_explorer.api.catalog import catalogs_out
 from spherex_explorer.api.exposures import exposure_out, grid_out
 from spherex_explorer.api.frames import frame_out
 from spherex_explorer.api.resolve import NameResolver
 from spherex_explorer.api.spectrum import point_out
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive
+from spherex_explorer.catalogs import VizierCatalogs
 from spherex_explorer.config import Settings, get_settings
 from spherex_explorer.detection import MOVED, FieldFrame
-from spherex_explorer.errors import NotFound, UpstreamUnavailable
+from spherex_explorer.errors import NotFound, UpstreamError, UpstreamUnavailable
 from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE, Grid
 from spherex_explorer.pipeline import (
     ExposureArchive,
     FrameSource,
     ListedExposure,
+    SkyCatalogs,
     build_frame,
     list_exposures,
     measure_spectrum,
     report_field,
+    view_catalogs,
 )
 from spherex_explorer.targets import SesameResolver, Target
 
@@ -50,11 +54,15 @@ BUNDLE_FORMAT = "spherex-explorer/bundle"
 INDEX_FORMAT = "spherex-explorer/index"
 SPECTRUM_FORMAT = "spherex-explorer/spectrum"
 CANDIDATES_FORMAT = "spherex-explorer/candidates"
+CATALOG_FORMAT = "spherex-explorer/catalog"
 FORMAT_VERSION = 1
 INDEX_FILE = "index.json"
 _ANGLE_DECIMALS = 6
 _MOTION_DECIMALS = 3
 # Attempts for one frame when the storage is busy, and the pause before the next one.
+_MJD_J2000 = 51544.5
+_DAYS_PER_JULIAN_YEAR = 365.25
+_EPOCH_DECIMALS = 3
 _FRAME_ATTEMPTS = 4
 _FRAME_PAUSE_S = 3.0
 
@@ -299,6 +307,70 @@ def rebuild_candidates(output: Path, keys: Sequence[str]) -> None:
             write_index(output, [{"key": entry["key"], "candidates": candidates}])
 
 
+def _middle_of_the_visits(output: Path, entry: dict) -> float | None:
+    """Middle of the dates of the frames of a target, as a Julian year. None without frames."""
+    listed = entry.get("candidates")
+    if not listed:
+        return None
+    visits = json.loads((output / listed["file"]).read_text(encoding="utf-8"))["visits"]
+    if not visits:
+        return None
+    middle = (visits[0]["time_mjd"] + visits[-1]["time_mjd"]) / 2
+    return round(2000.0 + (middle - _MJD_J2000) / _DAYS_PER_JULIAN_YEAR, _EPOCH_DECIMALS)
+
+
+async def write_catalog(output: Path, entry: dict, service: SkyCatalogs) -> dict | None:
+    """Write the catalog file of one target and give what the index says about it.
+
+    The file holds what other telescopes know inside the view of the bundles, at the
+    middle of the dates of their frames. None when the target has no frame.
+    """
+    epoch = _middle_of_the_visits(output, entry)
+    if epoch is None:
+        return None
+    grid = entry["grid"]
+    view = Grid(ra=grid["ra"], dec=grid["dec"], fov_deg=grid["fov_deg"], size=grid["size"])
+    found = catalogs_out(view, epoch, await view_catalogs(service, view, epoch)).model_dump()
+    name = f"{entry['key']}-catalog.json"
+    size_bytes = _write(
+        output / name,
+        {"format": CATALOG_FORMAT, "version": FORMAT_VERSION, "generated": _now(), **found},
+    )
+    counts = {catalog["key"]: len(catalog["sources"]) for catalog in found["catalogs"]}
+    logger.info("%s: %s, %s", entry["key"], name, counts)
+    return {"file": name, "sources": counts, "bytes": size_bytes}
+
+
+async def rebuild_catalogs(output: Path, keys: Sequence[str], service: SkyCatalogs) -> None:
+    """Write again the catalog files of targets whose bundles are already there.
+
+    Only the catalog service is asked: no frame is downloaded.
+    """
+    index = json.loads((output / INDEX_FILE).read_text(encoding="utf-8"))
+    for entry in index["targets"]:
+        if keys and entry["key"] not in keys:
+            continue
+        catalog = await write_catalog(output, entry, service)
+        if catalog is not None:
+            write_index(output, [{"key": entry["key"], "catalog": catalog}])
+
+
+def _catalog_service(client: httpx2.AsyncClient, settings: Settings) -> VizierCatalogs:
+    return VizierCatalogs(
+        client,
+        urls=settings.catalog_url_list,
+        timeout_s=settings.catalog_timeout_s,
+        limit=settings.catalog_limit,
+    )
+
+
+async def run_catalogs(settings: Settings, output: Path, keys: Sequence[str]) -> None:
+    async with httpx2.AsyncClient(
+        headers={"User-Agent": f"spherex-explorer/{__version__}"}
+    ) as client:
+        await rebuild_catalogs(output, keys, _catalog_service(client, settings))
+
+
 async def _write_spectrum(
     wanted: BundleTarget,
     target: Target,
@@ -401,6 +473,7 @@ async def run(
                 concurrency=settings.storage_concurrency,
             )
         )
+        catalogs = _catalog_service(client, settings)
         for target in wanted:
             entry = await build_target(
                 target,
@@ -413,6 +486,15 @@ async def run(
             )
             # The index is written after each target: a run cut short keeps what it built.
             write_index(output, [entry])
+            if with_frames:
+                try:
+                    catalog = await write_catalog(output, entry, catalogs)
+                except (UpstreamError, UpstreamUnavailable) as exc:
+                    # The catalogs are an overlay: their file can be built later.
+                    logger.warning("%s: no catalog file: %s", target.key, exc)
+                else:
+                    if catalog is not None:
+                        write_index(output, [{"key": target.key, "catalog": catalog}])
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -436,13 +518,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Build the candidates files only, from the bundles already there. No download.",
     )
+    parser.add_argument(
+        "--catalogs-only",
+        action="store_true",
+        help="Build the catalog files only, for the views of the bundles already there.",
+    )
     arguments = parser.parse_args(argv)
     if not arguments.output.is_dir():
         parser.error(f"{arguments.output} is not a folder")
     if arguments.parallel < 1:
         parser.error("--parallel must be at least 1")
-    if arguments.spectra_only and arguments.candidates_only:
-        parser.error("--spectra-only and --candidates-only cannot go together")
+    partial = (arguments.spectra_only, arguments.candidates_only, arguments.catalogs_only)
+    if sum(partial) > 1:
+        parser.error("--spectra-only, --candidates-only and --catalogs-only cannot go together")
 
     logging.basicConfig(level="INFO", format="%(asctime)s %(levelname)s %(message)s")
     logging.getLogger("httpx2").setLevel("WARNING")
@@ -452,6 +540,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         rebuild_candidates(arguments.output, arguments.target)
         return 0
     try:
+        if arguments.catalogs_only:
+            if not (arguments.output / INDEX_FILE).is_file():
+                parser.error(f"{arguments.output} has no {INDEX_FILE}: build the bundles first")
+            asyncio.run(run_catalogs(get_settings(), arguments.output, arguments.target))
+            return 0
         asyncio.run(
             run(
                 get_settings(),
@@ -461,7 +554,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 with_frames=not arguments.spectra_only,
             )
         )
-    except (NotFound, UpstreamUnavailable) as exc:
+    except (NotFound, UpstreamError, UpstreamUnavailable) as exc:
         logger.error("Stopped: %s", exc)
         return 1
     return 0
