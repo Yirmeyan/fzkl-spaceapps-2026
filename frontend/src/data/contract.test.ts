@@ -52,15 +52,18 @@ describe("contract helpers", () => {
     expect(dy).toBeLessThan(-1.5);
   });
 
-  it("renders OVERFLOW NaN cores as bright pixels", () => {
+  it("renders OVERFLOW NaN cores as bright pixels and holes as opaque void", () => {
     const size = 4;
     const pixels = new Float32Array(size * size).fill(1);
     pixels[5] = Number.NaN;
+    pixels[6] = Number.NaN;
     const mask = new Uint8Array(size * size);
     mask[5] = MASK_OVERFLOW;
     const rgba = renderFrameToRgba(pixels, mask, size, -1, 5, 0);
     expect(rgba[5 * 4]).toBe(255);
     expect(rgba[5 * 4 + 3]).toBe(255);
+    expect(rgba[6 * 4 + 3]).toBe(255);
+    expect(rgba[6 * 4]).toBeLessThan(20);
   });
 
   it("skyToPixel matches targetAt for the sample grid center motion", () => {

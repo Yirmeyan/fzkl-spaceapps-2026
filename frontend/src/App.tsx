@@ -28,6 +28,7 @@ import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { FrameCanvas } from "./viewer/FrameCanvas";
+import { SkyPlayer } from "./viewer/SkyPlayer";
 
 type LoadState =
   | { status: "idle" }
@@ -230,22 +231,13 @@ export default function App() {
     }
   }, [filtered.length, view.frameIndex, patchView]);
 
-  // Animation
-  useEffect(() => {
-    if (!view.playing || view.mode !== "single" || filtered.length < 2) return;
-    const ms = 1000 / view.fps;
-    const id = window.setInterval(() => {
-      setView((prev) => {
-        const next = {
-          ...prev,
-          frameIndex: (prev.frameIndex + 1) % Math.max(filtered.length, 1),
-        };
-        writeViewToUrl(next);
-        return next;
-      });
-    }, ms);
-    return () => window.clearInterval(id);
-  }, [view.playing, view.fps, view.mode, filtered.length]);
+  const onPlayerFrame = useCallback((index: number) => {
+    setView((prev) => {
+      if (prev.frameIndex === index) return prev;
+      // Metadata only — never touch the URL here (that flashed the whole tab).
+      return { ...prev, frameIndex: index };
+    });
+  }, []);
 
   const display = useMemo(() => {
     if (load.status !== "ready" || filtered.length === 0) return null;
@@ -407,23 +399,20 @@ export default function App() {
             </div>
           )}
           {load.status === "error" && <div className="status-banner error">{load.message}</div>}
-          {display && (
+          {display && view.mode === "single" && (
             <>
-              <FrameCanvas
-                pixels={display.pixels}
-                mask={display.mask}
-                size={display.size}
+              <SkyPlayer
+                frames={filtered}
+                frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                playing={view.playing}
+                fps={view.fps}
                 lo={display.lo}
                 hi={display.hi}
-                background={display.background}
-                targetXy={display.targetXy}
+                size={display.size}
+                onFrameIndexChange={onPlayerFrame}
               />
               <div className="transport">
-                <button
-                  type="button"
-                  onClick={() => patchView({ playing: !view.playing })}
-                  disabled={view.mode !== "single"}
-                >
+                <button type="button" onClick={() => patchView({ playing: !view.playing })}>
                   {view.playing ? "Pause" : "Play"}
                 </button>
                 <input
@@ -434,7 +423,7 @@ export default function App() {
                   onChange={(e) =>
                     patchView({ frameIndex: Number(e.target.value), playing: false })
                   }
-                  disabled={view.mode !== "single" || filtered.length === 0}
+                  disabled={filtered.length === 0}
                   aria-label="Frame"
                 />
                 <label>
@@ -449,6 +438,17 @@ export default function App() {
                 </label>
               </div>
             </>
+          )}
+          {display && view.mode !== "single" && (
+            <FrameCanvas
+              pixels={display.pixels}
+              mask={display.mask}
+              size={display.size}
+              lo={display.lo}
+              hi={display.hi}
+              background={display.background}
+              targetXy={display.targetXy}
+            />
           )}
         </section>
 

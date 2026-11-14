@@ -247,15 +247,18 @@ export function renderFrameToRgba(
 
     if (Number.isNaN(raw)) {
       if ((mask[i]! & MASK_OVERFLOW) !== 0) {
+        // Saturated core: top of the scale, always opaque.
         rgba[o] = 255;
         rgba[o + 1] = 255;
         rgba[o + 2] = 255;
         rgba[o + 3] = 255;
       } else {
-        rgba[o] = 0;
-        rgba[o + 1] = 0;
-        rgba[o + 2] = 0;
-        rgba[o + 3] = 0;
+        // Missing / off-detector: opaque void (never alpha 0 — that caused
+        // compositor shimmer when frames changed under a CSS gradient page).
+        rgba[o] = 5;
+        rgba[o + 1] = 8;
+        rgba[o + 2] = 14;
+        rgba[o + 3] = 255;
       }
       continue;
     }

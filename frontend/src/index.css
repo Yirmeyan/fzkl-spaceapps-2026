@@ -39,7 +39,10 @@ body,
 }
 
 body {
-  background: var(--glow);
+  /* Solid base + fixed wash: avoids full-page shimmer when the canvas animates. */
+  background-color: var(--void);
+  background-image: var(--glow);
+  background-attachment: fixed;
   min-height: 100vh;
 }
 
@@ -218,6 +221,9 @@ select {
   align-items: center;
   gap: 0.75rem;
   min-height: 360px;
+  contain: layout paint;
+  isolation: isolate;
+  transform: translateZ(0);
 }
 
 .viewer-pane canvas {

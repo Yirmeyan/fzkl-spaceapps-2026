@@ -31,9 +31,11 @@ export function FrameCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || size <= 0 || pixels.length !== size * size) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
 
+    ctx.fillStyle = "#05080e";
+    ctx.fillRect(0, 0, size, size);
     const rgba = renderFrameToRgba(pixels, mask, size, lo, hi, background);
     const imageData = ctx.createImageData(size, size);
     imageData.data.set(rgba);
