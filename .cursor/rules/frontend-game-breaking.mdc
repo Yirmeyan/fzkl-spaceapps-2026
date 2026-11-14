@@ -1,33 +1,25 @@
 ---
-description: Nic frontend loops must ship game-breaking ideas only — no cosmetic polish
+description: Nic frontend — phenomenal wow every loop; polish allowed as support
 alwaysApply: true
 ---
 
-# Frontend bar (Nic) — win or nothing
+# Frontend mission (Nic) — reference-or-nothing
 
-14k teams. Cosmetics do not win.
+Goal: the site judges wish NASA had shipped. 14k teams. Fall-on-the-floor wow.
 
-## Every Nic frontend iteration MUST
+## Every loop MUST
 
-1. Write in `docs/win-progress.md` **one game-breaking idea** for this loop (what a judge remembers in 10 seconds).
-2. Ship **that idea only** end-to-end (code + copy + push if relevant).
-3. Update progress honestly.
+1. Invent **one phenomenal, outside-the-box idea** (would impress a strong critic, not just “nice UI”).
+2. Write it in `docs/win-progress.md` before coding (“This loop’s wow: …”).
+3. Ship that idea end-to-end.
+4. Cosmetic polish is **allowed** (and encouraged) **only as support** for the wow — never as the whole loop.
 
-## Hard ban (do not spend a loop on these)
+## Bar for “phenomenal”
 
-- Button / chip / accent color tweaks
-- Spacing, radius, shadow, font polish alone
-- Renaming labels without new capability
-- “Make it prettier” / gradient / glass / glow for its own sake
-- Tiny a11y or copy nits unless blocking a wow feature
-- Refactors with no user-visible new power
+Ask: if Claude / a NASA judge saw this for 10 seconds, would they **stop scrolling**?
+- New perception of motion, cinematic mission experience, discovery mechanic, shareable moment, immersive stage…
+- Not: another settings row, another synonym for “Play”.
 
-## What counts as game-breaking (examples of bar)
+## Attitude
 
-- New way to **see motion** (compare, blink, trail, tour, measure)
-- New **judge-ready** interaction (one-click story, shareable moment)
-- New **discovery** affordance (spot the mover, predict vs observe)
-- Wiring **new Tommy data** into a visible capability
-- Shipping latest UI to **production/main** so judges see it
-
-If the idea would not change a judge’s mind vs 14k other SPHEREx sites, **discard it** and pick a bigger one.
+Break conventions. Prefer bold product bets over safe dashboards. Under-estimate % in `win-progress.md`.
