@@ -1,9 +1,10 @@
 """Builds the files of the test targets ahead of time: python -m spherex_explorer.precompute.
 
 A bundle is the answer of `exposures` and of `frames` for one target and one detector,
-saved in the format of docs/api-contract.md. The site shows the five test targets of the
-challenge from these files, at once, even when the service or the archive is asleep.
-The same code as the live service builds them, so both give the same frames.
+and a spectrum file is the answer of `spectrum`, both saved in the formats of
+docs/api-contract.md. The site shows the five test targets of the challenge from these
+files, at once, even when the service or the archive is asleep. The same code as the
+live service builds them, so both give the same frames and the same fluxes.
 """
 
 import argparse
@@ -22,6 +23,7 @@ from spherex_explorer import __version__
 from spherex_explorer.api.exposures import exposure_out, grid_out
 from spherex_explorer.api.frames import frame_out
 from spherex_explorer.api.resolve import NameResolver
+from spherex_explorer.api.spectrum import point_out
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive
 from spherex_explorer.config import Settings, get_settings
 from spherex_explorer.errors import NotFound, UpstreamUnavailable
@@ -32,6 +34,7 @@ from spherex_explorer.pipeline import (
     ListedExposure,
     build_frame,
     list_exposures,
+    measure_spectrum,
 )
 from spherex_explorer.targets import SesameResolver, Target
 
@@ -39,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 BUNDLE_FORMAT = "spherex-explorer/bundle"
 INDEX_FORMAT = "spherex-explorer/index"
+SPECTRUM_FORMAT = "spherex-explorer/spectrum"
 FORMAT_VERSION = 1
 INDEX_FILE = "index.json"
 _ANGLE_DECIMALS = 6
@@ -115,9 +119,14 @@ async def build_target(
     fov_deg: float = DEFAULT_FOV_DEG,
     size: int = DEFAULT_SIZE,
     parallel: int = 16,
+    with_frames: bool = True,
     sleep=asyncio.sleep,
 ) -> dict:
-    """Build the files of one target, one per detector, and give its entry of the index."""
+    """Build the files of one target and give its entry of the index.
+
+    The files are one bundle per detector and one spectrum. Without the frames, only
+    the spectrum is built, and the entry only holds what describes it.
+    """
     found = await resolver.resolve(wanted.catalog_name)
     # The numbers written in the file are the ones the frames are computed with, so that
     # a browser that redoes the arithmetic finds the same positions.
@@ -136,6 +145,9 @@ async def build_target(
         "pm_ra": target.pm_ra,
         "pm_dec": target.pm_dec,
     }
+    spectrum = await _write_spectrum(wanted, target, target_out, archive, frames, output, sleep)
+    if not with_frames:
+        return {"key": wanted.key, "spectrum": spectrum}
     listing = await list_exposures(archive, target, fov_deg=fov_deg, size=size)
     grid = grid_out(listing.grid).model_dump()
     logger.info("%s: %d exposures", wanted.name, len(listing.exposures))
@@ -186,7 +198,44 @@ async def build_target(
         "grid": grid,
         "passes": len(passes),
         "detectors": detectors,
+        "spectrum": spectrum,
     }
+
+
+async def _write_spectrum(
+    wanted: BundleTarget,
+    target: Target,
+    target_out: dict,
+    archive: ExposureArchive,
+    frames: FrameSource,
+    output: Path,
+    sleep,
+) -> dict:
+    """Write the spectrum file of one target and give what the index says about it."""
+    for attempt in range(1, _FRAME_ATTEMPTS + 1):
+        try:
+            spectrum = await measure_spectrum(archive, frames, target)
+            break
+        except UpstreamUnavailable as exc:
+            if attempt == _FRAME_ATTEMPTS:
+                raise
+            logger.warning("%s: spectrum: %s, attempt %d", wanted.name, exc, attempt)
+            await sleep(_FRAME_PAUSE_S)
+    points = [point_out(point).model_dump(by_alias=True) for point in spectrum.points]
+    name = f"{wanted.key}-spectrum.json"
+    size_bytes = _write(
+        output / name,
+        {
+            "format": SPECTRUM_FORMAT,
+            "version": FORMAT_VERSION,
+            "generated": _now(),
+            "target": target_out,
+            "points": points,
+        },
+    )
+    with_flux = sum(1 for point in points if point["flux_mjy"] is not None)
+    logger.info("%s: %s, %d points, %d with a flux", wanted.name, name, len(points), with_flux)
+    return {"file": name, "points": len(points), "with_flux": with_flux, "bytes": size_bytes}
 
 
 def write_index(output: Path, entries: Sequence[dict]) -> None:
@@ -199,7 +248,9 @@ def write_index(output: Path, entries: Sequence[dict]) -> None:
             known = {entry["key"]: entry for entry in previous.get("targets", [])}
         except (ValueError, KeyError, TypeError, AttributeError):
             logger.warning("%s cannot be read: it is written again from scratch", path)
-    known.update({entry["key"]: entry for entry in entries})
+    for entry in entries:
+        # An entry built in part, such as a spectrum alone, completes the one already there.
+        known[entry["key"]] = {**known.get(entry["key"], {}), **entry}
     order = {wanted.key: rank for rank, wanted in enumerate(TARGETS)}
     targets = sorted(known.values(), key=lambda entry: order.get(entry["key"], len(order)))
     _write(
@@ -213,7 +264,13 @@ def write_index(output: Path, entries: Sequence[dict]) -> None:
     )
 
 
-async def run(settings: Settings, output: Path, keys: Sequence[str], parallel: int) -> None:
+async def run(
+    settings: Settings,
+    output: Path,
+    keys: Sequence[str],
+    parallel: int,
+    with_frames: bool = True,
+) -> None:
     wanted = [target for target in TARGETS if not keys or target.key in keys]
     limits = httpx2.Limits(
         max_connections=settings.storage_concurrency + 8,
@@ -255,6 +312,7 @@ async def run(settings: Settings, output: Path, keys: Sequence[str], parallel: i
                 frames=frames,
                 output=output,
                 parallel=parallel,
+                with_frames=with_frames,
             )
             # The index is written after each target: a run cut short keeps what it built.
             write_index(output, [entry])
@@ -271,6 +329,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Target to build. Repeat it for several. All of them when left out.",
     )
     parser.add_argument("--parallel", type=int, default=16, help="Frames built at once.")
+    parser.add_argument(
+        "--spectra-only",
+        action="store_true",
+        help="Build the spectrum files only, and leave the bundles as they are.",
+    )
     arguments = parser.parse_args(argv)
     if not arguments.output.is_dir():
         parser.error(f"{arguments.output} is not a folder")
@@ -280,7 +343,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.basicConfig(level="INFO", format="%(asctime)s %(levelname)s %(message)s")
     logging.getLogger("httpx2").setLevel("WARNING")
     try:
-        asyncio.run(run(get_settings(), arguments.output, arguments.target, arguments.parallel))
+        asyncio.run(
+            run(
+                get_settings(),
+                arguments.output,
+                arguments.target,
+                arguments.parallel,
+                with_frames=not arguments.spectra_only,
+            )
+        )
     except (NotFound, UpstreamUnavailable) as exc:
         logger.error("Stopped: %s", exc)
         return 1

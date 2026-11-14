@@ -16,6 +16,7 @@ from spherex_explorer.api.frames import router as frames_router
 from spherex_explorer.api.health import router as health_router
 from spherex_explorer.api.resolve import NameResolver
 from spherex_explorer.api.resolve import router as resolve_router
+from spherex_explorer.api.spectrum import router as spectrum_router
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive
 from spherex_explorer.config import Settings, get_settings
 from spherex_explorer.pipeline import ExposureArchive, FrameSource
@@ -140,6 +141,7 @@ def create_app(
     app.include_router(exposures_router, prefix="/api")
     app.include_router(frames_router, prefix="/api")
     app.include_router(resolve_router, prefix="/api")
+    app.include_router(spectrum_router, prefix="/api")
 
     logger.info(
         "Service %s ready in %s, origins allowed: %s",
