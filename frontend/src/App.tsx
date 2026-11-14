@@ -706,10 +706,15 @@ export default function App() {
     () => (load.status === "ready" ? uniquePasses(load.data.frames) : []),
     [load],
   );
-  const trail = useMemo(
-    () => (load.status === "ready" ? meanPassTrail(load.data.frames) : []),
-    [load],
-  );
+  const hasCatalogMotion = useMemo(() => {
+    if (load.status !== "ready") return false;
+    const { pm_ra, pm_dec } = load.data.target;
+    return (pm_ra ?? 0) !== 0 || (pm_dec ?? 0) !== 0;
+  }, [load]);
+  const trail = useMemo(() => {
+    if (load.status !== "ready" || !hasCatalogMotion) return [];
+    return meanPassTrail(load.data.frames);
+  }, [load, hasCatalogMotion]);
   const blinkA = passes[0] ?? null;
   const blinkB = passes.length >= 2 ? passes[passes.length - 1]! : null;
   const detectors = load.status === "ready" ? uniqueDetectors(load.data.frames) : [];
@@ -1826,6 +1831,7 @@ export default function App() {
                   frames={filtered}
                   frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                   playing={view.playing}
+                  hasCatalogMotion={hasCatalogMotion}
                 />
               )}
               <div className="transport">
@@ -1904,6 +1910,7 @@ export default function App() {
               grid={load.data.grid}
               trail={trail}
               targetName={load.data.target.name ?? targetName}
+              hasCatalogMotion={hasCatalogMotion}
             />
           )}
 
@@ -2018,8 +2025,9 @@ export default function App() {
               {uiMode === "compare" && (
                 <div className="control-block">
                   <p className="lead">
-                    Blinking Visit {blinkA ?? 1} ↔ Visit {blinkB ?? 3}. Watch the bright star hop
-                    north.
+                    {hasCatalogMotion
+                      ? `Blinking Visit ${blinkA ?? 1} ↔ Visit ${blinkB ?? 3}. Watch the bright star hop north.`
+                      : `Blinking Visit ${blinkA ?? 1} ↔ Visit ${blinkB ?? 3}. No catalog motion here. Watch the pixels for anything that moves or changes.`}
                   </p>
                   <button
                     type="button"

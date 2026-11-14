@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**WISE visit-stack movie** — clean per-pass means (mask 0 only) on detector 6, cycle three visits + last-minus-first, honesty line at the detection limit (Tommy item 5).
+**Honest Orion sky** — Tommy’s three production fixes: µm stays µm, no fake hop when PM is absent, missing pixels blend with background instead of black holes (#38, after #37 WISE stack on main).
 
 ## Backlog (phenomenal)
 

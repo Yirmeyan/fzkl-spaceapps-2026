@@ -244,10 +244,26 @@ function estimateNoiseFromFrames(frames: DisplayFrameInput[]): number {
   return 1.4826 * absDev[Math.floor(absDev.length / 2)]!;
 }
 
+function residualToRgb(
+  residual: number,
+  lo: number,
+  hi: number,
+  soft: number,
+  denom: number,
+  colorMap: ColorMap,
+): [number, number, number] {
+  const clipped = Math.min(hi, Math.max(lo, residual));
+  const t = denom === 0 ? 0 : asinhStretch(clipped - lo, soft) / denom;
+  const u = Math.min(1, Math.max(0, t));
+  if (colorMap === "heat") return heatColor(u);
+  const g = Math.round(u * 255);
+  return [g, g, g];
+}
+
 /**
  * Render one frame to RGBA. Subtracts background, soft asinh between lo/hi.
  * Default heat colormap (IR false color). NaN+OVERFLOW → top of scale;
- * other NaN → opaque void.
+ * other NaN → sky at the frame background level (no punched-out holes).
  */
 export function renderFrameToRgba(
   pixels: Float32Array,
@@ -278,29 +294,20 @@ export function renderFrameToRgba(
         rgba[o + 2] = b;
         rgba[o + 3] = 255;
       } else {
-        rgba[o] = 5;
-        rgba[o + 1] = 8;
-        rgba[o + 2] = 14;
+        // Missing value, not saturated: paint as background so holes blend with sky.
+        const [r, g, b] = residualToRgb(0, lo, hi, soft, denom, colorMap);
+        rgba[o] = r;
+        rgba[o + 1] = g;
+        rgba[o + 2] = b;
         rgba[o + 3] = 255;
       }
       continue;
     }
 
-    const residual = raw - bg;
-    const clipped = Math.min(hi, Math.max(lo, residual));
-    const t = denom === 0 ? 0 : asinhStretch(clipped - lo, soft) / denom;
-    const u = Math.min(1, Math.max(0, t));
-    if (colorMap === "heat") {
-      const [r, g, b] = heatColor(u);
-      rgba[o] = r;
-      rgba[o + 1] = g;
-      rgba[o + 2] = b;
-    } else {
-      const g = Math.round(u * 255);
-      rgba[o] = g;
-      rgba[o + 1] = g;
-      rgba[o + 2] = g;
-    }
+    const [r, g, b] = residualToRgb(raw - bg, lo, hi, soft, denom, colorMap);
+    rgba[o] = r;
+    rgba[o + 1] = g;
+    rgba[o + 2] = b;
     rgba[o + 3] = 255;
   }
 

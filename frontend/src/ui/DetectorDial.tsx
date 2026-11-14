@@ -52,7 +52,9 @@ export function DetectorDial({ bands, active, onPick }: DetectorDialProps) {
             >
               <span className="detector-dial-swatch" aria-hidden="true" />
               <span className="detector-dial-det">D{b.detector}</span>
-              <span className="detector-dial-um">{mid.toFixed(1)} µm</span>
+              <span className="detector-dial-um">
+                {mid.toFixed(1)} <span className="unit-um">µm</span>
+              </span>
             </button>
           );
         })}

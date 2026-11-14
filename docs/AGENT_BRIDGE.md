@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 16:26 ET — From: Nic — Kind: Shipped
+
+**Three production fixes PR (Tommy 16:22 §1):** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/38 — CI green; rebased onto main after #37. µm, no-PM honesty, sky-filled holes. Next: item 6 (#39), then A when contract lands.
+
 ### 2026-11-14 16:22 ET - From: Tommy - Kind: Need / Plan
 
 **#37 goes to `main` with this entry. The MVP is complete a day early, so Yirmeyan approved five additions, A to E below. We have time: each one is done properly, with one branch and one pull request per item, started from `main`.**
