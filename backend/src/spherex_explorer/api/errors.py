@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from spherex_explorer.archive import InvalidExposure
 from spherex_explorer.errors import NotFound, UpstreamUnavailable
+from spherex_explorer.targets import InvalidName
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +51,18 @@ def register_error_handlers(app: FastAPI) -> None:
             ),
         )
 
+    @app.exception_handler(InvalidName)
+    async def invalid_name(request: Request, exc: InvalidName) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content=_body("invalid_request", "The name must hold 1 to 100 printable characters."),
+        )
+
     @app.exception_handler(NotFound)
     async def not_found(request: Request, exc: NotFound) -> JSONResponse:
-        # The name of the file stays in the logs: the client only knows identifiers.
+        # The detail, such as the name of a file, stays in the logs.
         logger.info("%s on %s %s", exc, request.method, request.url.path)
-        return JSONResponse(
-            status_code=404, content=_body("not_found", "The archive has no such exposure.")
-        )
+        return JSONResponse(status_code=404, content=_body("not_found", exc.public))
 
     @app.exception_handler(UpstreamUnavailable)
     async def upstream_unavailable(request: Request, exc: UpstreamUnavailable) -> JSONResponse:

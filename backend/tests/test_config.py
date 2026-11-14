@@ -89,3 +89,17 @@ def test_storage_address_is_built_from_the_bucket_and_its_region():
 def test_bucket_or_region_that_could_change_the_address_is_rejected(setting):
     with pytest.raises(ValidationError):
         Settings(_env_file=None, **setting)
+
+
+def test_resolver_addresses_are_tried_in_the_order_given():
+    settings = Settings(
+        _env_file=None, resolver_urls="https://a.example/sesame/, https://b.example/s"
+    )
+
+    assert settings.resolver_url_list == ["https://a.example/sesame", "https://b.example/s"]
+
+
+@pytest.mark.parametrize("value", ["", "cds.unistra.fr/sesame", "https://a.example/s?x=1"])
+def test_resolver_address_that_cannot_be_called_is_rejected(value):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, resolver_urls=value)

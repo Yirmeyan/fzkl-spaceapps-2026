@@ -19,4 +19,11 @@ class UpstreamUnavailable(Exception):
 
 
 class NotFound(Exception):
-    """What was asked for does not exist in the archive. Asking again does not help."""
+    """What was asked for does not exist. Asking again does not help.
+
+    `public` is the sentence a client may read. The rest stays in the logs.
+    """
+
+    def __init__(self, detail: str, public: str) -> None:
+        super().__init__(detail)
+        self.public = public

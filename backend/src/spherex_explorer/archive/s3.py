@@ -24,6 +24,7 @@ _RETRYABLE_STATUSES = frozenset({500, 502, 503, 504})
 _FIRST_PAUSE_S = 0.2
 # Delay a client is asked to wait before it sends the same request again.
 _CLIENT_RETRY_AFTER_S = 5
+_NO_SUCH_EXPOSURE = "The archive has no such exposure."
 
 
 class RangeReader(Protocol):
@@ -100,7 +101,7 @@ class S3Reader:
         except httpx2.TransportError as exc:
             return f"connection failed ({type(exc).__name__})"
         if status == _NOT_FOUND:
-            raise NotFound(f"no file {key!r} in the archive")
+            raise NotFound(f"no file {key!r} in the archive", public=_NO_SUCH_EXPOSURE)
         if status in _RETRYABLE_STATUSES:
             return f"HTTP {status}"
         raise UpstreamError(f"{_SERVICE} answered HTTP {status} to a request for {byte_range}")
