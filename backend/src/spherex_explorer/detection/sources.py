@@ -14,7 +14,8 @@ _SMOOTHING_SIGMA = 1.6
 DETECTION_THRESHOLD = 5.0
 # Two peaks closer than this are one source, or a pair that cannot be measured apart.
 _SEPARATION = 5.0
-# No source is measured closer than this to the edge: its window would leave the image.
+# No source is looked for, and no position is kept, closer than this to the edge: the
+# window of the measurement would leave the image.
 MARGIN = 7
 
 # Window of the position measurement: weights that fall off as a Gaussian of this width,
@@ -182,9 +183,14 @@ def centroids(image: np.ndarray, x: np.ndarray, y: np.ndarray) -> tuple[np.ndarr
     alive &= ~(heart & ~known).any(axis=(1, 2))
     alive &= (in_window & known).sum(axis=(1, 2)) >= _WINDOW_SHARE * in_window.sum(axis=(1, 2))
     alive &= np.hypot(now_x - offset_x, now_y - offset_y) <= _WINDOW_RADIUS
-    column = np.rint(start_x)
-    row = np.rint(start_y)
-    return np.where(alive, column + now_x, np.nan), np.where(alive, row + now_y, np.nan)
+    found_x = np.rint(start_x) + now_x
+    found_y = np.rint(start_y) + now_y
+    # A source at the edge has part of its light outside the image: the center of what
+    # is left is not the center of the source, and it shifts with every visit.
+    height, width = image.shape
+    alive &= (found_x >= MARGIN) & (found_x <= width - 1 - MARGIN)
+    alive &= (found_y >= MARGIN) & (found_y <= height - 1 - MARGIN)
+    return np.where(alive, found_x, np.nan), np.where(alive, found_y, np.nan)
 
 
 def _circle_weights(half: int, x: float, y: float, radius: float) -> np.ndarray:

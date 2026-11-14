@@ -120,6 +120,18 @@ def test_no_position_without_a_heart_or_without_a_source():
     assert nothing_x.size == 0 and nothing_y.size == 0
 
 
+def test_no_position_for_a_source_that_ends_at_the_edge_of_the_image():
+    image = star(MARGIN - 2.0, 40.0, 30.0) + star(60.0, SIZE - 1 - MARGIN + 1.5, 30.0)
+    image += star(MARGIN + 0.5, 70.0, 30.0)
+
+    x, y = centroids(
+        image, np.array([MARGIN, 60.0, MARGIN + 1.0]), np.array([40.0, SIZE - 1 - MARGIN, 70.0])
+    )
+
+    assert np.isnan(x[:2]).all() and np.isnan(y[:2]).all()
+    assert x[2] == pytest.approx(MARGIN + 0.5, abs=0.03)
+
+
 def test_brightness_follows_the_light_of_the_source_and_ignores_the_sky():
     rng = np.random.default_rng(5)
     pile = np.stack(
@@ -198,6 +210,19 @@ def test_two_visits_make_a_claim_that_is_never_firm():
 
     assert [(found.kind, found.confidence) for found in candidates] == [(MOVED, MEDIUM)]
     assert candidates[0].source.motion.shift_x == pytest.approx(2.0, abs=0.1)
+
+
+def test_two_visits_need_twice_the_evidence_of_three():
+    # A faint source that moves: clear enough over three visits, not over two.
+    def scene(detector, visit, wavelength):
+        return [*steady_stars(), (45.0 + 0.7 * visit, 50.0, 0.9)]
+
+    three = measure_field(field_frames(scene, detectors=(2,), seed=5))
+    two = measure_field(field_frames(scene, detectors=(2,), visits=(1, 3), seed=5))
+
+    assert 5 < nearest(two, 46.4, 50.0).motion.significance < 10
+    assert find_candidates(two) == ()
+    assert [found.kind for found in find_candidates(three)] == [MOVED]
 
 
 def test_a_source_pushed_aside_in_one_visit_did_not_move():

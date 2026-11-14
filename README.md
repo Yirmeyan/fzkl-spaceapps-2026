@@ -58,11 +58,12 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Is the flux right? | 8 steady stars compared with 2MASS and AllWISE in 38 pairs of star and band: the median of measured over catalog is 0.998 |
 | Is the uncertainty honest? | Exposures of a steady star differ by 1 to 3 percent, more than the files alone predict. The stated uncertainty includes it |
 | Do two ways of measuring agree? | The 1,044 fluxes of the spectrum files equal those of the image files, exposure for exposure |
-| Does it find what moves, with no position given? | Yes for the eight nearby objects tried: the three test targets that move, and five other stars. Each measured speed is within two sigma of the catalog. Six quiet fields, 176 sources, give no candidate |
-| Can it tell how far a moving object is? | For five of the eight, the swing with the seasons is measured, a twelfth to a thirtieth of a SPHEREx pixel, and gives the distance: Luhman 16 at 7.0 light-years for 6.5 in the catalog, Teegarden's Star at 12.3 for 12.5 |
-| Does it find a star that varies, unasked? | RW Aurigae, and one more: pointed at a place of the Milky Way taken at random, it flags one star of 39. SIMBAD lists it as a long-period variable, IRAS 18372-0002 |
+| Does it find what moves, with no position given? | 16 of the 17 nearby stars tried that move by more than 1 arcsecond, the three test targets among them, each with a speed within two sigma of its catalog. The one missed, Ross 128, is too bright and too slow. 32 quiet fields, 831 sources, give no candidate |
+| Can it tell how far a moving object is? | For seven of them the swing with the seasons is measured, a twelfth to a thirtieth of a SPHEREx pixel, and gives the distance: Luhman 16 at 7.0 light-years for 6.5 in the catalog, Epsilon Indi B at 11.0 for 12.0, van Maanen's Star at 15.2 for 14.1 |
+| Does it find a star that varies, unasked? | RW Aurigae, and more: pointed at a place of the Milky Way taken at random, it flags one star of 35, IRAS 18372-0002, a long-period variable known to SIMBAD, to the AAVSO and to Gaia. Toward the center of the Milky Way it flags three, one of them a variable of Gaia |
+| How often is it wrong? | The one blind round, 21 fields chosen before the run, gave one false alarm in 16 quiet fields: a source cut by the edge of the view. Such positions are now refused. Every rule, and what it cost to find it, is in [the contract](docs/api-contract.md#how-it-was-checked) |
 
-The service has 451 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
+The service has 453 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
 
 ## How it works
 

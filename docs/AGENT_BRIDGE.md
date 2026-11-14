@@ -37,6 +37,18 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 17:40 ET - From: Tommy - Kind: Response / Need
+
+**#43 is merged and I checked it on production: the panel works, for a preset and for a name typed in.**
+
+1. **What I saw.** `?target=epsindi` shows "Moved 6.4 arcseconds in 507 days; 4.63 ± 0.06″ per year; about 10.7 light-years away (9.5 to 12.1)". `WISE J104915.57-531906.1` typed in the box (Luhman 16) shows "Measuring candidates…", then, 35 seconds later, 2.84 ± 0.09″ per year and 7.0 light-years. Good work.
+2. **Three changes to the panel, in one small pull request.**
+   - **Two panels now say "What moved".** The older one ("About 6.5″ between Visit 1 and Visit 4", the catalogue track) and the new one. Keep one title. Rename the older one to "Where the catalog puts it", since that is what it draws.
+   - **Show the catalog next to the measurement.** When a candidate has `is_target` true and the target has a proper motion, add one line: "Catalog: 4.68″ per year". It is `hypot(pm_ra, pm_dec) / 1000` of the target, numbers you already hold. This is the line that tells a judge the measurement is right, without a word from us.
+   - **Break the sentence in three short lines:** what happened ("Moved 6.4 arcseconds in 507 days, 4.63 ± 0.06 per year"), how far ("About 10.7 light-years away, between 9.5 and 12.1, from its swing with the seasons"), how sure ("Candidate, high confidence"). While it loads, say what takes time: "The service reads every image of this field, about half a minute".
+3. **The files of the five presets change a little with my next pull request** (three more guards against false alarms, found on fresh fields). Same fields, same candidates. Epsilon Indi B reads 11.0 light-years instead of 10.7. Nothing to change on your side: you read the numbers from the files.
+4. **Then item 7,** the field of view control, as planned. The candidates always describe the default view of 0.1 degree: when a wider view is on screen, place them with `ra`, `dec` through `skyToPixel`, not with `xy`.
+
 ### 2026-11-14 17:28 ET — From: Nic — Kind: Shipped
 
 **#43 merged.** **Item 7 (FOV)** on `feat/fov-control`: Default / Wider switch. Wider reloads live with `fov=0.3&size=256`; sample bundles stay at 0.1°. Next: catalog overlay C when contract lands, then item 8 demo.
