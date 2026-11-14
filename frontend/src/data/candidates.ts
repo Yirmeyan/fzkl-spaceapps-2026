@@ -92,33 +92,68 @@ export async function fetchCandidatesFile(
   return data;
 }
 
-/** One plain English sentence per candidate (Tommy addition A / 17:12). */
-export function candidateSentence(c: Candidate): string {
+export interface CandidateLines {
+  what: string;
+  howFar: string | null;
+  sure: string;
+  catalog: string | null;
+}
+
+/**
+ * Short lines for the panel (Tommy 17:40): what happened, how far, how sure.
+ * Catalog rate is hypot(pm_ra, pm_dec)/1000 when is_target and PM is known.
+ */
+export function candidateLines(
+  c: Candidate,
+  catalogPmRa: number | null | undefined,
+  catalogPmDec: number | null | undefined,
+): CandidateLines {
   const conf = c.confidence === "high" ? "high confidence" : "medium confidence";
-  const who = c.is_target ? "This is the object you asked for. " : "Another object in this field. ";
+  const sure = `Candidate, ${conf}.`;
+  let catalog: string | null = null;
+  if (c.is_target) {
+    const ra = catalogPmRa ?? 0;
+    const dec = catalogPmDec ?? 0;
+    if (ra !== 0 || dec !== 0) {
+      catalog = `Catalog: ${(Math.hypot(ra, dec) / 1000).toFixed(2)}″ per year`;
+    }
+  }
+
   if (c.kind === "moved" && c.motion) {
     const m = c.motion;
-    const bits = [
-      `Moved ${m.shift_arcsec.toFixed(1)} arcseconds in ${m.days.toFixed(0)} days`,
-      `${m.rate_arcsec_per_year.toFixed(2)} ± ${m.rate_error_arcsec_per_year.toFixed(2)}″ per year`,
-    ];
-    if (m.distance_ly != null && m.distance_ly_range) {
-      bits.push(
-        `about ${m.distance_ly.toFixed(1)} light-years away (${m.distance_ly_range[0].toFixed(1)} to ${m.distance_ly_range[1].toFixed(1)}), measured from its swing with the seasons`,
-      );
-    }
-    return `${who}Candidate: ${bits.join("; ")} (${conf}).`;
+    const what = `Moved ${m.shift_arcsec.toFixed(1)} arcseconds in ${m.days.toFixed(0)} days, ${m.rate_arcsec_per_year.toFixed(2)} ± ${m.rate_error_arcsec_per_year.toFixed(2)}″ per year`;
+    const howFar =
+      m.distance_ly != null && m.distance_ly_range
+        ? `About ${m.distance_ly.toFixed(1)} light-years away, between ${m.distance_ly_range[0].toFixed(1)} and ${m.distance_ly_range[1].toFixed(1)}, from its swing with the seasons`
+        : null;
+    return { what, howFar, sure, catalog };
   }
   if (c.kind === "changed" && c.changes.length > 0) {
     const ch = c.changes[0]!;
     const wave = `${ch.wavelength_um[0].toFixed(1)} to ${ch.wavelength_um[1].toFixed(1)} µm`;
     const how =
       ch.ratio < 1
-        ? `about ${(1 / ch.ratio).toFixed(1)}× fainter`
-        : `about ${ch.ratio.toFixed(1)}× brighter`;
-    return `${who}Candidate: ${how} near ${wave} between Visit ${ch.from_pass} and Visit ${ch.to_pass} (${conf}).`;
+        ? `About ${(1 / ch.ratio).toFixed(1)}× fainter`
+        : `About ${ch.ratio.toFixed(1)}× brighter`;
+    return {
+      what: `${how} near ${wave} between Visit ${ch.from_pass} and Visit ${ch.to_pass}`,
+      howFar: null,
+      sure,
+      catalog,
+    };
   }
-  return `${who}Candidate marked “${c.kind}” (${conf}).`;
+  return {
+    what: c.is_target ? "This is the object you asked for" : "Another object in this field",
+    howFar: null,
+    sure: `Candidate marked “${c.kind}”, ${conf}.`,
+    catalog,
+  };
+}
+
+/** @deprecated Prefer candidateLines for the panel. */
+export function candidateSentence(c: Candidate): string {
+  const lines = candidateLines(c, null, null);
+  return [lines.what, lines.howFar, lines.sure].filter(Boolean).join(". ");
 }
 
 export function emptyCandidatesSentence(limits: CandidatesLimits, sources?: number): string {

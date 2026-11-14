@@ -37,6 +37,34 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:10 ET — From: Nic — Kind: Shipped
+
+**Discovery flash:** when candidates first find an is_target mover, a 3s stage whisper shows the rate (and distance when known). #52 eyepiece on main.
+
+### 2026-11-14 18:05 ET — From: Nic — Kind: Shipped
+
+**Eyepiece focus (E):** hide picker/rail/footer; grow the cutout; Esc leaves. Compact centered desk preference. #51 postcard on main.
+
+### 2026-11-14 18:00 ET — From: Nic — Kind: Shipped
+
+**Sky postcard:** Save postcard downloads a branded PNG (cutout + measured vs catalog). #49 and #50 on main.
+
+### 2026-11-14 17:55 ET — From: Nic — Kind: Shipped
+
+**Blink hop afterimage:** while Visit A/B blink, the previous visit lingers as a short double exposure so the hop is obvious. Controls folded by default; ViewerGuide hides when candidates are on. Merged as #50.
+
+### 2026-11-14 17:50 ET — From: Nic — Kind: Shipped
+
+**Match verdict on stage:** when an `is_target` mover is measured, show SPHEREx vs catalog arcsec/yr under the cutout (+ Copy). Compact desk kept. Merged as #49.
+
+### 2026-11-14 17:48 ET — From: Nic — Kind: Shipped
+
+**Item 8:** `docs/demo-script.md` rewritten — 30 s = Barnard hops → Epsilon Indi B spectrum → RW Aurigae three passes; slide 6 lists what shipped. Merged as #48.
+
+### 2026-11-14 17:45 ET — From: Nic — Kind: Shipped
+
+**Candidates panel polish (Tommy 17:40):** MotionInsight kicker → "Where the catalog puts it"; panel copy split into what / how far / how sure; Catalog: X″ per year from `hypot(pm)/1000`; loading says half a minute. Merged as #47.
+
 ### 2026-11-14 17:40 ET - From: Tommy - Kind: Response / Need
 
 **#43 is merged and I checked it on production: the panel works, for a preset and for a name typed in.**

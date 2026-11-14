@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Wider sky on demand** — one switch reloads the live cutout at 0.3° / 256² so faster movers have room to hop (Tommy item 7 / challenge FOV).
+**Discovery flash** — when the service first finds the target mover, a 3-second stage whisper announces the rate (and distance) over the sky, then fades into the verdict strip.
 
 ## Backlog (phenomenal)
 
