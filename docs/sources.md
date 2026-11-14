@@ -40,4 +40,4 @@ GitHub Actions used by the workflows in `.github/workflows/`. Each one is pinned
 | [actions/checkout](https://github.com/actions/checkout) | Fetches the repository in the workflow | MIT |
 | [astral-sh/setup-uv](https://github.com/astral-sh/setup-uv) | Installs uv in the workflow | MIT |
 | [google-github-actions/auth](https://github.com/google-github-actions/auth) | Signs the deployment workflow in to Google Cloud without a key | Apache-2.0 |
-| [google-github-actions/deploy-cloudrun](https://github.com/google-github-actions/deploy-cloudrun) | Deploys the service to Cloud Run | Apache-2.0 |
+| [google-github-actions/setup-gcloud](https://github.com/google-github-actions/setup-gcloud) | Installs the Google Cloud CLI that deploys the service | Apache-2.0 |

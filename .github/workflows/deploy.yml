@@ -51,6 +51,11 @@ jobs:
               missing=1
             fi
           done
+          # The list is written to a YAML file below: refuse anything that is not a plain list of origins.
+          if ! printf '%s' "$SPX_ALLOWED_ORIGINS" | grep --quiet --extended-regexp '^https?://[A-Za-z0-9.:-]+(,https?://[A-Za-z0-9.:-]+)*$'; then
+            echo "::error::SPX_ALLOWED_ORIGINS must be origins separated by commas, without spaces or quotes. See docs/deployment.md."
+            missing=1
+          fi
           exit "$missing"
 
       - name: Name the image after the commit
@@ -75,29 +80,37 @@ jobs:
           echo "$ACCESS_TOKEN" | docker login --username oauth2accesstoken --password-stdin "https://${GCP_REGION}-docker.pkg.dev"
           docker push "$IMAGE"
 
+      - name: Install the Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
       # The settings of the service live here, so that a change goes through a pull request.
+      # The variables travel in a file: the origin list holds commas, which a command line would split.
       - name: Deploy to Cloud Run
         id: deploy
-        uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3
-        with:
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-          region: ${{ vars.GCP_REGION }}
-          service: ${{ env.SERVICE }}
-          image: ${{ env.IMAGE }}
-          timeout: 60s
-          env_vars_update_strategy: overwrite
-          env_vars: |-
-            SPX_ENVIRONMENT=production
-            SPX_LOG_LEVEL=INFO
-            SPX_ALLOWED_ORIGINS="${{ vars.SPX_ALLOWED_ORIGINS }}"
-          flags: >-
-            --service-account=${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
-            --cpu=1
-            --memory=1Gi
-            --min-instances=0
-            --max-instances=3
-            --concurrency=20
-            --cpu-boost
+        run: |
+          variables="${RUNNER_TEMP}/service-variables.yaml"
+          {
+            echo 'SPX_ENVIRONMENT: "production"'
+            echo 'SPX_LOG_LEVEL: "INFO"'
+            echo "SPX_ALLOWED_ORIGINS: \"${SPX_ALLOWED_ORIGINS}\""
+          } > "$variables"
+          gcloud run deploy "$SERVICE" \
+            --project="$GCP_PROJECT_ID" \
+            --region="$GCP_REGION" \
+            --image="$IMAGE" \
+            --service-account="$GCP_RUNTIME_SERVICE_ACCOUNT" \
+            --env-vars-file="$variables" \
+            --cpu=1 \
+            --memory=1Gi \
+            --min-instances=0 \
+            --max-instances=3 \
+            --concurrency=20 \
+            --timeout=60s \
+            --cpu-boost \
+            --update-labels="managed-by=github-actions,commit-sha=${GITHUB_SHA}" \
+            --quiet
+          url="$(gcloud run services describe "$SERVICE" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --format='value(status.url)')"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
 
       - name: Check the deployed service
         env:
