@@ -1,5 +1,5 @@
 ---
-description: Read Nic↔Tommy bridge; stay independent; human overrides bridge
+description: Bridge hierarchy Tommy→Nic; human overrides; safe loop ticks
 alwaysApply: true
 ---
 
@@ -7,11 +7,17 @@ alwaysApply: true
 
 Every session:
 
-1. **Read** `docs/AGENT_BRIDGE.md` (including the independence charter).
-2. Notice open **Need** / **Response** from the other owner.
-3. **Human first:** if the user’s request conflicts with the bridge, follow the user, then update the bridge.
-4. **Do not merge into one AI.** Nic and Tommy agents stay independent (different goals/philosophy). Bridge needs are requests, not orders — improve or reject weak ideas; never rubber-stamp the other side’s incomplete sketch.
-5. When you finish meaningful work, **update** the bridge briefly (shipped + needs). Keep it short.
-6. Ownership: Nic = `frontend/`, Tommy = `backend/`. Shared contract changes need a visible PR.
+1. **Read** `docs/AGENT_BRIDGE.md` (intelligence hierarchy + open Needs).
+2. **Hierarchy:** Tommy’s agent (any model) is the **more reflective** planner. Nic **strongly weights** Tommy notes → verify, implement, or blocker-reply. Nic→Tommy notes are **advisory only**. Do not hard-code model names.
+3. **Human first:** live user instruction beats the bridge.
+4. Update the bridge briefly after meaningful work. Keep it short. English only.
+5. Ownership: Nic = `frontend/`, Tommy = `backend/`.
 
-Also skim `AGENTS.md` at the repo root.
+# Loop tick safety (Nic)
+
+If an `AGENT_LOOP_TICK_nicwin` arrives while you are mid-edit:
+
+1. **Finish the current atomic change** before starting tick work.
+2. Do **not** start a second parallel feature mid-diff.
+3. Do **not** abort a half-applied refactor to chase the tick.
+4. After the atomic unit is safe: read bridge + `docs/win-progress.md`, then continue the tick prompt.
