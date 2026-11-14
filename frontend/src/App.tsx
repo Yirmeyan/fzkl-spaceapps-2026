@@ -219,11 +219,20 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.targetKey]);
 
+  // Frames for Single play / stack / track: respect Pass All|1|2|3.
   const filtered = useMemo(() => {
     if (load.status !== "ready") return [];
     const byPass = filterFrames(load.data.frames, { pass: view.pass, detector: view.detector });
     return filterNearWavelength(byPass, view.waveUm, view.waveTolUm);
   }, [load, view.pass, view.detector, view.waveUm, view.waveTolUm]);
+
+  // Difference must see BOTH passes. Never apply the Pass 1/2/3 filter here
+  // (that was the bug: Pass 1 alone made pass B empty → nonsense image).
+  const forDifference = useMemo(() => {
+    if (load.status !== "ready") return [];
+    const byDet = filterFrames(load.data.frames, { pass: null, detector: view.detector });
+    return filterNearWavelength(byDet, view.waveUm, view.waveTolUm);
+  }, [load, view.detector, view.waveUm, view.waveTolUm]);
 
   // Keep frame index in range
   useEffect(() => {
@@ -242,31 +251,49 @@ export default function App() {
   }, []);
 
   const display = useMemo(() => {
-    if (load.status !== "ready" || filtered.length === 0) return null;
+    if (load.status !== "ready") return null;
     const size = load.data.grid.size;
+
+    if (view.mode === "difference") {
+      const pool = forDifference;
+      const nA = pool.filter((f) => f.exposure.pass === view.diffPassA).length;
+      const nB = pool.filter((f) => f.exposure.pass === view.diffPassB).length;
+      if (nA === 0 || nB === 0) {
+        return {
+          kind: "difference" as const,
+          error: `Need frames in both passes. Pass ${view.diffPassA} has ${nA}, pass ${view.diffPassB} has ${nB}.`,
+          size,
+        };
+      }
+      const diff = differencePasses(pool, view.diffPassA, view.diffPassB);
+      const limits = applyContrast(computeDisplayLimits([diff]), view.contrast);
+      const meta = pool.find((f) => f.exposure.pass === view.diffPassA) ?? pool[0]!;
+      return {
+        kind: "difference" as const,
+        pixels: diff.pixels,
+        mask: diff.mask,
+        background: 0,
+        lo: limits.lo,
+        hi: limits.hi,
+        size,
+        targetXy: meta.frame.target_xy,
+        meta,
+        countA: nA,
+        countB: nB,
+      };
+    }
+
+    if (filtered.length === 0) return null;
     const active = filtered[Math.min(view.frameIndex, filtered.length - 1)]!;
 
     if (view.mode === "stack") {
       const stacked = stackFrames(filtered);
       const limits = applyContrast(computeDisplayLimits([stacked]), view.contrast);
       return {
+        kind: "compose" as const,
         pixels: stacked.pixels,
         mask: stacked.mask,
         background: stacked.background,
-        lo: limits.lo,
-        hi: limits.hi,
-        size,
-        targetXy: active.frame.target_xy,
-        meta: active,
-      };
-    }
-    if (view.mode === "difference") {
-      const diff = differencePasses(filtered, view.diffPassA, view.diffPassB);
-      const limits = applyContrast(computeDisplayLimits([diff]), view.contrast);
-      return {
-        pixels: diff.pixels,
-        mask: diff.mask,
-        background: 0,
         lo: limits.lo,
         hi: limits.hi,
         size,
@@ -278,6 +305,7 @@ export default function App() {
       const tracked = stackTrackingTarget(filtered);
       const limits = applyContrast(computeDisplayLimits([tracked]), view.contrast);
       return {
+        kind: "compose" as const,
         pixels: tracked.pixels,
         mask: tracked.mask,
         background: 0,
@@ -291,6 +319,7 @@ export default function App() {
 
     const limits = applyContrast(load.data.limits, view.contrast);
     return {
+      kind: "single" as const,
       pixels: active.pixels,
       mask: active.mask,
       background: active.frame.background,
@@ -300,10 +329,30 @@ export default function App() {
       targetXy: active.frame.target_xy,
       meta: active,
     };
-  }, [load, filtered, view.frameIndex, view.mode, view.diffPassA, view.diffPassB, view.contrast]);
+  }, [
+    load,
+    filtered,
+    forDifference,
+    view.frameIndex,
+    view.mode,
+    view.diffPassA,
+    view.diffPassB,
+    view.contrast,
+  ]);
 
   const passes = load.status === "ready" ? uniquePasses(load.data.frames) : [];
   const detectors = load.status === "ready" ? uniqueDetectors(load.data.frames) : [];
+  const matchPreviewCount =
+    load.status === "ready" && display && "meta" in display && display.meta
+      ? filterNearWavelength(
+          filterFrames(load.data.frames, {
+            pass: view.mode === "difference" ? null : view.pass,
+            detector: view.detector,
+          }),
+          Number(display.meta.frame.wavelength_um.toFixed(4)),
+          view.waveTolUm,
+        ).length
+      : 0;
 
   async function onSearch(e: FormEvent) {
     e.preventDefault();
@@ -401,7 +450,7 @@ export default function App() {
             </div>
           )}
           {load.status === "error" && <div className="status-banner error">{load.message}</div>}
-          {display && view.mode === "single" && (
+          {display && view.mode === "single" && display.kind === "single" && (
             <>
               <SkyPlayer
                 frames={filtered}
@@ -451,8 +500,35 @@ export default function App() {
               />
             </>
           )}
-          {display && view.mode !== "single" && (
+          {display && view.mode === "difference" && display.kind === "difference" && (
             <>
+              {"error" in display && display.error ? (
+                <div className="status-banner error">{display.error}</div>
+              ) : (
+                <FrameCanvas
+                  pixels={display.pixels!}
+                  mask={display.mask!}
+                  size={display.size}
+                  lo={display.lo!}
+                  hi={display.hi!}
+                  background={0}
+                  colorMap={view.colorMap}
+                  targetXy={display.targetXy}
+                />
+              )}
+              <p className="mode-note">
+                <strong>
+                  Pass {view.diffPassA} (−{display.countA ?? "?"} frames) minus pass{" "}
+                  {view.diffPassB} (−{display.countB ?? "?"} frames)
+                </strong>
+                . Bright / dark dipoles = the star moved between visits. Pick A and B below — the
+                Pass All/1/2/3 filter is for Single play only.
+              </p>
+            </>
+          )}
+          {display &&
+            (view.mode === "stack" || view.mode === "track") &&
+            display.kind === "compose" && (
               <FrameCanvas
                 pixels={display.pixels}
                 mask={display.mask}
@@ -463,39 +539,33 @@ export default function App() {
                 colorMap={view.colorMap}
                 targetXy={display.targetXy}
               />
-              {view.mode === "difference" && (
-                <p className="mode-note">
-                  Difference = mean(pass {view.diffPassA}) − mean(pass {view.diffPassB}). Red / dark
-                  ≈ little change; bright blobs ≈ what moved or changed brightness. Pick passes A
-                  and B in the sidebar (not “All”).
-                </p>
-              )}
-            </>
-          )}
+            )}
         </section>
 
         <aside className="side">
           <div className="controls">
-            <fieldset>
-              <legend>Pass</legend>
-              <button
-                type="button"
-                className={view.pass == null ? "active" : ""}
-                onClick={() => patchView({ pass: null, frameIndex: 0 })}
-              >
-                All
-              </button>
-              {passes.map((p) => (
+            {view.mode !== "difference" && (
+              <fieldset>
+                <legend>Pass (which visit to play)</legend>
                 <button
-                  key={p}
                   type="button"
-                  className={view.pass === p ? "active" : ""}
-                  onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                  className={view.pass == null ? "active" : ""}
+                  onClick={() => patchView({ pass: null, frameIndex: 0 })}
                 >
-                  {p}
+                  All
                 </button>
-              ))}
-            </fieldset>
+                {passes.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={view.pass === p ? "active" : ""}
+                    onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </fieldset>
+            )}
 
             {detectors.length > 1 && (
               <fieldset>
@@ -535,7 +605,14 @@ export default function App() {
                   type="button"
                   className={view.mode === mode ? "active" : ""}
                   onClick={() =>
-                    patchView({ mode, playing: mode === "single" ? view.playing : false })
+                    patchView({
+                      mode,
+                      playing: mode === "single" ? view.playing : false,
+                      // Difference uses A/B only — clear the Single pass filter.
+                      pass: mode === "difference" ? null : view.pass,
+                      diffPassA: mode === "difference" ? 1 : view.diffPassA,
+                      diffPassB: mode === "difference" ? 3 : view.diffPassB,
+                    })
                   }
                 >
                   {label}
@@ -543,37 +620,81 @@ export default function App() {
               ))}
             </fieldset>
 
-            <fieldset>
-              <legend>Wavelength</legend>
-              <button
-                type="button"
-                className={view.waveUm == null ? "active" : ""}
-                onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
-              >
-                All λ
-              </button>
-              <button
-                type="button"
-                className={view.waveUm != null ? "active" : ""}
-                disabled={!display}
-                title="Keep frames near this frame's wavelength so blinking is not confused with the spectrum"
-                onClick={() => {
-                  if (!display) return;
-                  patchView({
-                    waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
-                    frameIndex: 0,
-                  });
-                }}
-              >
-                Match this λ
-              </button>
-              {view.waveUm != null && (
-                <span className="wave-chip">
-                  {view.waveUm.toFixed(3)} ± {view.waveTolUm.toFixed(3)} µm · {filtered.length}{" "}
-                  frames
-                </span>
-              )}
-            </fieldset>
+            {view.mode === "difference" && (
+              <fieldset>
+                <legend>Difference: pass A − pass B</legend>
+                <div className="diff-row">
+                  <span>A (minus)</span>
+                  {passes.map((p) => (
+                    <button
+                      key={`a-${p}`}
+                      type="button"
+                      className={view.diffPassA === p ? "active" : ""}
+                      onClick={() => patchView({ diffPassA: p })}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+                <div className="diff-row">
+                  <span>B (from)</span>
+                  {passes.map((p) => (
+                    <button
+                      key={`b-${p}`}
+                      type="button"
+                      className={view.diffPassB === p ? "active" : ""}
+                      onClick={() => patchView({ diffPassB: p })}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+                <p className="wave-chip">
+                  Showing mean(pass {view.diffPassA}) − mean(pass {view.diffPassB}). Try 1 − 3.
+                </p>
+              </fieldset>
+            )}
+
+            {view.mode === "single" && (
+              <fieldset>
+                <legend>Wavelength</legend>
+                <button
+                  type="button"
+                  className={view.waveUm == null ? "active" : ""}
+                  onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
+                >
+                  All λ
+                </button>
+                <button
+                  type="button"
+                  className={view.waveUm != null ? "active" : ""}
+                  disabled={!display || !("meta" in display) || !display.meta}
+                  title="Keep only frames near this frame’s wavelength"
+                  onClick={() => {
+                    if (!display || !("meta" in display) || !display.meta) return;
+                    const wave = Number(display.meta.frame.wavelength_um.toFixed(4));
+                    patchView({
+                      waveUm: wave,
+                      frameIndex: 0,
+                      playing: false,
+                    });
+                  }}
+                >
+                  Match this λ
+                </button>
+                {view.waveUm != null ? (
+                  <span className="wave-chip">
+                    Locked {view.waveUm.toFixed(3)} ± {view.waveTolUm.toFixed(3)} µm →{" "}
+                    <strong>{filtered.length} frames</strong> (was more with All λ)
+                  </span>
+                ) : (
+                  <span className="wave-chip">
+                    All λ: {filtered.length} frames. Match would keep ~{matchPreviewCount} near this
+                    frame.
+                  </span>
+                )}
+              </fieldset>
+            )}
 
             <fieldset className="contrast-field">
               <legend>Contrast</legend>
@@ -609,46 +730,16 @@ export default function App() {
                 Gray
               </button>
             </fieldset>
-
-            {view.mode === "difference" && (
-              <fieldset className="diff-picks">
-                <legend>Passes A − B</legend>
-                <label>
-                  A
-                  <select
-                    value={view.diffPassA}
-                    onChange={(e) => patchView({ diffPassA: Number(e.target.value) })}
-                  >
-                    {passes.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  B
-                  <select
-                    value={view.diffPassB}
-                    onChange={(e) => patchView({ diffPassB: Number(e.target.value) })}
-                  >
-                    {passes.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </fieldset>
-            )}
           </div>
 
-          {display && load.status === "ready" && (
+          {display && load.status === "ready" && display.meta && (
             <MetadataPanel
               target={load.data.target}
               grid={load.data.grid}
               frame={display.meta}
-              filteredCount={filtered.length}
+              filteredCount={
+                view.mode === "difference" ? forDifference.length : filtered.length
+              }
               mode={view.mode}
             />
           )}
