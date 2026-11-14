@@ -63,7 +63,12 @@ def test_window_of_a_real_file_is_identical_to_the_cutout_of_the_archive():
 
     async def run():
         async with httpx2.AsyncClient(timeout=60, follow_redirects=True) as client:
-            response = await client.get(cutout_url)
+            # The cutout service refuses requests in bursts: give it a few chances.
+            for _ in range(5):
+                response = await client.get(cutout_url)
+                if response.status_code not in (502, 503):
+                    break
+                await asyncio.sleep(4)
             response.raise_for_status()
             reader = Level2Reader(
                 S3Reader(

@@ -98,9 +98,9 @@ class RawWindow:
     """Pixels of a window as the file stores them, rows first."""
 
     window: Window
-    # Surface brightness in MJy/sr, and its variance.
+    # Surface brightness in MJy/sr, and its variance when it was asked for.
     image: np.ndarray
-    variance: np.ndarray
+    variance: np.ndarray | None
     # One 32-bit mask per pixel. The meaning of each bit is in the header.
     flags: np.ndarray
 
@@ -194,6 +194,16 @@ def _flag_planes(header: fits.Header) -> dict[str, int]:
     return planes
 
 
+def _check_window(window: Window, layout: Layout) -> None:
+    inside = (
+        0 <= window.x0 < window.x1 <= layout.width and 0 <= window.y0 < window.y1 <= layout.height
+    )
+    if not inside:
+        raise ValueError(
+            f"{window} is empty or outside an image of {layout.width} x {layout.height}"
+        )
+
+
 def parse_wavelength_table(raw: bytes) -> WavelengthTable:
     """Read the WCS-WAVE unit from the last bytes of a file."""
     name = _WAVELENGTH_UNIT
@@ -259,24 +269,34 @@ class Level2Reader:
                 self._layouts.popitem(last=False)
         return layout
 
-    async def read_window(self, exposure_id: str, window: Window) -> RawWindow:
-        """Image, variance and flags of a window of an exposure."""
+    async def read_window(
+        self, exposure_id: str, window: Window, *, with_variance: bool = True
+    ) -> RawWindow:
+        """Image and flags of a window of an exposure, and its variance unless told otherwise.
+
+        The variance weighs as much as the image and only a measurement needs it: a
+        caller that measures a small part asks for it with `read_variance`.
+        """
         key = key_from_id(exposure_id)
         layout = await self.layout(exposure_id)
-        inside = (
-            0 <= window.x0 < window.x1 <= layout.width
-            and 0 <= window.y0 < window.y1 <= layout.height
-        )
-        if not inside:
-            raise ValueError(
-                f"{window} is empty or outside an image of {layout.width} x {layout.height}"
-            )
-        image, variance, flags = await asyncio.gather(
+        _check_window(window, layout)
+        reads = [
             self._band(key, layout.image_start, layout.width, window, "IMAGE"),
-            self._band(key, layout.variance_start, layout.width, window, "VARIANCE"),
             self._flag_rows(key, layout, window),
+        ]
+        if with_variance:
+            reads.append(self._band(key, layout.variance_start, layout.width, window, "VARIANCE"))
+        image, flags, *variance = await asyncio.gather(*reads)
+        return RawWindow(
+            window=window, image=image, variance=variance[0] if variance else None, flags=flags
         )
-        return RawWindow(window=window, image=image, variance=variance, flags=flags)
+
+    async def read_variance(self, exposure_id: str, window: Window) -> np.ndarray:
+        """Variance of a window of an exposure, in the square of the unit of the image."""
+        key = key_from_id(exposure_id)
+        layout = await self.layout(exposure_id)
+        _check_window(window, layout)
+        return await self._band(key, layout.variance_start, layout.width, window, "VARIANCE")
 
     async def wavelength_table(self, exposure_id: str) -> WavelengthTable:
         """Wavelength table of an exposure. One read serves a whole detector of a release."""

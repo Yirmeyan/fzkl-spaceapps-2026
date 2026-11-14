@@ -19,9 +19,12 @@ RUN uv sync --locked --no-dev
 RUN useradd --create-home --uid 10001 app
 USER app
 
+# One worker process per CPU the service is given: a frame is mostly decryption and
+# arithmetic, which one process cannot spread over two CPUs.
 ENV PATH="/app/.venv/bin:$PATH" \
-    PORT=8080
+    PORT=8080 \
+    WEB_CONCURRENCY=2
 EXPOSE 8080
 
 # Cloud Run provides PORT. The shell form expands it, and exec keeps uvicorn as PID 1.
-CMD ["sh", "-c", "exec uvicorn spherex_explorer.api.app:create_app --factory --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "exec uvicorn spherex_explorer.api.app:create_app --factory --host 0.0.0.0 --port ${PORT} --workers ${WEB_CONCURRENCY}"]
