@@ -1826,10 +1826,23 @@ select {
   margin-bottom: 0.15rem;
 }
 
-.candidates-sentence {
+.candidates-sentence,
+.candidates-line {
   display: block;
   font-size: 0.8rem;
   line-height: 1.35;
+}
+
+.candidates-line + .candidates-line {
+  margin-top: 0.2rem;
+}
+
+.candidates-line-sure {
+  color: #93a4b8;
+}
+
+.candidates-line-catalog {
+  color: #fdba74;
 }
 
 .candidates-study {
