@@ -19,7 +19,7 @@ Project of team **Foxtrot Zulu Kilo Lima** for the 2026 NASA Space Apps Challeng
 | [Epsilon Indi B](https://fzkl-spaceapps-2026.pages.dev/?target=epsindi) | The spectrum of a pair of brown dwarfs, measured on the fly: peaks near 1.3, 1.6, 2.1 and 4.0 micrometers, and deep bands where the water and the methane of their atmosphere absorb the light |
 | [RW Aurigae](https://fzkl-spaceapps-2026.pages.dev/?target=rwaur) | A young star that varies: between the first visit and the third, its light near 5 micrometers falls by half while its light below 1.1 micrometer rises by half |
 | [WISE 0855](https://fzkl-spaceapps-2026.pages.dev/?target=wise0855) | A cold world 7 light-years away that no single image shows. It moves by 8 arcseconds a year |
-| [R Draconis](https://fzkl-spaceapps-2026.pages.dev/?target=rdra) | A giant variable star, too bright for SPHEREx: the tool says so instead of showing a wrong number |
+| [R Draconis](https://fzkl-spaceapps-2026.pages.dev/?target=rdra) | A giant variable star, too bright for SPHEREx: the tool gives no flux and says why, instead of showing a wrong number. It still tells that the star faded by half in a year, read on the halo of light around it |
 
 These are the five test targets of the challenge. Any other place works the same way: type a name or coordinates.
 
@@ -32,7 +32,7 @@ These are the five test targets of the challenge. Any other place works the same
 | Easy to update with new data releases | Done. Nothing is copied ahead of time for other places: the service asks the archive for the exposures of a position each time, and the releases it searches are one setting |
 | Use the 102 bands, the six detectors, and spectra on the fly | Done. One request measures an object in every exposure that covers it, from 0.75 to 5 micrometers: [`GET /api/spectrum`](docs/api-contract.md#get-apispectrum) |
 | Add or subtract images taken at different dates | Done in the browser: blink, blend and difference between visits, and the stack of the frames of a visit, which brings out an object as faint as WISE 0855 |
-| Find what moves or varies | Beyond what was asked: the service finds it by itself. It follows every source of a field from visit to visit and lists the ones that moved or changed, with their speed, their distance when it can be measured, and a confidence. See [Candidates](docs/api-contract.md#candidates). It works for any place of the sky, and the panel that shows the list is being built |
+| Find what moves or varies | Beyond what was asked: the service finds it by itself. It follows every source of a field from visit to visit and lists the ones that moved or changed, with their speed, their distance when it can be measured, and a confidence. See [Candidates](docs/api-contract.md#candidates). It works for any place of the sky, and a panel shows the list |
 | Coordinates in the URL, to embed the tool elsewhere | Done. The address of the page holds the target, a preset, a name or coordinates, and the view: detector, visit, mode |
 | Adjustable field of view | The service accepts any width from 0.02 to 0.5 degree. The interface shows 0.1 degree |
 | Metadata such as the contamination flags | Done. Each image shows its date, its wavelength, its detector, its visit and the quality of its measurement, and a switch tints the flagged pixels. See [the frame](docs/api-contract.md#the-frame) |
@@ -43,7 +43,7 @@ These are the five test targets of the challenge. Any other place works the same
 - **Two images in a row are not the same color.** SPHEREx has no filter wheel: the wavelength an object is seen at depends on where it falls on the detector, and changes at every exposure. A movie sorted by date alone flickers for no reason. The tool compares images of the same detector, visit against visit.
 - **The interesting objects move.** Barnard's Star is more than 4 arcminutes from its catalog position of the year 2000. The service computes where a target was at the date of each exposure, and searches the archive there.
 - **A file weighs 62 MB and a view needs 60 of them.** The service reads only the bytes it needs in the public files, about 1 percent of each: a few rows of pixels, their flags, and the headers.
-- **Bright stars saturate, and the files say it two ways.** A pixel flagged as overflowing may only be near saturation and still hold a good value, or be truly saturated and hold none. The tool keeps the first and warns, and refuses to give a flux for the second.
+- **Bright stars saturate, and the files say it two ways.** A pixel flagged as overflowing may only be near saturation and still hold a good value, or be truly saturated and hold none. The tool keeps the first and warns, and refuses to give a flux for the second. A saturated star is not lost for all that: its halo, far from the heart, still follows its brightness from one visit to the next.
 - **The archive has bad minutes.** Its search fails in bursts of a few seconds. The service tries again, remembers what it learned, and tells the browser when to come back.
 
 ## What we checked
@@ -61,9 +61,10 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Does it find what moves, with no position given? | 16 of the 17 nearby stars tried that move by more than 1 arcsecond, the three test targets among them, each with a speed within two sigma of its catalog. The one missed, Ross 128, is too bright and too slow. 32 quiet fields, 831 sources, give no candidate |
 | Can it tell how far a moving object is? | For seven of them the swing with the seasons is measured, a twelfth to a thirtieth of a SPHEREx pixel, and gives the distance: Luhman 16 at 7.0 light-years for 6.5 in the catalog, Epsilon Indi B at 11.0 for 12.0, van Maanen's Star at 15.2 for 14.1 |
 | Does it find a star that varies, unasked? | RW Aurigae, and more: pointed at a place of the Milky Way taken at random, it flags one star of 35, IRAS 18372-0002, a long-period variable known to SIMBAD, to the AAVSO and to Gaia. Toward the center of the Milky Way it flags three, one of them a variable of Gaia |
+| Can it follow a star too bright to be measured? | Through the halo of light around it. R Draconis saturates the six detectors, and its halo says it faded by half between June 2025 and June 2026: a Mira variable going from its maximum to its minimum. Checked blind on 16 saturated stars chosen before the run: five of eight known long-period variables were flagged, each change in the direction the AAVSO index predicts, and none of eight steady giants |
 | How often is it wrong? | The one blind round, 21 fields chosen before the run, gave one false alarm in 16 quiet fields: a source cut by the edge of the view. Such positions are now refused. Every rule, and what it cost to find it, is in [the contract](docs/api-contract.md#how-it-was-checked) |
 
-The service has 453 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
+The service has 465 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
 
 ## How it works
 

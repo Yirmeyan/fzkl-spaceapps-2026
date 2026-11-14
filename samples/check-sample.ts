@@ -122,7 +122,7 @@ const POINT_KEYS = ["id", "detector", "pass", "time_mjd", "time_iso", "wavelengt
 const WITHOUT_VALUE = ["masked", "saturated", "outside"];
 const CANDIDATES_FORMAT = "spherex-explorer/candidates";
 const CANDIDATES_KEYS = ["format", "version", "generated", "target", "grid", "frames", "sources", "visits", "limits", "saturated", "candidates"];
-const CANDIDATE_KEYS = ["kind", "confidence", "significance", "is_target", "ra", "dec", "epoch", "xy", "detectors", "track", "motion", "changes"];
+const CANDIDATE_KEYS = ["kind", "method", "confidence", "significance", "is_target", "ra", "dec", "epoch", "xy", "detectors", "track", "motion", "changes"];
 const SIGHTING_KEYS = ["pass", "time_mjd", "time_iso", "ra", "dec", "xy", "error_arcsec", "detectors"];
 const MOTION_KEYS = [
   "shift_arcsec",
@@ -404,6 +404,7 @@ function checkCandidates(file: any): CandidatesSummary {
     const where = `candidate at ${candidate.xy}: `;
     check(sameKeys(candidate, CANDIDATE_KEYS), where + "fields");
     check(["moved", "changed"].includes(candidate.kind), where + "kind");
+    check(["source", "halo"].includes(candidate.method), where + "method");
     check(["high", "medium"].includes(candidate.confidence), where + "confidence");
     check(candidate.significance >= limits.significance, where + "significance under the limit");
     check(typeof candidate.is_target === "boolean", where + "is_target");
@@ -428,6 +429,18 @@ function checkCandidates(file: any): CandidatesSummary {
       check(change.ratio > 0 && change.error > 0 && Math.abs(change.ratio - 1) >= limits.change, where + "ratio of a change");
       check(change.significance >= limits.significance, where + "a change under the limit");
       check(change.wavelength_um?.[0] <= change.wavelength_um?.[1], where + "wavelengths of a change");
+    }
+    const onHalo = candidate.method === "halo";
+    if (onHalo) {
+      // A saturated star has no source to follow: only its halo can change, and it is
+      // placed where the file puts the saturated star, to the radius of its heart.
+      const heart = (file.saturated ?? []).find((star: any) => star.xy[0] === candidate.xy[0] && star.xy[1] === candidate.xy[1]);
+      check(candidate.kind === "changed", where + "a halo can only change");
+      check(heart !== undefined, where + "a candidate on a halo is not one of the saturated stars");
+      check(
+        heart !== undefined && track.every((sighting) => Math.abs(sighting.error_arcsec - heart.radius_arcsec) <= 0.1),
+        where + "a saturated star is placed to the radius of its heart",
+      );
     }
     if (candidate.kind === "moved") {
       moved++;
@@ -465,7 +478,7 @@ function checkCandidates(file: any): CandidatesSummary {
     } else {
       check(candidate.motion === null, where + "a changed candidate carries no motion");
       check(new Set(changes.map((change) => change.detector)).size >= 2, where + "a change needs two detectors");
-      lines.push(`changed (${candidate.confidence}): ${changes.map((change) => `x${change.ratio} in detector ${change.detector}`).join(", ")}`);
+      lines.push(`changed (${candidate.confidence}${onHalo ? ", on the halo of a saturated star" : ""}): ${changes.map((change) => `x${change.ratio} in detector ${change.detector}`).join(", ")}`);
     }
   }
   return { count: candidates.length, moved, changed: candidates.length - moved, frames: file.frames ?? 0, lines };

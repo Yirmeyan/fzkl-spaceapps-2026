@@ -51,6 +51,9 @@ _ARCSEC_PER_DEGREE = 3600.0
 _MAS_PER_ARCSEC = 1000.0
 _DAYS_PER_YEAR = 365.25
 _MJD_J2000 = 51544.5
+# What a candidate was measured on: the source itself, or the halo of a saturated star.
+_ON_THE_SOURCE = "source"
+_ON_THE_HALO = "halo"
 _EPOCH_DECIMALS = 3
 _PLACE_DECIMALS = 6
 _PIXEL_DECIMALS = 2
@@ -121,6 +124,7 @@ class ChangeOut(BaseModel):
 
 class CandidateOut(BaseModel):
     kind: str
+    method: str
     confidence: str
     significance: float
     is_target: bool
@@ -233,6 +237,7 @@ def _candidate_out(target: Target, grid: Grid, candidate: Candidate) -> Candidat
     moved = candidate.kind == MOVED and source.motion is not None
     return CandidateOut(
         kind=candidate.kind,
+        method=_ON_THE_HALO if candidate.halo else _ON_THE_SOURCE,
         confidence=candidate.confidence,
         significance=round(candidate.significance, 1),
         is_target=_is_target(target, grid, source.sightings),

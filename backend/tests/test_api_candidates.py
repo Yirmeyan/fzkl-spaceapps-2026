@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from level2_file import MJD, SKY_CENTER, FakeStorage, build_level2_file
-from made_up_field import OVERFLOW, field_frames, steady_stars
+from made_up_field import OVERFLOW, add_bright_star, field_frames, steady_stars
 from spherex_explorer.api.app import create_app
 from spherex_explorer.api.candidates import candidates_out
 from spherex_explorer.archive import Exposure, Level2Reader, key_from_id
@@ -83,6 +83,7 @@ def test_a_motion_is_told_in_the_words_of_the_sky(nearby):
     found = nearby["candidates"][0]
     assert list(found) == [
         "kind",
+        "method",
         "confidence",
         "significance",
         "is_target",
@@ -96,6 +97,7 @@ def test_a_motion_is_told_in_the_words_of_the_sky(nearby):
         "changes",
     ]
     assert (found["kind"], found["confidence"], found["is_target"]) == ("moved", "high", True)
+    assert found["method"] == "source"
     assert found["significance"] > 10
     assert found["detectors"] == [2, 5]
     assert found["changes"] == []
@@ -200,6 +202,31 @@ def test_a_saturated_star_is_placed_on_the_sky():
     assert (star["ra"], star["dec"]) == pytest.approx(place(48.0, 48.0), abs=1e-6)
     assert star["radius_arcsec"] == pytest.approx(np.sqrt(49 / np.pi) * SCALE, abs=0.1)
     assert star["detectors"] == [2, 5]
+
+
+def test_a_saturated_star_is_a_candidate_when_its_halo_changed():
+    def scene(detector, visit, wavelength):
+        return [*steady_stars(), (48.0, 48.0, 5000.0)]
+
+    frames = field_frames(scene, detectors=(4, 5))
+    add_bright_star(
+        frames, 48.0, 48.0, lambda visit: 10.0 * (0.5 if visit == 3 else 1.0), saturating=(4, 5)
+    )
+    ra, dec = place(48.0, 48.0)
+    report = candidates_out(report_field(Target(ra=ra, dec=dec), GRID, frames))
+    out = report.model_dump(by_alias=True)
+
+    assert len(out["candidates"]) == 1
+    found, heart = out["candidates"][0], out["saturated"][0]
+    assert (found["kind"], found["method"]) == ("changed", "halo")
+    assert (found["is_target"], found["motion"]) == (True, None)
+    assert (found["xy"], found["detectors"]) == (heart["xy"], [4, 5])
+    assert [sighting["pass"] for sighting in found["track"]] == [1, 2, 3]
+    assert all(
+        sighting["error_arcsec"] == pytest.approx(heart["radius_arcsec"], abs=0.01)
+        for sighting in found["track"]
+    )
+    assert found["changes"][0]["ratio"] == pytest.approx(0.5, abs=0.03)
 
 
 # --- the route
