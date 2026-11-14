@@ -2,7 +2,12 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { type CandidatesFile, candidateLines, emptyCandidatesSentence } from "./candidates";
+import {
+  type CandidatesFile,
+  candidateLines,
+  discoveryFlashLine,
+  emptyCandidatesSentence,
+} from "./candidates";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -60,5 +65,38 @@ describe("candidates", () => {
     expect(emptyCandidatesSentence({ significance: 5, shift_arcsec: 1, change: 0.1 }, 12)).toMatch(
       /Nothing moved by more than/,
     );
+  });
+
+  it("explains a halo change without a catalog rate line", () => {
+    const c = {
+      kind: "changed",
+      method: "halo",
+      confidence: "medium",
+      significance: 8,
+      is_target: true,
+      ra: 0,
+      dec: 0,
+      epoch: 2025.5,
+      xy: [64, 64] as [number, number],
+      detectors: [5, 6],
+      track: [],
+      motion: null,
+      changes: [
+        {
+          detector: 5,
+          from_pass: 1,
+          to_pass: 3,
+          ratio: 0.45,
+          error: 0.05,
+          significance: 8,
+          wavelength_um: [4.4, 5.0] as [number, number],
+        },
+      ],
+    };
+    const lines = candidateLines(c, 100, 50);
+    expect(lines.what).toMatch(/2\.2× fainter/);
+    expect(lines.catalog).toBeNull();
+    expect(lines.howMeasured).toMatch(/halo of light/);
+    expect(discoveryFlashLine(c)).toBe("About 2.2× fainter between Visit 1 and Visit 3");
   });
 });

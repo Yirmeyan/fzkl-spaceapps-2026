@@ -39,6 +39,11 @@ export interface CandidateChange {
 
 export interface Candidate {
   kind: string;
+  /**
+   * What was measured: `source` (the object) or `halo` (light around a
+   * saturated heart). Unknown methods should be ignored gracefully.
+   */
+  method?: string;
   confidence: string;
   significance: number;
   is_target: boolean;
@@ -97,11 +102,13 @@ export interface CandidateLines {
   howFar: string | null;
   sure: string;
   catalog: string | null;
+  /** Extra tip when the measurement is on the saturated halo (Tommy 18:20). */
+  howMeasured: string | null;
 }
 
 /**
- * Short lines for the panel (Tommy 17:40): what happened, how far, how sure.
- * Catalog rate is hypot(pm_ra, pm_dec)/1000 when is_target and PM is known.
+ * Short lines for the panel (Tommy 17:40 / 18:20): what happened, how far, how sure.
+ * Catalog rate only beside a measured motion — never on a `changed` candidate.
  */
 export function candidateLines(
   c: Candidate,
@@ -110,14 +117,10 @@ export function candidateLines(
 ): CandidateLines {
   const conf = c.confidence === "high" ? "high confidence" : "medium confidence";
   const sure = `Candidate, ${conf}.`;
-  let catalog: string | null = null;
-  if (c.is_target) {
-    const ra = catalogPmRa ?? 0;
-    const dec = catalogPmDec ?? 0;
-    if (ra !== 0 || dec !== 0) {
-      catalog = `Catalog: ${(Math.hypot(ra, dec) / 1000).toFixed(2)}″ per year`;
-    }
-  }
+  const howMeasured =
+    c.method === "halo"
+      ? "Read on the halo of light around the star. The star itself is too bright for SPHEREx."
+      : null;
 
   if (c.kind === "moved" && c.motion) {
     const m = c.motion;
@@ -126,11 +129,20 @@ export function candidateLines(
       m.distance_ly != null && m.distance_ly_range
         ? `About ${m.distance_ly.toFixed(1)} light-years away, between ${m.distance_ly_range[0].toFixed(1)} and ${m.distance_ly_range[1].toFixed(1)}, from its swing with the seasons`
         : null;
-    return { what, howFar, sure, catalog };
+    let catalog: string | null = null;
+    if (c.is_target) {
+      const ra = catalogPmRa ?? 0;
+      const dec = catalogPmDec ?? 0;
+      if (ra !== 0 || dec !== 0) {
+        catalog = `Catalog: ${(Math.hypot(ra, dec) / 1000).toFixed(2)}″ per year`;
+      }
+    }
+    return { what, howFar, sure, catalog, howMeasured };
   }
   if (c.kind === "changed" && c.changes.length > 0) {
     const ch = c.changes[0]!;
     const wave = `${ch.wavelength_um[0].toFixed(1)} to ${ch.wavelength_um[1].toFixed(1)} µm`;
+    // ratio has no unit — brightness factor between visits, never a flux.
     const how =
       ch.ratio < 1
         ? `About ${(1 / ch.ratio).toFixed(1)}× fainter`
@@ -139,15 +151,37 @@ export function candidateLines(
       what: `${how} near ${wave} between Visit ${ch.from_pass} and Visit ${ch.to_pass}`,
       howFar: null,
       sure,
-      catalog,
+      catalog: null,
+      howMeasured,
     };
   }
   return {
     what: c.is_target ? "This is the object you asked for" : "Another object in this field",
     howFar: null,
     sure: `Candidate marked “${c.kind}”, ${conf}.`,
-    catalog,
+    catalog: null,
+    howMeasured,
   };
+}
+
+/** One short flash line for an is_target discovery moment. */
+export function discoveryFlashLine(c: Candidate): string | null {
+  if (!c.is_target) return null;
+  if (c.kind === "moved" && c.motion) {
+    const rate = c.motion.rate_arcsec_per_year.toFixed(2);
+    const ly =
+      c.motion.distance_ly != null ? ` · ~${c.motion.distance_ly.toFixed(1)} light-years` : "";
+    return `Found a mover · ${rate}″ per year${ly}`;
+  }
+  if (c.kind === "changed" && c.changes.length > 0) {
+    const ch = c.changes[0]!;
+    const how =
+      ch.ratio < 1
+        ? `About ${(1 / ch.ratio).toFixed(1)}× fainter`
+        : `About ${ch.ratio.toFixed(1)}× brighter`;
+    return `${how} between Visit ${ch.from_pass} and Visit ${ch.to_pass}`;
+  }
+  return null;
 }
 
 /** @deprecated Prefer candidateLines for the panel. */

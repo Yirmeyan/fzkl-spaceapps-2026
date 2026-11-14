@@ -100,7 +100,14 @@ export function FrameCanvas({
       className={className}
       width={size}
       height={size}
-      style={{ width: css, height: css, maxWidth: "100%", imageRendering: "pixelated" }}
+      style={{
+        width: css,
+        height: css,
+        // When the parent picked an explicit display size (Split tiles), do not
+        // let max-width shrink the canvas back into a tiny square.
+        ...(displayPx == null ? { maxWidth: "100%" } : {}),
+        imageRendering: "pixelated",
+      }}
       aria-label="SPHEREx image frame"
     />
   );

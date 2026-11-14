@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DecodedFrame } from "../data/decode";
-import { applyContrast, filterNearWavelength } from "./select";
+import { applyContrast, closestFrameIndex, filterNearWavelength } from "./select";
 
 function frame(wave: number): DecodedFrame {
   return {
@@ -42,6 +42,13 @@ describe("wavelength match", () => {
   it("passes all frames when no reference is set", () => {
     const frames = [frame(1.1), frame(1.4)];
     expect(filterNearWavelength(frames, null, 0.03)).toHaveLength(2);
+  });
+});
+
+describe("closestFrameIndex", () => {
+  it("picks the nearest wavelength", () => {
+    const frames = [frame(1.1), frame(1.25), frame(1.4)];
+    expect(closestFrameIndex(frames, 1.22)).toBe(1);
   });
 });
 

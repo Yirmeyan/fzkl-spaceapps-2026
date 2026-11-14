@@ -124,6 +124,22 @@ export function drawCandidatesOverlay(
     ctx.stroke();
     ctx.restore();
 
+    // Halo method: track.error_arcsec is the saturated-heart radius, not a
+    // position uncertainty — draw it as a dashed heart ring, never an error bar.
+    if (c.method === "halo" && c.track.length > 0) {
+      const heart = c.track.find((t) => t.pass === currentPass) ?? c.track[0]!;
+      const rPx = (heart.error_arcsec / 3600 / viewGrid.fov_deg) * viewGrid.size;
+      ctx.save();
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.65)";
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(6, rPx), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
     if (c.kind === "moved" && c.track.length >= 2) {
       const first = c.track[0]!;
       const last = c.track[c.track.length - 1]!;
