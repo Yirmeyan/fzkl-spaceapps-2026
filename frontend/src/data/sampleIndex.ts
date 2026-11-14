@@ -17,6 +17,14 @@ export interface SampleSpectrumEntry {
   bytes: number;
 }
 
+export interface SampleCandidatesEntry {
+  file: string;
+  count: number;
+  moved: number;
+  changed: number;
+  bytes: number;
+}
+
 export interface SampleTargetEntry {
   key: string;
   name: string;
@@ -26,6 +34,8 @@ export interface SampleTargetEntry {
   detectors: SampleDetectorEntry[];
   /** Photometry-only spectrum file (Tommy #28). */
   spectrum?: SampleSpectrumEntry;
+  /** What moved or changed in the field (Tommy addition A / #42). */
+  candidates?: SampleCandidatesEntry;
 }
 
 export interface SampleIndex {
@@ -83,6 +93,10 @@ export function detectorBundleUrl(file: string): string {
 }
 
 export function spectrumFileUrl(file: string): string {
+  return `${import.meta.env.BASE_URL}samples/${file}`;
+}
+
+export function candidatesFileUrl(file: string): string {
   return `${import.meta.env.BASE_URL}samples/${file}`;
 }
 

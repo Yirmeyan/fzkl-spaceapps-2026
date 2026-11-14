@@ -23,6 +23,7 @@ import {
   stackPassClean,
   stackTrackingTarget,
 } from "./compose/stack";
+import { type CandidatesFile, fetchCandidatesFile } from "./data/candidates";
 import {
   ApiError,
   fetchBundle,
@@ -35,6 +36,7 @@ import type { Bundle, Frame, Grid, Target } from "./data/contract";
 import { computeDisplayLimits, MASK_BIT_LEGEND, mjdToDate } from "./data/contract";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
 import {
+  candidatesFileUrl,
   clearSampleIndexCache,
   detectorBundleUrl,
   fetchSampleIndex,
@@ -55,6 +57,7 @@ import {
   writeViewToUrl,
 } from "./state/url";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
+import { CandidatesPanel } from "./ui/CandidatesPanel";
 import { type DetectorBand, DetectorDial } from "./ui/DetectorDial";
 import { FrameCaption } from "./ui/FrameCaption";
 import { GhostVisits } from "./ui/GhostVisits";
@@ -127,6 +130,9 @@ export default function App() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [spectrumWaiting, setSpectrumWaiting] = useState(false);
+  const [candidatesFile, setCandidatesFile] = useState<CandidatesFile | null>(null);
+  const [candidatesWaiting, setCandidatesWaiting] = useState(false);
+  const [activeCandidate, setActiveCandidate] = useState<number | null>(null);
   const [skyTarget, setSkyTarget] = useState<TargetExtras | null>(() => readSkyFromUrl());
   const skyTargetRef = useRef(skyTarget);
   skyTargetRef.current = skyTarget;
@@ -230,6 +236,9 @@ export default function App() {
     async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
       setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
       setSpectrumPoints(null);
+      setCandidatesFile(null);
+      setCandidatesWaiting(false);
+      setActiveCandidate(null);
       setSpectrumWaiting(true);
       if (targetKey === "custom") {
         const extras: TargetExtras = {
@@ -401,6 +410,8 @@ export default function App() {
         return;
       }
       setSpectrumPoints(null);
+      setCandidatesFile(null);
+      setActiveCandidate(null);
       skyTargetRef.current = null;
       setSkyTarget(null);
       clearSampleIndexCache();
@@ -450,6 +461,28 @@ export default function App() {
             })();
           } else if (!signal.aborted) {
             setSpectrumPoints(null);
+          }
+          if (entry.candidates) {
+            setCandidatesWaiting(true);
+            void (async () => {
+              try {
+                const file = await fetchCandidatesFile(
+                  candidatesFileUrl(entry.candidates!.file),
+                  signal,
+                );
+                if (!signal.aborted) {
+                  setCandidatesFile(file);
+                  setActiveCandidate(file.candidates.length > 0 ? 0 : null);
+                }
+              } catch {
+                if (!signal.aborted) setCandidatesFile(null);
+              } finally {
+                if (!signal.aborted) setCandidatesWaiting(false);
+              }
+            })();
+          } else if (!signal.aborted) {
+            setCandidatesFile(null);
+            setCandidatesWaiting(false);
           }
           const order = orderedDetectors(key, entry);
           const first = order[0]!;
@@ -1723,6 +1756,10 @@ export default function App() {
                   tintMask={tintMask}
                   displayPx={displayPx}
                   trail={trail}
+                  candidates={candidatesFile?.candidates ?? []}
+                  candidatesGrid={candidatesFile?.grid ?? null}
+                  viewGrid={load.status === "ready" ? load.data.grid : null}
+                  activeCandidate={activeCandidate}
                   onFrameIndexChange={onPlayerFrame}
                 />
               )}
@@ -1747,6 +1784,10 @@ export default function App() {
                   tintMask={tintMask}
                   targetXy={display.targetXy}
                   trail={trail}
+                  candidates={candidatesFile?.candidates ?? []}
+                  candidatesGrid={candidatesFile?.grid ?? null}
+                  viewGrid={load.status === "ready" ? load.data.grid : null}
+                  activeCandidate={activeCandidate}
                   displayPx={displayPx}
                 />
               ))}
@@ -1787,6 +1828,10 @@ export default function App() {
                   tintMask={tintMask}
                   targetXy={display.targetXy}
                   trail={trail}
+                  candidates={candidatesFile?.candidates ?? []}
+                  candidatesGrid={candidatesFile?.grid ?? null}
+                  viewGrid={load.status === "ready" ? load.data.grid : null}
+                  activeCandidate={activeCandidate}
                   displayPx={displayPx}
                 />
               )}
@@ -1917,6 +1962,41 @@ export default function App() {
               targetName={load.data.target.name ?? targetName}
               hasCatalogMotion={hasCatalogMotion}
             />
+          )}
+
+          {(candidatesFile || candidatesWaiting) && (
+            <div className="rail-card">
+              <CandidatesPanel
+                data={candidatesFile}
+                waiting={candidatesWaiting}
+                activeIndex={activeCandidate}
+                onPick={(index) => setActiveCandidate(index)}
+                onStudy={(index) => {
+                  const c = candidatesFile?.candidates[index];
+                  if (!c) return;
+                  const target: Target = {
+                    name: `Candidate ${index + 1}`,
+                    ra: c.ra,
+                    dec: c.dec,
+                    epoch: c.epoch,
+                    pm_ra: c.motion?.pm_ra ?? null,
+                    pm_dec: c.motion?.pm_dec ?? null,
+                  };
+                  const label = `${c.ra.toFixed(4)}, ${c.dec.toFixed(4)}`;
+                  setSearchInput(label);
+                  patchView({
+                    targetKey: "custom",
+                    query: label,
+                    mode: "single",
+                    pass: null,
+                    frameIndex: 0,
+                    playing: false,
+                  });
+                  const ac = new AbortController();
+                  void loadFromService(target, ac.signal, "custom");
+                }}
+              />
+            </div>
           )}
 
           <details className="rail-card details adjust-fold" open>

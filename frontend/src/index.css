@@ -1759,6 +1759,105 @@ select {
   letter-spacing: 0.04em;
 }
 
+.candidates-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.candidates-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #93a4b8;
+}
+
+.candidates-title {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1.05rem;
+  color: #e8eef6;
+}
+
+.candidates-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #93a4b8;
+  line-height: 1.35;
+}
+
+.candidates-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.candidates-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.candidates-item {
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #d7e0ec;
+  cursor: pointer;
+}
+
+.candidates-item.active {
+  border-color: rgba(251, 191, 36, 0.65);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.candidates-kind {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  margin-bottom: 0.15rem;
+}
+
+.candidates-sentence {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.candidates-study {
+  align-self: flex-start;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.72rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #93a4b8;
+  cursor: pointer;
+}
+
+.candidates-study:hover {
+  color: #e8eef6;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.candidates-sat {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  color: #93a4b8;
+}
+
+.app--fit .candidates-title {
+  font-size: 0.95rem;
+}
+
 .tint-mask-row {
   display: flex;
   align-items: center;
