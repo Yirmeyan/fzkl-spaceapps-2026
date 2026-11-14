@@ -1,5 +1,6 @@
 import type { ComposeMode } from "../compose/stack";
 import type { ColorMap } from "../data/contract";
+import { INDEX_KEY_BY_UI } from "../data/sampleIndex";
 
 export interface ViewState {
   targetKey: string;
@@ -40,6 +41,26 @@ export const DEFAULT_VIEW: ViewState = {
   colorMap: "heat",
 };
 
+export interface TargetExtras {
+  ra: number;
+  dec: number;
+  epoch: number;
+  pm_ra: number | null;
+  pm_dec: number | null;
+}
+
+const UI_KEY_BY_INDEX: Record<string, string> = Object.fromEntries(
+  Object.entries(INDEX_KEY_BY_UI).map(([ui, index]) => [index, ui]),
+);
+
+/** Accept UI keys (barnard) or index keys (barnard-star). */
+export function normalizeTargetKey(raw: string | null | undefined): string {
+  if (!raw) return DEFAULT_VIEW.targetKey;
+  if (INDEX_KEY_BY_UI[raw]) return raw;
+  if (UI_KEY_BY_INDEX[raw]) return UI_KEY_BY_INDEX[raw]!;
+  return raw;
+}
+
 function num(v: string | null, fallback: number): number {
   if (v == null || v === "") return fallback;
   const n = Number(v);
@@ -64,10 +85,11 @@ export function readViewFromUrl(search = window.location.search): ViewState {
   const validModes: ComposeMode[] = ["single", "stack", "difference", "track"];
   const ra = optFloat(q.get("ra"));
   const dec = optFloat(q.get("dec"));
-  // Tommy item 3: ?ra=&dec= opens any position without a preset key.
+  // Tommy item 3/4: ?ra=&dec= opens any position without a preset key.
   const fromSky = ra != null && dec != null;
+  const targetRaw = q.get("target");
   return {
-    targetKey: fromSky ? "custom" : q.get("target") || DEFAULT_VIEW.targetKey,
+    targetKey: fromSky ? "custom" : normalizeTargetKey(targetRaw),
     pass: optInt(q.get("pass")),
     detector: optInt(q.get("detector")),
     frameIndex: Math.max(0, num(q.get("frame"), 0)),
@@ -100,17 +122,23 @@ export function readSkyFromUrl(search = window.location.search): TargetExtras | 
   };
 }
 
-export interface TargetExtras {
-  ra: number;
-  dec: number;
-  epoch: number;
-  pm_ra: number | null;
-  pm_dec: number | null;
-}
-
-export function writeViewToUrl(state: ViewState, replace = true): void {
+/** Build the query string for the current view (Tommy item 4). Pure for tests. */
+export function viewToSearchParams(
+  state: ViewState,
+  sky: TargetExtras | null = null,
+): URLSearchParams {
   const q = new URLSearchParams();
-  if (state.targetKey !== DEFAULT_VIEW.targetKey) q.set("target", state.targetKey);
+  if (state.targetKey === "custom" && sky) {
+    q.set("ra", String(sky.ra));
+    q.set("dec", String(sky.dec));
+    if (sky.epoch !== 2000) q.set("epoch", String(sky.epoch));
+    if (sky.pm_ra != null) q.set("pm_ra", String(sky.pm_ra));
+    if (sky.pm_dec != null) q.set("pm_dec", String(sky.pm_dec));
+    if (state.query && !/^[+-]?\d/.test(state.query.trim())) q.set("q", state.query);
+  } else {
+    const indexKey = INDEX_KEY_BY_UI[state.targetKey] ?? state.targetKey;
+    q.set("target", indexKey);
+  }
   if (state.pass != null) q.set("pass", String(state.pass));
   if (state.detector != null) q.set("detector", String(state.detector));
   if (state.frameIndex > 0) q.set("frame", String(state.frameIndex));
@@ -122,13 +150,24 @@ export function writeViewToUrl(state: ViewState, replace = true): void {
     q.set("b", String(state.diffPassB));
   }
   if (state.showHelp) q.set("help", "1");
-  if (state.query) q.set("q", state.query);
+  if (state.targetKey !== "custom" && state.query) q.set("q", state.query);
   if (state.waveUm != null) q.set("wave", String(state.waveUm));
   if (state.waveTolUm !== DEFAULT_VIEW.waveTolUm) q.set("wtol", String(state.waveTolUm));
   if (state.contrast !== DEFAULT_VIEW.contrast) q.set("contrast", String(state.contrast));
   if (state.colorMap !== DEFAULT_VIEW.colorMap) q.set("cmap", state.colorMap);
+  return q;
+}
 
-  const search = q.toString();
+/**
+ * Persist the view in the address bar (Tommy item 4).
+ * Presets use ?target= (index key). Custom sky uses ?ra=&dec= (+ epoch / PM).
+ */
+export function writeViewToUrl(
+  state: ViewState,
+  replace = true,
+  sky: TargetExtras | null = null,
+): void {
+  const search = viewToSearchParams(state, sky).toString();
   const url = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
   if (replace) window.history.replaceState(null, "", url);
   else window.history.pushState(null, "", url);
