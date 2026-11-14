@@ -1,6 +1,6 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~14:40 America/Toronto.
+Last recalibration: 2026-11-14 ~14:45 America/Toronto.
 
 ## Mission
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **92%** | Multi-det live cascade + PR #19; still want merge |
-| Team win / top-tier | **64%** | Live feed rules honored; B4–B6 still open |
+| Unblocked Nic lane | **93%** | Jury demo v2 + PR #19 CI green — merge when ready |
+| Team win / top-tier | **65%** | Live feed rules honored; B4–B6 still open |
 
 ## This loop’s wow
 
-**Multi-detector live cascade** — first detector paints fast, others stream in; 503/404 hardened.
+**Jury auto-demo v2** — Ghost sky + Predict beats wired into J walkthrough; PR #19 checks green.
 
 ## Backlog (phenomenal)
 
@@ -28,7 +28,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | --- | --- | --- |
 | P0 | Ghost overlay visits | **Shipping** |
 | P0b | Mission briefing / immersive first paint | **Shipping** |
-| P1 | A5 — ship to main/prod | **#17 merged** — follow-up PR for predict+spot |
+| P1 | A5 — ship to main/prod | **#17 merged** · **#19 CI green** |
 | P2 | Predict-vs-observe PM ribbon | **Shipping** |
 | P3 | Spot-the-mover challenge | **Shipping** |
 | P4 | Tommy live frames the hour they land | **Wired (Live feed)** |
@@ -46,3 +46,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 14:20 | Predict vs observe ribbon | 89 | 59 |
 | 14:25 | Spot the mover (M) | 91 | 62 |
 | 14:40 | Multi-det live cascade + retries | 92 | 64 |
+| 14:45 | Jury demo v2 (ghost+predict) | 93 | 65 |

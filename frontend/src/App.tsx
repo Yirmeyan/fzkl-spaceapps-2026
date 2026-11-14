@@ -669,6 +669,9 @@ export default function App() {
     setDemoPhase("idle");
     setDemoLine("");
     setBlinkPasses(false);
+    setGhostVisits(false);
+    setSpotMover(false);
+    setSplitVisits(false);
     patchView({ playing: false, pass: null, mode: "single" });
   }
 
@@ -676,6 +679,8 @@ export default function App() {
     if (load.status !== "ready") return;
     if (demoTimer.current != null) window.clearTimeout(demoTimer.current);
     setSplitVisits(false);
+    setGhostVisits(false);
+    setSpotMover(false);
     setShowAdvanced(false);
     void toggleFullscreen();
 
@@ -691,6 +696,8 @@ export default function App() {
       if (beat.phase === "intro" || beat.phase === "play") {
         setBlinkPasses(false);
         setSplitVisits(false);
+        setGhostVisits(false);
+        setSpotMover(false);
         patchView({
           mode: "single",
           pass: null,
@@ -699,11 +706,21 @@ export default function App() {
         });
       } else if (beat.phase === "blink") {
         setSplitVisits(false);
+        setGhostVisits(false);
+        setSpotMover(false);
         patchView({ mode: "single", playing: false, frameIndex: 0 });
         setBlinkPasses(true);
+      } else if (beat.phase === "ghost") {
+        setBlinkPasses(false);
+        setSplitVisits(false);
+        setSpotMover(false);
+        setGhostVisits(true);
+        patchView({ mode: "single", playing: false, pass: null });
       } else if (beat.phase === "difference") {
         setBlinkPasses(false);
         setSplitVisits(false);
+        setGhostVisits(false);
+        setSpotMover(false);
         patchView({
           mode: "difference",
           playing: false,
@@ -711,9 +728,23 @@ export default function App() {
           diffPassA: passes[0] ?? 1,
           diffPassB: passes[passes.length - 1] ?? 3,
         });
+      } else if (beat.phase === "predict") {
+        setBlinkPasses(false);
+        setGhostVisits(false);
+        setSpotMover(false);
+        setSplitVisits(false);
+        patchView({ mode: "single", playing: false, pass: null });
+        // Scroll predict ribbon into view for judges
+        window.requestAnimationFrame(() => {
+          document.querySelector(".predict-observe")?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        });
       } else if (beat.phase === "done") {
         setBlinkPasses(false);
-        patchView({ playing: false });
+        setGhostVisits(false);
+        patchView({ playing: false, mode: "single" });
       }
       i += 1;
       demoTimer.current = window.setTimeout(step, beat.ms);

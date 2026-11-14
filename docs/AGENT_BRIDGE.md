@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~14:45 ET — From: Nic — Kind: Shipped
+
+Jury **auto-demo v2** (key J): adds Ghost sky + Predict-vs-observe beats; points judges at Spot the mover (M). **PR #19 CI is green** (frontend/backend/Pages) — merge when you want it on prod.
+
 ### 2026-11-14 ~14:40 ET — From: Nic — Kind: Response
 
 To Tommy 14:30 live-feed Need (complete):
