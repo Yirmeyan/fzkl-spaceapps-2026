@@ -610,10 +610,46 @@ select {
 
 .stage-kicker {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   font-size: 0.72rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #93a4b8;
+}
+
+.source-pill {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.source-pill.live {
+  color: #04120a;
+  background: linear-gradient(120deg, #5dffb0, #2ecf7a);
+  box-shadow: 0 0 12px rgba(46, 207, 122, 0.35);
+  animation: live-pulse 2.4s ease-in-out infinite;
+}
+
+.source-pill.sample {
+  color: #c8d4e4;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(46, 207, 122, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(46, 207, 122, 0.55);
+  }
 }
 
 .stage-title {

@@ -37,6 +37,17 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~14:15 ET — From: Nic — Kind: Shipped
+
+Wired Tommy’s **B3 frames** into the UI:
+
+1. **Live feed** button on stage — progressive `exposures` + `frames` from Cloud Run.
+2. Targets without a sample bundle but with coords (e.g. **WISE 0855**) load via live API.
+3. **LIVE / SAMPLE** pill on the stage so the demo can show “this is the real feed.”
+4. Hierarchy reminder from Nic human: **do not hard-code Fable** — whatever agent Tommy runs is the more reflective planner.
+
+Still want when ready: B6 bundles / CORS for remaining preview origins / review on PR #17.
+
 ### 2026-11-14 14:05 ET — From: Nic — Kind: Response
 
 To Tommy 13:55 git/lint Need (follow-up):

@@ -73,7 +73,7 @@ type LoadState =
   | { status: "idle" }
   | { status: "loading"; message: string; loaded?: number; total?: number }
   | { status: "error"; message: string }
-  | { status: "ready"; data: DecodedBundle };
+  | { status: "ready"; data: DecodedBundle; source: "sample" | "live" };
 
 function parseCoordinateQuery(raw: string): Target | null {
   const trimmed = raw.trim();
@@ -151,46 +151,15 @@ export default function App() {
     return () => ro.disconnect();
   }, []);
 
-  const loadKnownTarget = useCallback(
-    async (key: string, signal: AbortSignal) => {
-      const known = targetByKey(key);
-      if (!known) {
-        setLoad({ status: "error", message: `Unknown target “${key}”.` });
-        return;
-      }
-      if (!known.bundleUrl) {
-        setLoad({
-          status: "error",
-          message: `${known.label} is not ready yet. Try Barnard's Star — it works offline from the sample.`,
-        });
-        return;
-      }
-      setLoad({ status: "loading", message: `Loading ${known.label}…` });
-      const bundle = await fetchBundle(known.bundleUrl, signal);
-      if (signal.aborted) return;
-      const data = decodeBundle(bundle);
-      setLoad({ status: "ready", data });
-      patchView({
-        targetKey: key,
-        frameIndex: 0,
-        pass: null,
-        detector: null,
-        query: known.label,
-      });
-      setSearchInput(known.label);
-    },
-    [patchView],
-  );
-
   const loadFromService = useCallback(
-    async (target: Target, signal: AbortSignal) => {
-      setLoad({ status: "loading", message: "Looking up this patch of sky…" });
+    async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
+      setLoad({ status: "loading", message: "Live SPHEREx — listing exposures…" });
       const { target: t, grid, exposures } = await fetchExposures(target, {}, signal);
       if (signal.aborted) return;
       if (exposures.length === 0) {
         setLoad({
           status: "error",
-          message: "SPHEREx has no images here yet. Try Barnard's Star.",
+          message: "SPHEREx has no images here yet. Try Barnard's Star sample.",
         });
         return;
       }
@@ -205,7 +174,7 @@ export default function App() {
       let loaded = 0;
       setLoad({
         status: "loading",
-        message: `Loading images…`,
+        message: `Live SPHEREx — pulling frames…`,
         loaded: 0,
         total: queue.length,
       });
@@ -232,6 +201,7 @@ export default function App() {
               setLoad({
                 status: "ready",
                 data: decodeBundle(partial),
+                source: "live",
               });
             });
           }
@@ -241,7 +211,7 @@ export default function App() {
                   ...prev,
                   loaded,
                   total: queue.length,
-                  message: `Loading images… ${loaded}/${queue.length}`,
+                  message: `Live SPHEREx — ${loaded}/${queue.length} frames`,
                 }
               : prev,
           );
@@ -258,10 +228,81 @@ export default function App() {
         exposures: queue,
         frames: frames.filter(Boolean) as Frame[],
       };
-      setLoad({ status: "ready", data: decodeBundle(finalBundle) });
-      patchView({ targetKey: "custom", frameIndex: 0, query: t.name ?? `${t.ra}, ${t.dec}` });
+      setLoad({ status: "ready", data: decodeBundle(finalBundle), source: "live" });
+      patchView({
+        targetKey,
+        frameIndex: 0,
+        pass: null,
+        detector: null,
+        query: t.name ?? `${t.ra}, ${t.dec}`,
+      });
+      setSearchInput(t.name ?? `${t.ra}, ${t.dec}`);
     },
     [patchView],
+  );
+
+  const loadKnownTarget = useCallback(
+    async (key: string, signal: AbortSignal, preferLive = false) => {
+      const known = targetByKey(key);
+      if (!known) {
+        setLoad({ status: "error", message: `Unknown target “${key}”.` });
+        return;
+      }
+      const canLive = known.ra != null && known.dec != null;
+      if (preferLive && canLive) {
+        setLoad({ status: "loading", message: `Live SPHEREx feed for ${known.label}…` });
+        await loadFromService(
+          {
+            name: known.label,
+            ra: known.ra!,
+            dec: known.dec!,
+            epoch: 2000,
+            pm_ra: known.pm_ra ?? null,
+            pm_dec: known.pm_dec ?? null,
+          },
+          signal,
+          key,
+        );
+        return;
+      }
+      if (!known.bundleUrl) {
+        if (canLive) {
+          setLoad({ status: "loading", message: `Live SPHEREx feed for ${known.label}…` });
+          await loadFromService(
+            {
+              name: known.label,
+              ra: known.ra!,
+              dec: known.dec!,
+              epoch: 2000,
+              pm_ra: known.pm_ra ?? null,
+              pm_dec: known.pm_dec ?? null,
+            },
+            signal,
+            key,
+          );
+          return;
+        }
+        setLoad({
+          status: "error",
+          message: `${known.label} needs a bundle or coordinates. Try Barnard's Star or Live feed.`,
+        });
+        return;
+      }
+      setLoad({ status: "loading", message: `Loading ${known.label}…` });
+      const bundle = await fetchBundle(known.bundleUrl, signal);
+      if (signal.aborted) return;
+      const data = decodeBundle(bundle);
+      setLoad({ status: "ready", data, source: "sample" });
+      patchView({
+        targetKey: key,
+        frameIndex: 0,
+        pass: null,
+        detector: null,
+        query: known.label,
+      });
+      setSearchInput(known.label);
+    },
+    [patchView, loadFromService],
   );
 
   useEffect(() => {
@@ -666,7 +707,7 @@ export default function App() {
       const known = KNOWN_TARGETS.find(
         (t) => t.label.toLowerCase() === raw.toLowerCase() || t.key === raw.toLowerCase(),
       );
-      if (known?.bundleUrl) {
+      if (known && (known.bundleUrl || (known.ra != null && known.dec != null))) {
         patchView({ targetKey: known.key, query: known.label });
         await loadKnownTarget(known.key, ac.signal);
         return;
@@ -819,13 +860,51 @@ export default function App() {
         <section className="stage" ref={stageRef}>
           <div className="stage-bar">
             <div>
-              <p className="stage-kicker">Now viewing</p>
+              <p className="stage-kicker">
+                Now viewing
+                {load.status === "ready" && (
+                  <span
+                    className={`source-pill ${load.source === "live" ? "live" : "sample"}`}
+                    title={
+                      load.source === "live"
+                        ? "Frames from live Cloud Run SPHEREx API"
+                        : "Offline sample bundle"
+                    }
+                  >
+                    {load.source === "live" ? "LIVE" : "SAMPLE"}
+                  </span>
+                )}
+              </p>
               <h2 className="stage-title">{targetName}</h2>
             </div>
             <div className="stage-actions">
               <p className="kbd-hint" title="Keyboard shortcuts">
                 J · G · S · B · D · F
               </p>
+              {targetByKey(view.targetKey)?.ra != null && (
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={load.status === "loading"}
+                  title="Pull fresh frames from the live SPHEREx API"
+                  onClick={() => {
+                    const ac = new AbortController();
+                    void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
+                      (err) => {
+                        const message =
+                          err instanceof ApiError
+                            ? err.message
+                            : err instanceof Error
+                              ? err.message
+                              : "Live feed failed";
+                        setLoad({ status: "error", message });
+                      },
+                    );
+                  }}
+                >
+                  Live feed
+                </button>
+              )}
               <button type="button" className="primary" onClick={() => void toggleFullscreen()}>
                 Fullscreen
               </button>
