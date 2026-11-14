@@ -365,7 +365,7 @@ How the flux is measured:
 - **One number per frame, at the wavelength of the frame.** It is a flux density. Plot `flux_mjy` against `wavelength_um` for a spectrum, and against `time_mjd` inside one detector for a light curve.
 - **A crowded field biases it.** Every source inside the circle is counted, and bright sources in the ring raise the sky.
 
-What to expect on the test targets: Barnard's Star is saturated in almost every frame. RW Aurigae nears saturation, so most of its points are `flagged`.
+What to expect on the five test targets is in [`samples/README.md`](../samples/README.md#the-five-targets). In short: Epsilon Indi B has clean points, RW Aurigae nears saturation so most of its points are `flagged`, WISE 0855 is at the noise level in a single frame, Barnard's Star only has points beyond 3.8 micrometers, and R Draconis is saturated everywhere.
 
 ## The bundle
 
@@ -389,7 +389,7 @@ A bundle is a static file that answers `exposures` and `frames` at once. The fiv
 
 ### One file per detector, and an index
 
-A target has one bundle per detector, named `<key>-d<detector>.json`, so that the browser loads the 4 MB of the detector it shows and not the 24 MB of the six. The files are in [`samples/`](../samples/README.md) and the site serves them under `/samples/`.
+A target has one bundle per detector, named `<key>-d<detector>.json`, so that the browser loads the 2 to 6 MB of the detector it shows and not the 17 to 36 MB of the six. The files are in [`samples/`](../samples/README.md) and the site serves them under `/samples/`.
 
 `index.json`, in the same folder, lists them. Read it first: it tells which targets and detectors have a file, so that a file added later needs no change in the browser.
 
