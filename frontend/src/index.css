@@ -325,7 +325,11 @@ select {
 
 .target-card.active {
   border-color: var(--warm);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--warm) 14%, var(--panel)) 0%, var(--panel) 140%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--warm) 14%, var(--panel)) 0%,
+    var(--panel) 140%
+  );
   box-shadow: 0 14px 30px rgba(253, 186, 116, 0.12);
 }
 

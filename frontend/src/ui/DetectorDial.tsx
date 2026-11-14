@@ -35,7 +35,7 @@ export function DetectorDial({ bands, active, onPick }: DetectorDialProps) {
           All
         </button>
       </div>
-      <div className="detector-dial-track" role="list">
+      <div className="detector-dial-track">
         {bands.map((b) => {
           const mid = (b.waveMin + b.waveMax) / 2;
           const hue = wavelengthHue(mid);
@@ -44,7 +44,6 @@ export function DetectorDial({ bands, active, onPick }: DetectorDialProps) {
             <button
               key={b.detector}
               type="button"
-              role="listitem"
               className={isOn ? "detector-dial-band active" : "detector-dial-band"}
               style={{ "--band-hue": String(hue) } as CSSProperties}
               title={`Detector ${b.detector}: ${b.waveMin.toFixed(2)} to ${b.waveMax.toFixed(2)} µm · ${b.frames} frames`}

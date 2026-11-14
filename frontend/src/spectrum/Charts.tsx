@@ -33,8 +33,7 @@ export function Charts({
   const activeId = active?.frame.id;
 
   // Light curve: one detector only (Tommy B4). Wavelength changes across detectors.
-  const lightPool =
-    activeDet != null ? withFlux.filter((p) => p.detector === activeDet) : withFlux;
+  const lightPool = activeDet != null ? withFlux.filter((p) => p.detector === activeDet) : withFlux;
   const lightPoints = [...lightPool].sort((a, b) => a.time_mjd - b.time_mjd);
 
   const saturatedEverywhere = withFlux.length === 0;

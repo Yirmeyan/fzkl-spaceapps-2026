@@ -42,12 +42,12 @@ import { Charts } from "./spectrum/Charts";
 import { wavelengthHue } from "./spectrum/waveHue";
 import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
-import { DetectorDial, type DetectorBand } from "./ui/DetectorDial";
+import { type DetectorBand, DetectorDial } from "./ui/DetectorDial";
 import { FrameCaption } from "./ui/FrameCaption";
 import { GhostVisits } from "./ui/GhostVisits";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
-import { HopProofStrip, type HopProofPick } from "./ui/HopProofStrip";
+import { type HopProofPick, HopProofStrip } from "./ui/HopProofStrip";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
 import { SpotTheMover } from "./ui/SpotTheMover";
@@ -1230,9 +1230,7 @@ export default function App() {
         <div className="picker-head">
           <h2>Pick a star</h2>
           {load.status !== "ready" && (
-            <p>
-              Start with Barnard's Star. or type any name; live resolve finds the sky position.
-            </p>
+            <p>Start with Barnard's Star. or type any name; live resolve finds the sky position.</p>
           )}
         </div>
         <div className="target-row">
@@ -1675,246 +1673,245 @@ export default function App() {
           <details className="rail-card details adjust-fold" open>
             <summary title="Visits, colors, cameras, contrast">Controls</summary>
 
-          {load.status === "ready" && storyboard && (
-            <div className="storyboard-fold-inner">
-              <VisitStoryboard
-                size={storyboard.size}
-                lo={storyboard.limits.lo}
-                hi={storyboard.limits.hi}
-                colorMap={view.colorMap}
-                cells={storyboard.cells}
-                trail={trail}
-                activePass={view.pass}
-                onPickPass={(pass) => {
-                  clearPresentationOverlays();
-                  patchView({ mode: "single", pass, frameIndex: 0, playing: false });
-                }}
-              />
-            </div>
-          )}
+            {load.status === "ready" && storyboard && (
+              <div className="storyboard-fold-inner">
+                <VisitStoryboard
+                  size={storyboard.size}
+                  lo={storyboard.limits.lo}
+                  hi={storyboard.limits.hi}
+                  colorMap={view.colorMap}
+                  cells={storyboard.cells}
+                  trail={trail}
+                  activePass={view.pass}
+                  onPickPass={(pass) => {
+                    clearPresentationOverlays();
+                    patchView({ mode: "single", pass, frameIndex: 0, playing: false });
+                  }}
+                />
+              </div>
+            )}
 
-          <div className="control-panel">
-            <p className="rail-hint">Only the controls for the selected step apply.</p>
+            <div className="control-panel">
+              <p className="rail-hint">Only the controls for the selected step apply.</p>
 
-            {uiMode === "watch" && (
-              <div className="control-block">
-                {overlayActive ? (
-                  <>
-                    <p className="lead">
-                      {ghostVisits
-                        ? "Blend visits is on. early and late visits are overlaid."
-                        : splitVisits
-                          ? "Side-by-side is on. early and late visits are shown together."
-                          : "Challenge overlay is on."}{" "}
-                      Visit and color filters do not apply until you leave this view.
-                    </p>
-                    <button
-                      type="button"
-                      className="primary"
-                      onClick={() => {
-                        clearPresentationOverlays();
-                        patchView({ playing: false, mode: "single", pass: null });
-                      }}
-                    >
-                      Back to movie
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="control-label">Which visit to play</p>
-                    <div className="chip-row">
+              {uiMode === "watch" && (
+                <div className="control-block">
+                  {overlayActive ? (
+                    <>
+                      <p className="lead">
+                        {ghostVisits
+                          ? "Blend visits is on. early and late visits are overlaid."
+                          : splitVisits
+                            ? "Side-by-side is on. early and late visits are shown together."
+                            : "Challenge overlay is on."}{" "}
+                        Visit and color filters do not apply until you leave this view.
+                      </p>
                       <button
                         type="button"
-                        className={view.pass == null ? "active" : ""}
-                        title="Include frames from every SPHEREx visit of this field"
-                        onClick={() => patchView({ pass: null, frameIndex: 0 })}
-                      >
-                        All visits
-                      </button>
-                      {passes.map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          className={view.pass === p ? "active" : ""}
-                          title={`Show only Visit ${p} frames`}
-                          onClick={() => patchView({ pass: p, frameIndex: 0 })}
-                        >
-                          Visit {p}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="control-label">Keep one infrared color?</p>
-                    <div className="chip-row">
-                      <button
-                        type="button"
-                        className={view.waveUm == null ? "active" : ""}
-                        title="Use every infrared wavelength in the movie"
-                        onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
-                      >
-                        All colors
-                      </button>
-                      <button
-                        type="button"
-                        className={view.waveUm != null ? "active" : ""}
-                        disabled={!display || !("meta" in display) || !display.meta}
-                        title="Keep only frames near this frame’s wavelength"
+                        className="primary"
                         onClick={() => {
-                          if (!display || !("meta" in display) || !display.meta) return;
-                          patchView({
-                            waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
-                            frameIndex: 0,
-                            playing: false,
-                          });
+                          clearPresentationOverlays();
+                          patchView({ playing: false, mode: "single", pass: null });
                         }}
                       >
-                        Lock this color
+                        Back to movie
                       </button>
-                    </div>
-                    <p className="micro">
-                      {view.waveUm == null
-                        ? `Playing ${filtered.length} frames across many infrared colors.`
-                        : `Locked near ${view.waveUm.toFixed(2)} µm · ${filtered.length} frames.`}
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
-
-            {uiMode === "compare" && (
-              <div className="control-block">
-                <p className="lead">
-                  Blinking Visit {blinkA ?? 1} ↔ Visit {blinkB ?? 3}. Watch the bright star hop
-                  north.
-                </p>
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => {
-                    setBlinkPasses(false);
-                    patchView({ pass: null, mode: "single" });
-                  }}
-                >
-                  Stop blinking
-                </button>
-              </div>
-            )}
-
-            {uiMode === "difference" && (
-              <div className="control-block">
-                <p className="control-label">Earlier visit</p>
-                <div className="chip-row">
-                  {passes.map((p) => (
-                    <button
-                      key={`a-${p}`}
-                      type="button"
-                      className={view.diffPassA === p ? "active" : ""}
-                      onClick={() => patchView({ diffPassA: p })}
-                    >
-                      Visit {p}
-                    </button>
-                  ))}
-                </div>
-                <p className="control-label">Later visit</p>
-                <div className="chip-row">
-                  {passes.map((p) => (
-                    <button
-                      key={`b-${p}`}
-                      type="button"
-                      className={view.diffPassB === p ? "active" : ""}
-                      onClick={() => patchView({ diffPassB: p })}
-                    >
-                      Visit {p}
-                    </button>
-                  ))}
-                </div>
-                <p className="micro">Tip: Visit 1 minus Visit 3 shows the biggest jump.</p>
-              </div>
-            )}
-
-            {uiMode === "more" && (
-              <div className="control-block">
-                <p className="control-label">Extra science views</p>
-                <div className="chip-row">
-                  <button
-                    type="button"
-                    className={view.mode === "stack" ? "active" : ""}
-                    onClick={() => {
-                      clearPresentationOverlays();
-                      patchView({ mode: "stack", playing: false });
-                    }}
-                  >
-                    Average stack
-                  </button>
-                  <button
-                    type="button"
-                    className={view.mode === "track" ? "active" : ""}
-                    onClick={() => {
-                      clearPresentationOverlays();
-                      patchView({ mode: "track", playing: false });
-                    }}
-                  >
-                    Keep star centered
-                  </button>
-                </div>
-                {view.mode !== "difference" && (
-                  <>
-                    <p className="control-label">Visit filter</p>
-                    <div className="chip-row">
-                      <button
-                        type="button"
-                        className={view.pass == null ? "active" : ""}
-                        onClick={() => patchView({ pass: null, frameIndex: 0 })}
-                      >
-                        All
-                      </button>
-                      {passes.map((p) => (
+                    </>
+                  ) : (
+                    <>
+                      <p className="control-label">Which visit to play</p>
+                      <div className="chip-row">
                         <button
-                          key={p}
                           type="button"
-                          className={view.pass === p ? "active" : ""}
-                          onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                          className={view.pass == null ? "active" : ""}
+                          title="Include frames from every SPHEREx visit of this field"
+                          onClick={() => patchView({ pass: null, frameIndex: 0 })}
                         >
-                          {p}
+                          All visits
                         </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+                        {passes.map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className={view.pass === p ? "active" : ""}
+                            title={`Show only Visit ${p} frames`}
+                            onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                          >
+                            Visit {p}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="control-label">Keep one infrared color?</p>
+                      <div className="chip-row">
+                        <button
+                          type="button"
+                          className={view.waveUm == null ? "active" : ""}
+                          title="Use every infrared wavelength in the movie"
+                          onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
+                        >
+                          All colors
+                        </button>
+                        <button
+                          type="button"
+                          className={view.waveUm != null ? "active" : ""}
+                          disabled={!display || !("meta" in display) || !display.meta}
+                          title="Keep only frames near this frame’s wavelength"
+                          onClick={() => {
+                            if (!display || !("meta" in display) || !display.meta) return;
+                            patchView({
+                              waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
+                              frameIndex: 0,
+                              playing: false,
+                            });
+                          }}
+                        >
+                          Lock this color
+                        </button>
+                      </div>
+                      <p className="micro">
+                        {view.waveUm == null
+                          ? `Playing ${filtered.length} frames across many infrared colors.`
+                          : `Locked near ${view.waveUm.toFixed(2)} µm · ${filtered.length} frames.`}
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
 
-            <div className="control-block soft">
-              <p className="control-label">Look</p>
-              <label className="slider-row">
-                <span>Contrast</span>
-                <input
-                  type="range"
-                  min={0.4}
-                  max={3}
-                  step={0.1}
-                  value={view.contrast}
-                  onChange={(e) => patchView({ contrast: Number(e.target.value) })}
-                />
-              </label>
-              <div className="chip-row">
-                <button
-                  type="button"
-                  className={view.colorMap === "heat" ? "active" : ""}
-                  onClick={() => patchView({ colorMap: "heat" })}
-                >
-                  Warm IR
-                </button>
-                <button
-                  type="button"
-                  className={view.colorMap === "gray" ? "active" : ""}
-                  onClick={() => patchView({ colorMap: "gray" })}
-                >
-                  Gray
-                </button>
+              {uiMode === "compare" && (
+                <div className="control-block">
+                  <p className="lead">
+                    Blinking Visit {blinkA ?? 1} ↔ Visit {blinkB ?? 3}. Watch the bright star hop
+                    north.
+                  </p>
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => {
+                      setBlinkPasses(false);
+                      patchView({ pass: null, mode: "single" });
+                    }}
+                  >
+                    Stop blinking
+                  </button>
+                </div>
+              )}
+
+              {uiMode === "difference" && (
+                <div className="control-block">
+                  <p className="control-label">Earlier visit</p>
+                  <div className="chip-row">
+                    {passes.map((p) => (
+                      <button
+                        key={`a-${p}`}
+                        type="button"
+                        className={view.diffPassA === p ? "active" : ""}
+                        onClick={() => patchView({ diffPassA: p })}
+                      >
+                        Visit {p}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="control-label">Later visit</p>
+                  <div className="chip-row">
+                    {passes.map((p) => (
+                      <button
+                        key={`b-${p}`}
+                        type="button"
+                        className={view.diffPassB === p ? "active" : ""}
+                        onClick={() => patchView({ diffPassB: p })}
+                      >
+                        Visit {p}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="micro">Tip: Visit 1 minus Visit 3 shows the biggest jump.</p>
+                </div>
+              )}
+
+              {uiMode === "more" && (
+                <div className="control-block">
+                  <p className="control-label">Extra science views</p>
+                  <div className="chip-row">
+                    <button
+                      type="button"
+                      className={view.mode === "stack" ? "active" : ""}
+                      onClick={() => {
+                        clearPresentationOverlays();
+                        patchView({ mode: "stack", playing: false });
+                      }}
+                    >
+                      Average stack
+                    </button>
+                    <button
+                      type="button"
+                      className={view.mode === "track" ? "active" : ""}
+                      onClick={() => {
+                        clearPresentationOverlays();
+                        patchView({ mode: "track", playing: false });
+                      }}
+                    >
+                      Keep star centered
+                    </button>
+                  </div>
+                  {view.mode !== "difference" && (
+                    <>
+                      <p className="control-label">Visit filter</p>
+                      <div className="chip-row">
+                        <button
+                          type="button"
+                          className={view.pass == null ? "active" : ""}
+                          onClick={() => patchView({ pass: null, frameIndex: 0 })}
+                        >
+                          All
+                        </button>
+                        {passes.map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className={view.pass === p ? "active" : ""}
+                            onClick={() => patchView({ pass: p, frameIndex: 0 })}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="control-block soft">
+                <p className="control-label">Look</p>
+                <label className="slider-row">
+                  <span>Contrast</span>
+                  <input
+                    type="range"
+                    min={0.4}
+                    max={3}
+                    step={0.1}
+                    value={view.contrast}
+                    onChange={(e) => patchView({ contrast: Number(e.target.value) })}
+                  />
+                </label>
+                <div className="chip-row">
+                  <button
+                    type="button"
+                    className={view.colorMap === "heat" ? "active" : ""}
+                    onClick={() => patchView({ colorMap: "heat" })}
+                  >
+                    Warm IR
+                  </button>
+                  <button
+                    type="button"
+                    className={view.colorMap === "gray" ? "active" : ""}
+                    onClick={() => patchView({ colorMap: "gray" })}
+                  >
+                    Gray
+                  </button>
+                </div>
               </div>
             </div>
-
-          </div>
           </details>
 
           {load.status === "ready" && (
