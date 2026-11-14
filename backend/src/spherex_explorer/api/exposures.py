@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
 
+from spherex_explorer.api.numbers import TIME_DECIMALS
 from spherex_explorer.api.params import Dec, Epoch, Fov, PmDec, PmRa, Ra, Size
 from spherex_explorer.errors import UpstreamUnavailable
 from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE, Grid
@@ -17,7 +18,6 @@ router = APIRouter(tags=["exposures"])
 
 # New exposures are published every week: a list may be reused for an hour, not longer.
 _CACHE_CONTROL = "public, max-age=3600"
-_TIME_DECIMALS = 6
 # Seconds a client is asked to wait before it tries again.
 _RETRY_AFTER_S = 10
 
@@ -65,7 +65,7 @@ def exposure_out(listed: ListedExposure) -> ExposureOut:
         collection=listed.exposure.collection,
         detector=listed.exposure.detector,
         pass_number=listed.pass_number,
-        time_mjd=round(listed.exposure.time_mjd, _TIME_DECIMALS),
+        time_mjd=round(listed.exposure.time_mjd, TIME_DECIMALS),
         time_iso=mjd_to_iso(listed.exposure.time_mjd),
     )
 

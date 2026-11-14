@@ -36,7 +36,7 @@ from spherex_explorer.photometry.aperture import APERTURE_RADIUS, SKY_OUTER_RADI
 from spherex_explorer.targets import Target, position_at
 
 # Detector pixels kept around the target for its measurement: the sky ring, and one more.
-_REACH = math.ceil(SKY_OUTER_RADIUS) + 1
+TARGET_REACH = math.ceil(SKY_OUTER_RADIUS) + 1
 # No view comes close to this many detector pixels along a side. Beyond it, the
 # coordinates of the file are not what they claim to be.
 _WIDEST_WINDOW = 800
@@ -75,7 +75,8 @@ class Frame:
     mask: np.ndarray
 
 
-def _number(layout: Layout, keyword: str) -> float:
+def header_number(layout: Layout, keyword: str) -> float:
+    """Number read in the header of the image, or an error that names it."""
     value = layout.header.get(keyword)
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
         raise UpstreamError(f"{keyword} of IMAGE is missing or is not a number")
@@ -100,14 +101,14 @@ def _window(
     near = (
         math.isfinite(target_x)
         and math.isfinite(target_y)
-        and -_REACH <= target_x <= width - 1 + _REACH
-        and -_REACH <= target_y <= height - 1 + _REACH
+        and -TARGET_REACH <= target_x <= width - 1 + TARGET_REACH
+        and -TARGET_REACH <= target_y <= height - 1 + TARGET_REACH
     )
     if near:
-        lows_x.append(math.floor(target_x) - _REACH)
-        highs_x.append(math.floor(target_x) + _REACH + 1)
-        lows_y.append(math.floor(target_y) - _REACH)
-        highs_y.append(math.floor(target_y) + _REACH + 1)
+        lows_x.append(math.floor(target_x) - TARGET_REACH)
+        highs_x.append(math.floor(target_x) + TARGET_REACH + 1)
+        lows_y.append(math.floor(target_y) - TARGET_REACH)
+        highs_y.append(math.floor(target_y) + TARGET_REACH + 1)
     if not lows_x:
         return None
     window = Window(
@@ -132,8 +133,8 @@ async def build_frame(source: FrameSource, exposure_id: str, target: Target, gri
     """
     layout = await source.layout(exposure_id)
     wcs = DetectorWcs.from_header(layout.header)
-    time_mjd = _number(layout, "MJD-AVG")
-    exposure_s = _number(layout, "XPOSURE")
+    time_mjd = header_number(layout, "MJD-AVG")
+    exposure_s = header_number(layout, "XPOSURE")
     if integer(layout.header, "NAXIS1", "IMAGE") != layout.width:
         raise UpstreamError("the header of IMAGE disagrees with its layout")
 
@@ -152,19 +153,11 @@ async def build_frame(source: FrameSource, exposure_id: str, target: Target, gri
         mask = np.zeros((grid.size, grid.size), dtype=np.uint8)
         photometry = Measurement(flux_mjy=None, error_mjy=None, quality="outside")
     else:
-        circle = _circle_window(layout, target_x, target_y)
+        circle = circle_window(layout, target_x, target_y)
         reads = [source.read_window(exposure_id, window, with_variance=False), table_read]
         if circle is not None:
             reads.append(source.read_variance(exposure_id, circle))
         raw, table, *measured = await asyncio.gather(*reads)
-        # The variance is as heavy as the image and only the measurement uses it, inside
-        # its circle. Reading it there alone nearly halves what a frame downloads.
-        variance = np.full(raw.image.shape, np.nan, dtype=np.float32)
-        if circle is not None:
-            variance[
-                circle.y0 - window.y0 : circle.y1 - window.y0,
-                circle.x0 - window.x0 : circle.x1 - window.x0,
-            ] = measured[0]
         plan = flag_plan(layout.flag_planes)
         window_mask = translate(raw.flags, plan)
         no_value = has_no_value(raw.flags, plan)
@@ -172,16 +165,17 @@ async def build_frame(source: FrameSource, exposure_id: str, target: Target, gri
         image, mask = resample(values, window_mask, detector_x - window.x0, detector_y - window.y0)
         area_x = target_x if math.isfinite(target_x) else center_x
         area_y = target_y if math.isfinite(target_y) else center_y
-        photometry = measure(
-            raw.image,
-            variance,
+        photometry = measure_in_window(
+            exposure_id,
+            raw,
+            window,
             window_mask,
             no_value,
             is_saturated(raw.flags, plan),
-            target_x - window.x0,
-            target_y - window.y0,
+            circle,
+            measured[0] if circle is not None else None,
+            (target_x, target_y),
             wcs.pixel_area_sr(area_x, area_y),
-            share_inside_circle(detector_from_id(exposure_id)),
         )
 
     wavelength, bandwidth = wavelength_at(table, center_x, center_y)
@@ -202,7 +196,43 @@ async def build_frame(source: FrameSource, exposure_id: str, target: Target, gri
     )
 
 
-def _circle_window(layout: Layout, x: float, y: float) -> Window | None:
+def measure_in_window(
+    exposure_id: str,
+    raw: RawWindow,
+    window: Window,
+    window_mask: np.ndarray,
+    no_value: np.ndarray,
+    saturated: np.ndarray,
+    circle: Window | None,
+    circle_variance: np.ndarray | None,
+    target: tuple[float, float],
+    pixel_area_sr: float,
+) -> Measurement:
+    """Measure a target on the original pixels of a window that holds its sky ring.
+
+    The variance is as heavy as the image and only the measurement uses it, inside its
+    circle. Reading it there alone nearly halves what an exposure downloads.
+    """
+    variance = np.full(raw.image.shape, np.nan, dtype=np.float32)
+    if circle is not None and circle_variance is not None:
+        variance[
+            circle.y0 - window.y0 : circle.y1 - window.y0,
+            circle.x0 - window.x0 : circle.x1 - window.x0,
+        ] = circle_variance
+    return measure(
+        raw.image,
+        variance,
+        window_mask,
+        no_value,
+        saturated,
+        target[0] - window.x0,
+        target[1] - window.y0,
+        pixel_area_sr,
+        share_inside_circle(detector_from_id(exposure_id)),
+    )
+
+
+def circle_window(layout: Layout, x: float, y: float) -> Window | None:
     """Detector pixels the circle of the measurement touches. None when it leaves the detector."""
     on_detector = (
         math.isfinite(x)

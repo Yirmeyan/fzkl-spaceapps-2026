@@ -5,7 +5,7 @@ The agreement between the Python service (`backend/`) and the browser (`frontend
 - **Version:** 1, written at step S1 of the [architecture plan](architecture.md).
 - **Changes:** through a pull request approved by the other teammate.
 - **Compatibility:** fields can be added at any time, so a client ignores the fields it does not know. Renaming or removing a field changes `version`.
-- **Status:** the service answers the four calls of this document.
+- **Status:** the service answers the five calls of this document.
 
 ## The idea in one minute
 
@@ -17,12 +17,15 @@ The browser asks three questions, in this order:
 
 The five test targets skip questions 2 and 3: a static file, the [bundle](#the-bundle), holds both answers in the same format.
 
+A fourth question needs no image: **what is the spectrum of this object?** `GET /api/spectrum` measures the target in every exposure and returns the fluxes alone. The five test targets have that answer in a static file too.
+
 | Call | Returns | Expected time |
 | --- | --- | --- |
 | `GET /api/health` | Service status | Immediate |
 | `GET /api/resolve?name=` | A target | 1.5 s |
 | `GET /api/exposures?ra=&dec=` | A target, a grid and a list of exposures | 1.5 s, 3 s for a moving target |
 | `GET /api/frames/{id}?ra=&dec=` | One frame | 0.6 s |
+| `GET /api/spectrum?ra=&dec=` | A target and one flux per exposure | 5 to 15 s, with the number of exposures |
 
 The times of `exposures` and `frames` are measured on the service, the second one from a laptop: 0.6 s for a first frame, 2.4 to 3.9 s for the 62 frames of a detector asked together. The time of `resolve` is that of the underlying request.
 
@@ -232,6 +235,38 @@ The service accepts only identifiers of the expected shape and builds the addres
 
 To study another object of the image, make it the target: convert the clicked pixel with `pixelToSky`, then call `exposures` and `frames` again.
 
+### `GET /api/spectrum`
+
+Measures the target in every exposure that covers it and returns the fluxes, without any image. One request draws the whole spectrum of an object, from 0.75 to 5 micrometers, where the frames of its six detectors would weigh 17 to 36 MB.
+
+| Parameter | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `ra`, `dec`, `epoch`, `pm_ra`, `pm_dec` | `ra` and `dec` | As for `exposures` | The target |
+| `detector` | No | All | 1 to 6: measure the exposures of that detector only |
+
+```json
+{
+  "target": { "ra": 331.044147, "dec": -56.782844, "epoch": 2000.0, "pm_ra": 3981.977, "pm_dec": -2466.832 },
+  "points": [
+    {"id": "dr1.2025W17_4B_0222_3D2.l2b-v27-2026-196", "detector": 2, "pass": 1, "time_mjd": 60791.214263, "time_iso": "2025-04-26T05:08:32Z", "wavelength_um": 1.216, "bandwidth_um": 0.0293, "flux_mjy": 29.366, "error_mjy": 0.61978, "quality": "ok"}
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `id`, `detector`, `pass` | string, integer, integer | The exposure, as in the list of `exposures` |
+| `time_mjd`, `time_iso` | number, string | Middle of the exposure, read in the file, as in its frame |
+| `wavelength_um`, `bandwidth_um` | number or null | Wavelength and width of the band at the place of the target on the detector. `null` when the target is off the detector |
+| `flux_mjy`, `error_mjy`, `quality` | as in [`photometry`](#measurement-photometry) | The same measurement as in the frame of that exposure |
+
+- One point per exposure, in the order of the list of `exposures`: by time, then by detector. Sort by `wavelength_um` to draw a spectrum.
+- A point without a flux (`saturated`, `masked`, `outside`) is still listed, so that the interface can say why a part of the spectrum is empty.
+- An exposure whose file cannot be read gives no point. The call only fails, with a 503, when most of the files cannot be read.
+- `wavelength_um` is taken where the target is, and the frame of the same exposure gives the wavelength at the center of its grid. The two differ by less than 0.005 micrometer in the default view.
+- With `detector`, the six detectors can be asked in parallel and drawn as they arrive. The passes keep the numbers they have over all the detectors.
+- The place of a moving target is computed at the date of each exposure, as for a frame.
+
 ## The frame
 
 A frame is one exposure, cut out and aligned on the grid, with everything measured on it. The pixels are shortened here:
@@ -388,6 +423,22 @@ A bundle is a static file that answers `exposures` and `frames` at once. The fiv
 - `frames[i]` is the frame of `exposures[i]`, as `GET /api/frames/{id}` returns it for this target and this grid.
 - The browser therefore has one code path and two sources: a bundle or the service.
 
+### The spectrum file
+
+`<key>-spectrum.json` is the answer of `GET /api/spectrum` for a test target, in a static file of 60 to 130 kB, 10 to 25 kB in transit:
+
+```json
+{
+  "format": "spherex-explorer/spectrum",
+  "version": 1,
+  "generated": "2026-11-14T20:18:54Z",
+  "target": { "name": "Epsilon Indi B", "ra": 331.044147, "dec": -56.782844, "epoch": 2000.0, "pm_ra": 3981.977, "pm_dec": -2466.832 },
+  "points": []
+}
+```
+
+Load it before any bundle to draw the spectrum of a preset at once. Its points are the measurements of the frames of the bundles, exposure for exposure: `samples/check-sample.ts` compares them.
+
 ### One file per detector, and an index
 
 A target has one bundle per detector, named `<key>-d<detector>.json`, so that the browser loads the 2 to 6 MB of the detector it shows and not the 17 to 36 MB of the six. The files are in [`samples/`](../samples/README.md) and the site serves them under `/samples/`.
@@ -408,7 +459,8 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
       "passes": 3,
       "detectors": [
         { "detector": 1, "file": "barnard-star-d1.json", "frames": 60, "wavelength_um": [0.7413, 1.1074], "bytes": 3962335 }
-      ]
+      ],
+      "spectrum": { "file": "barnard-star-spectrum.json", "points": 364, "with_flux": 101, "bytes": 83927 }
     }
   ]
 }
@@ -425,6 +477,9 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
 | `detectors[].frames` | integer | Number of frames in the bundle |
 | `detectors[].wavelength_um` | two numbers | Shortest and longest wavelength of the frames, in micrometers |
 | `detectors[].bytes` | integer | Size of the bundle before compression in transit |
+| `spectrum.file` | string | Name of the [spectrum file](#the-spectrum-file), relative to the index |
+| `spectrum.points`, `spectrum.with_flux` | integers | Number of points, and how many of them hold a flux |
+| `spectrum.bytes` | integer | Size of the spectrum file before compression in transit |
 
 - The keys of the five test targets are `barnard-star`, `epsilon-indi-b`, `wise-0855`, `rw-aurigae` and `r-draconis`.
 - An exposure whose file is gone from the archive is left out of both `exposures` and `frames`, so the two lists of a bundle always have the same length.
@@ -461,6 +516,7 @@ One frame that fails does not fail the view: show the others.
 | `health` | None |
 | `resolve` | 1 day |
 | `exposures` | 1 hour, because new exposures are published |
+| `spectrum` | 1 hour, for the same reason |
 | `frames` | 1 day while the pipeline still changes, much longer once it is frozen |
 
 ## Stable and provisional

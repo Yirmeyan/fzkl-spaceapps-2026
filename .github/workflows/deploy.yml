@@ -103,7 +103,7 @@ jobs:
             --cpu=2 \
             --memory=1Gi \
             --execution-environment=gen2 \
-            --min-instances=0 \
+            --min-instances=1 \
             --max-instances=3 \
             --concurrency=80 \
             --timeout=60s \

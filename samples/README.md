@@ -8,6 +8,7 @@ Real SPHEREx data in the format of the [API contract](../docs/api-contract.md). 
 | --- | --- |
 | `index.json` | The list of the bundles: targets, detectors, frames, wavelengths and sizes. The browser reads it first |
 | `<key>-d1.json` to `<key>-d6.json` | One [bundle](../docs/api-contract.md#the-bundle) per target and per detector: 30 files |
+| `<key>-spectrum.json` | The [spectrum](../docs/api-contract.md#the-spectrum-file) of a target, every detector together, without the images: 5 files of 60 to 130 kB |
 | `check-sample.ts` | The script that checks a bundle, or the index and every file it lists |
 
 The view of every target is 0.1 degree on 128 × 128 pixels, north up, east left. The six detectors of a target share it.
@@ -45,7 +46,7 @@ node samples/check-sample.ts samples/barnard-star-d2.json --bright-star
 
 It needs Node 24 and no dependency, and ends with `ALL CHECKS PASSED`.
 
-- The first command reads the index and checks every bundle it lists: the fields, the dates, the order, the position of the target, the share of valid pixels, and that each file matches its line of the index.
+- The first command reads the index and checks every file it lists: the fields, the dates, the order, the position of the target, the share of valid pixels, and that each file matches its line of the index. It also compares every point of a spectrum file with the frame of the same exposure: the two were measured by two paths of the service and must agree.
 - The second one checks one bundle. `--bright-star` adds two checks that only hold for a star bright enough to saturate the detector: it shows at `target_xy` in every frame, and its saturated core moves between passes as its proper motion says.
 
 The script decodes every frame with the functions printed in the contract, so it tests them too.
@@ -58,7 +59,7 @@ The bundles are made by the code of the service, so a frame of a bundle is the f
 uv run python -m spherex_explorer.precompute --output ../samples
 ```
 
-Add `--target barnard-star` to build one target only. The command looks each target up by name, lists its exposures, reads the public SPHEREx files and writes one bundle per detector, then updates `index.json`. The five targets take about two minutes: 1,973 frames.
+Add `--target barnard-star` to build one target only, and `--spectra-only` to build the spectrum files and leave the bundles as they are. The command looks each target up by name, lists its exposures, reads the public SPHEREx files and writes one bundle per detector, then measures the spectrum and updates `index.json`. The five targets take about three minutes: 1,973 frames.
 
 ## Credits
 
