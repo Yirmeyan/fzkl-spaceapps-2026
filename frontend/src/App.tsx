@@ -133,6 +133,27 @@ export default function App() {
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
   const [searchInput, setSearchInput] = useState(view.query);
   const [blinkPasses, setBlinkPasses] = useState(false);
+  /** Brief double-exposure of the previous visit while blinking (hop afterimage). */
+  const [hopGhost, setHopGhost] = useState<{
+    pixels: Float32Array;
+    mask: Uint8Array;
+    size: number;
+    lo: number;
+    hi: number;
+    background: number | null;
+    targetXy: [number, number] | null;
+    pass: number | null;
+  } | null>(null);
+  const hopSnapRef = useRef<{
+    pixels: Float32Array;
+    mask: Uint8Array;
+    size: number;
+    lo: number;
+    hi: number;
+    background: number | null;
+    targetXy: [number, number] | null;
+    pass: number | null;
+  } | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(true);
   /** Tommy item 6: tint non-zero mask pixels on the stage. */
   const [tintMask, setTintMask] = useState(false);
@@ -873,6 +894,33 @@ export default function App() {
     }, 500);
     return () => window.clearInterval(id);
   }, [blinkPasses, view.mode, blinkA, blinkB, patchView]);
+
+  // Capture the previous visit for a short afterimage so the hop is visible as a double exposure.
+  useEffect(() => {
+    if (!blinkPasses || !display || display.kind !== "single") {
+      hopSnapRef.current = null;
+      setHopGhost(null);
+      return;
+    }
+    const snap = {
+      pixels: display.pixels,
+      mask: display.mask,
+      size: display.size,
+      lo: display.lo,
+      hi: display.hi,
+      background: display.background,
+      targetXy: display.targetXy,
+      pass: view.pass,
+    };
+    const prev = hopSnapRef.current;
+    if (prev && prev.pass != null && snap.pass != null && prev.pass !== snap.pass) {
+      setHopGhost(prev);
+      hopSnapRef.current = snap;
+      const t = window.setTimeout(() => setHopGhost(null), 340);
+      return () => window.clearTimeout(t);
+    }
+    hopSnapRef.current = snap;
+  }, [blinkPasses, display, view.pass]);
 
   function setUiMode(next: UiMode) {
     // Every top-level mode starts clean: no blend/split/spot/blink leftovers.
@@ -1780,25 +1828,44 @@ export default function App() {
               display &&
               view.mode === "single" &&
               display.kind === "single" && (
-                <SkyPlayer
-                  frames={filtered}
-                  frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                  playing={view.playing}
-                  fps={view.fps}
-                  lo={display.lo}
-                  hi={display.hi}
-                  size={display.size}
-                  colorMap={view.colorMap}
-                  tintMask={tintMask}
-                  displayPx={displayPx}
-                  trail={trail}
-                  candidates={candidatesFile?.candidates ?? []}
-                  candidatesGrid={candidatesFile?.grid ?? null}
-                  viewGrid={load.status === "ready" ? load.data.grid : null}
-                  activeCandidate={activeCandidate}
-                  saturated={candidatesFile?.saturated ?? []}
-                  onFrameIndexChange={onPlayerFrame}
-                />
+                <>
+                  <SkyPlayer
+                    frames={filtered}
+                    frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                    playing={view.playing}
+                    fps={view.fps}
+                    lo={display.lo}
+                    hi={display.hi}
+                    size={display.size}
+                    colorMap={view.colorMap}
+                    tintMask={tintMask}
+                    displayPx={displayPx}
+                    trail={trail}
+                    candidates={candidatesFile?.candidates ?? []}
+                    candidatesGrid={candidatesFile?.grid ?? null}
+                    viewGrid={load.status === "ready" ? load.data.grid : null}
+                    activeCandidate={activeCandidate}
+                    saturated={candidatesFile?.saturated ?? []}
+                    onFrameIndexChange={onPlayerFrame}
+                  />
+                  {hopGhost && (
+                    <div className="hop-ghost" aria-hidden="true">
+                      <FrameCanvas
+                        pixels={hopGhost.pixels}
+                        mask={hopGhost.mask}
+                        size={hopGhost.size}
+                        lo={hopGhost.lo}
+                        hi={hopGhost.hi}
+                        background={hopGhost.background}
+                        colorMap={view.colorMap}
+                        tintMask={tintMask}
+                        targetXy={hopGhost.targetXy}
+                        displayPx={displayPx}
+                      />
+                      <span className="hop-ghost-label">Visit {hopGhost.pass}</span>
+                    </div>
+                  )}
+                </>
               )}
 
             {!splitStacks &&
@@ -2000,7 +2067,9 @@ export default function App() {
               </p>
             )}
 
-          {cinema && <ViewerGuide targetName={targetName} mode={guideMode} />}
+          {cinema && !candidatesFile && !candidatesWaiting && (
+            <ViewerGuide targetName={targetName} mode={guideMode} />
+          )}
         </section>
 
         <aside className={`rail${cinema ? " rail--fit" : ""}`}>
@@ -2051,7 +2120,7 @@ export default function App() {
             </div>
           )}
 
-          <details className="rail-card details adjust-fold" open>
+          <details className="rail-card details adjust-fold">
             <summary title="Visits, colors, cameras, contrast">Controls</summary>
 
             {load.status === "ready" && storyboard && (
