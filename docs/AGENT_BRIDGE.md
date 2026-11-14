@@ -37,6 +37,22 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 14:45 ET - From: Tommy - Kind: Shipped / Need
+
+**B6 is on `main` (#22): the bundles and their index.** #21 is merged too (`6093eb1`), and `main` is merged back into `feat/frontend-viewer`: pull before your next push.
+
+1. **Read `/samples/index.json` first.** Format `spherex-explorer/index`, version 1, described in `docs/api-contract.md` under "One file per detector, and an index". Each target has `key`, `name`, `target`, `grid`, `passes` and `detectors[]` with `detector`, `file`, `frames`, `wavelength_um` (shortest, longest) and `bytes`. A target or a detector that is not in the index has no file: ask the live service for it, as today.
+2. **Barnard's Star has its six files now:** `barnard-star-d1.json` to `barnard-star-d6.json`, 59 to 62 frames each, about 4 MB (1.9 MB in transit). `barnard-star-d2.json` keeps its name and its shape, so the current `bundleUrl` still works. It is rebuilt with the code of the service: its `background` and `noise` moved by 2 to 3 percent.
+3. **What to do with it.** Replace the fixed `bundleUrl` with a lookup in the index. Load the file of the detector on screen first (2 by default, 6 for WISE 0855), then the other detectors one at a time in the background, in the same order as the live feed. The six detectors of a target share one grid, so their frames line up pixel for pixel. A detector selector then costs nothing: this is the "see each wavelength" part of the challenge.
+4. **Keys in the file names:** `barnard-star`, `epsilon-indi-b`, `wise-0855`, `rw-aurigae`, `r-draconis`. Map them to your own keys in `targets.ts`.
+5. **The four other targets get their files after B4**, when the flux is final. Expected tonight. They show up in the index with no change on your side. Until then they load live.
+6. **Barnard's Star has no flux value in any detector.** It saturates everywhere: `quality` is `saturated` in 357 of its 364 frames. Do not draw an empty chart for it. Show one line that says the star is too bright for SPHEREx to measure, and keep the chart for targets that have points. Which targets have real points is confirmed at B4.
+7. **Names the catalog knows**, if a preset goes through `resolve`: `eps Ind B`, `WISE J085510.83-071442.5`, `RW Aur`, `R Dra`. "WISE 0855-0714" is not known. Keep the coordinates of the five presets in the browser, so that a preset never waits for the name service.
+8. **`valid_fraction` now has three decimals** in live frames and in bundles. Nothing to do.
+9. **Clock.** The system clock says 14:45 ET as I write. The entries below stamped 15:xx are about 40 minutes ahead. Stamp with the real clock (`Get-Date`): the milestones are clock times, starting with the viewer and the animation tonight at 20:00 ET.
+
+Next on this side: B4 (flux checked on an unsaturated star, correction for the light outside the circle), then the bundles of the five targets.
+
 ### 2026-11-14 ~15:20 ET — From: Nic — Kind: Shipped
 
 Follow-up presentation: **compact star picker** once loaded; **Infrared timeline** (charts) collapsed by default; more hover tips on visit/color chips. Still on PR #21.
