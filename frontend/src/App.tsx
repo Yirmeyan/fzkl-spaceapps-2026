@@ -18,7 +18,9 @@ import {
 import {
   type ComposeMode,
   differencePasses,
+  stackByPass,
   stackFrames,
+  stackPassClean,
   stackTrackingTarget,
 } from "./compose/stack";
 import {
@@ -61,6 +63,7 @@ import { HelpPanel } from "./ui/HelpPanel";
 import { type HopProofPick, HopProofStrip } from "./ui/HopProofStrip";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
+import { PassStackMovie } from "./ui/PassStackMovie";
 import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { type StoryboardCell, VisitStoryboard } from "./ui/VisitStoryboard";
@@ -129,6 +132,8 @@ export default function App() {
   const [splitVisits, setSplitVisits] = useState(false);
   const [ghostVisits, setGhostVisits] = useState(false);
   const [spotMover, setSpotMover] = useState(false);
+  /** Tommy item 5: cycle clean per-pass stacks (WISE default on). */
+  const [passMovie, setPassMovie] = useState(false);
   const [demoPhase, setDemoPhase] = useState<DemoPhase>("idle");
   const [demoLine, setDemoLine] = useState("");
   const [showBriefing, setShowBriefing] = useState(() => {
@@ -643,7 +648,8 @@ export default function App() {
     const active = filtered[Math.min(view.frameIndex, filtered.length - 1)]!;
 
     if (view.mode === "stack") {
-      const stacked = stackFrames(filtered);
+      // Tommy item 5: clean mean (mask === 0 only) when stacking a locked visit.
+      const stacked = view.pass != null ? stackPassClean(filtered) : stackFrames(filtered);
       const limits = applyContrast(computeDisplayLimits([stacked]), view.contrast);
       return {
         kind: "compose" as const,
@@ -729,6 +735,7 @@ export default function App() {
     setGhostVisits(false);
     setSplitVisits(false);
     setSpotMover(false);
+    setPassMovie(false);
   }
 
   /** Tommy B4: each preset opens in the view that shows what it’s for. */
@@ -736,7 +743,7 @@ export default function App() {
     clearPresentationOverlays();
     setSearchInput(label);
     if (key === "wise0855") {
-      // Faint. only visible when stacking detector 6.
+      // Faint. only visible when stacking detector 6 visits as a short movie.
       patchView({
         targetKey: key,
         query: label,
@@ -747,6 +754,7 @@ export default function App() {
         playing: false,
         waveUm: null,
       });
+      setPassMovie(true);
       setTimelineOpen(false);
       return;
     }
@@ -1068,6 +1076,57 @@ export default function App() {
   const splitStacks = splitVisits ? visitStacks : null;
   const ghostStacks = ghostVisits ? visitStacks : null;
   const spotStacks = spotMover ? visitStacks : null;
+
+  const passStackMovie = useMemo(() => {
+    if (!passMovie || load.status !== "ready") return null;
+    const pool =
+      view.detector != null
+        ? load.data.frames.filter((f) => f.exposure.detector === view.detector)
+        : load.data.frames;
+    const stacks = stackByPass(pool);
+    if (stacks.length < 2) return null;
+    const first = stacks[0]!;
+    const last = stacks[stacks.length - 1]!;
+    const n = first.stack.pixels.length;
+    const diffPixels = new Float32Array(n);
+    const diffMask = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      const va = last.stack.pixels[i]!;
+      const vb = first.stack.pixels[i]!;
+      diffMask[i] = last.stack.mask[i]! | first.stack.mask[i]!;
+      diffPixels[i] = Number.isNaN(va) || Number.isNaN(vb) ? Number.NaN : va - vb;
+    }
+    const limits = applyContrast(
+      computeDisplayLimits([
+        ...stacks.map((s) => ({
+          pixels: s.stack.pixels,
+          mask: s.stack.mask,
+          background: 0,
+          noise: s.stack.noise,
+        })),
+        { pixels: diffPixels, mask: diffMask, background: 0, noise: null },
+      ]),
+      view.contrast,
+    );
+    const xy = pool[0]?.frame.target_xy ?? null;
+    return {
+      size: load.data.grid.size,
+      limits,
+      targetXy: xy,
+      stacks: stacks.map((s) => ({
+        pass: s.pass,
+        pixels: s.stack.pixels,
+        mask: s.stack.mask,
+        label: `Visit ${s.pass} average (clean stack)`,
+      })),
+      diff: {
+        pass: last.pass,
+        pixels: diffPixels,
+        mask: diffMask,
+        label: `Visit ${last.pass} minus Visit ${first.pass}`,
+      },
+    };
+  }, [passMovie, load, view.detector, view.contrast]);
 
   const storyboard = useMemo(() => {
     if (load.status !== "ready" || passes.length < 2) return null;
@@ -1683,9 +1742,28 @@ export default function App() {
                 />
               ))}
 
+            {!splitStacks && !ghostStacks && !spotStacks && passStackMovie && (
+              <PassStackMovie
+                stacks={passStackMovie.stacks}
+                diff={passStackMovie.diff}
+                size={passStackMovie.size}
+                lo={passStackMovie.limits.lo}
+                hi={passStackMovie.limits.hi}
+                colorMap={view.colorMap}
+                displayPx={displayPx}
+                targetXy={passStackMovie.targetXy}
+                faintHint={
+                  view.targetKey === "wise0855"
+                    ? "WISE 0855 is near the detection limit. Stacking each visit of detector 6 is how it can appear. If you still see almost nothing, that is part of the plan."
+                    : undefined
+                }
+              />
+            )}
+
             {!splitStacks &&
               !ghostStacks &&
               !spotStacks &&
+              !passStackMovie &&
               display &&
               (view.mode === "stack" || view.mode === "track") &&
               display.kind === "compose" && (
@@ -1994,9 +2072,10 @@ export default function App() {
                   <div className="chip-row">
                     <button
                       type="button"
-                      className={view.mode === "stack" ? "active" : ""}
+                      className={view.mode === "stack" && !passMovie ? "active" : ""}
                       onClick={() => {
                         clearPresentationOverlays();
+                        setPassMovie(false);
                         patchView({ mode: "stack", playing: false });
                       }}
                     >
@@ -2004,15 +2083,47 @@ export default function App() {
                     </button>
                     <button
                       type="button"
+                      className={passMovie ? "active" : ""}
+                      title="Mean of each visit (mask 0 only), then last minus first"
+                      onClick={() => {
+                        clearPresentationOverlays();
+                        setPassMovie(true);
+                        patchView({
+                          mode: "stack",
+                          pass: null,
+                          playing: false,
+                          detector: view.targetKey === "wise0855" ? 6 : view.detector,
+                        });
+                      }}
+                    >
+                      Stack visits movie
+                    </button>
+                    <button
+                      type="button"
                       className={view.mode === "track" ? "active" : ""}
                       onClick={() => {
                         clearPresentationOverlays();
+                        setPassMovie(false);
                         patchView({ mode: "track", playing: false });
                       }}
                     >
                       Keep star centered
                     </button>
                   </div>
+                  {view.pass != null && (
+                    <button
+                      type="button"
+                      className="ghost"
+                      title="Average only this visit with clean mask pixels"
+                      onClick={() => {
+                        clearPresentationOverlays();
+                        setPassMovie(false);
+                        patchView({ mode: "stack", playing: false });
+                      }}
+                    >
+                      Stack this pass
+                    </button>
+                  )}
                   {view.mode !== "difference" && (
                     <>
                       <p className="control-label">Visit filter</p>

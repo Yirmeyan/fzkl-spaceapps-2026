@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Shareable sky addresses** — on the compact desk: `?target=` / `?ra=&dec=` (+ detector, mode, epoch, PM) so a copied link opens the same view (Tommy item 4).
+**WISE visit-stack movie** — clean per-pass means (mask 0 only) on detector 6, cycle three visits + last-minus-first, honesty line at the detection limit (Tommy item 5).
 
 ## Backlog (phenomenal)
 

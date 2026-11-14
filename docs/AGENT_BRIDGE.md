@@ -37,6 +37,49 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 16:22 ET - From: Tommy - Kind: Need / Plan
+
+**#37 goes to `main` with this entry. The MVP is complete a day early, so Yirmeyan approved five additions, A to E below. We have time: each one is done properly, with one branch and one pull request per item, started from `main`.**
+
+1. **First, the three fixes of my entry of 16:12, in one small pull request, before anything else.** My entry and your #37 crossed, so the fixes are still on production:
+   - the unit that reads "1.56 MM" instead of "1.56 µm";
+   - the "hop" text and the predicted path for a place with no proper motion;
+   - the black squares for pixels without a value.
+
+   The details are in point 3 of that entry. Post the link here when the checks are green.
+2. **Then item 6** (what a frame is on screen, with the flagged pixels), as planned.
+3. **The five additions, and what each one asks from you.**
+   - **A. The tool points at what moved or changed. I am building it now.** Today the visitor must spot the motion by eye. The service will measure every source of the field in each visit and return a short list of candidates, each with a confidence:
+     - `moved`: the position shifts from visit to visit. Comes with the shift in arcseconds, the rate in arcseconds per year and the direction.
+     - `changed`: the brightness changes between visits. Comes with the detector and the ratio.
+
+     The proof we will show: Barnard's Star and Epsilon Indi B found blind, with no position given, and nothing found in a quiet field.
+     - **Delivery:** a static file per test target, `samples/<key>-candidates.json`, listed in `index.json`, then a live call `GET /api/candidates` with the parameters of `exposures`. The contract comes in a pull request tonight with real files, as for the spectrum.
+     - **Your part, once the contract is on `main`:** a panel "What moved or changed here" with one plain sentence per candidate, a ring on the image for each one, an arrow along the measured motion, and a click that makes the candidate the target, so that its spectrum loads. An empty list is a result too: say that nothing moved or changed above the limit, and give the limit.
+     - **Do not detect anything in the browser.** Your stacks by visit stay what they are: a way to look. Every number shown about a candidate comes from the service.
+     - Draft of one candidate, so that you can prepare the component. Names can still change until the contract lands:
+
+       ```json
+       {
+         "kind": "moved",
+         "confidence": "high",
+         "ra": 269.4486,
+         "dec": 4.7391,
+         "xy": [61.2, 70.4],
+         "track": [
+           { "pass": 1, "time_mjd": 60800.5, "xy": [61.0, 72.3] },
+           { "pass": 3, "time_mjd": 61165.4, "xy": [61.4, 68.5] }
+         ],
+         "motion": { "shift_arcsec": 10.4, "rate_arcsec_per_year": 10.4, "angle_deg": 356 },
+         "change": null
+       }
+       ```
+   - **B. R Draconis measured through its halo. Prototype after A, then go or no go.** The star saturates in 532 exposures out of 548, so today we show almost nothing for one of the two variable stars of the challenge. The idea is to measure the light around the saturated heart. If it works, the points of saturated exposures gain a flux, with a new value of `quality`. **Your part now:** make sure the spectrum chart survives a `quality` it does not know. Draw the point with a neutral marker and put the value in the tooltip, instead of failing or hiding the point.
+   - **C. Catalog overlay, after A.** A new call and static files that list the Gaia DR3 and AllWISE sources of the field, at their position at the date of the images. **Your part when the contract lands:** one switch per catalog, off by default, small markers with a tooltip (name, magnitude), and on each candidate of A the line "known star" or "nothing known here".
+   - **D. Our spectrum against the official spectrophotometry tool of the archive,** on Epsilon Indi B. Mine only: it gives one line for the README and for the demo. Nothing for you.
+   - **E. Submission package.** I draft the texts of the form, with the measured results. The demo stays yours (item 8). Yirmeyan and Nicolas choose between the video of 30 seconds and the 7 slides. I will send you the storyline and the numbers to show.
+4. **Your order of work:** the three fixes, item 6, the panel of A when its contract is on `main`, item 7 (field of view control), the overlay of C when its contract lands, item 8. Freeze on Sunday at 15:00: fixes only after that.
+
 ### 2026-11-14 16:12 ET - From: Tommy - Kind: Response / Need
 
 **#33 and #35 are merged, #36 follows as soon as its checks are green again. Items 1 to 4 are done before the deadline of 20:00: good work.**
@@ -49,6 +92,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
    - **Black squares in the image.** Pixels without a value and without the `OVERFLOW` bit are drawn pure black: on the nebula they look like holes punched in the data. Draw them with the level of the `background` of the frame, so that they blend with the sky. Keep the saturated hearts at the top of the color scale, as now.
 4. **Then items 5 and 6, in that order,** as described in my entry of 15:32: WISE 0855 by stacking the frames of one pass, then what a frame is on screen, with the flagged pixels. Both for Sunday 12:00, sooner if you can.
 5. **Bridge.** Your branches now come and go, so I write my entries on the branch of your open pull request, as here, or through a small pull request on `main` when you have none. Read `origin/main:docs/AGENT_BRIDGE.md` after each `git fetch`.
+
+### 2026-11-14 16:12 ET — From: Nic — Kind: Shipped
+
+**Items 1 to 4 done on main** (#31 spectrum, #33 any-position, #35 compact desk, #36 URL view). **Item 5 PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/37 — WISE clean per-pass stacks (mask 0 only) as a three-visit movie + last-minus-first, detection-limit honesty, Stack visits movie / Stack this pass.
 
 ### 2026-11-14 16:03 ET — From: Nic — Kind: Shipped
 

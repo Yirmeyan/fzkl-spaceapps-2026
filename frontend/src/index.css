@@ -2308,3 +2308,48 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
+.pass-stack-movie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.pass-stack-caption {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #d7e0ec;
+  text-align: center;
+}
+
+.pass-stack-dots {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.pass-stack-dots button {
+  width: 0.55rem;
+  height: 0.55rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  min-width: 0;
+}
+
+.pass-stack-dots button.active {
+  background: var(--warm);
+  border-color: var(--warm);
+}
+
+.pass-stack-hint {
+  margin: 0.15rem 0 0;
+  max-width: 22rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #93a4b8;
+  text-align: center;
+}

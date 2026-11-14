@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { DecodedFrame } from "../data/decode";
-import { differencePasses, stackFrames, stackTrackingTarget } from "./stack";
+import {
+  differencePasses,
+  stackByPass,
+  stackFrames,
+  stackPassClean,
+  stackTrackingTarget,
+} from "./stack";
 
 function fakeFrame(pass: number, fill: number, targetXy: [number, number] = [2, 2]): DecodedFrame {
   const size = 4;
@@ -53,5 +59,21 @@ describe("compose", () => {
     const out = stackTrackingTarget([a, b]);
     // Both peaks should land on ref target (1,1)
     expect(out.pixels[1 * 4 + 1]).toBeCloseTo(10);
+  });
+
+  it("clean pass stack skips any non-zero mask pixel", () => {
+    const a = fakeFrame(1, 4);
+    const b = fakeFrame(1, 8);
+    b.mask[0] = 1;
+    const out = stackPassClean([a, b]);
+    expect(out.pixels[0]).toBeCloseTo(4);
+    expect(out.pixels[1]).toBeCloseTo(6);
+  });
+
+  it("stackByPass returns one mean per visit", () => {
+    const out = stackByPass([fakeFrame(1, 2), fakeFrame(1, 4), fakeFrame(2, 10)]);
+    expect(out.map((x) => x.pass)).toEqual([1, 2]);
+    expect(out[0]!.stack.pixels[0]).toBeCloseTo(3);
+    expect(out[1]!.stack.pixels[0]).toBeCloseTo(10);
   });
 });
