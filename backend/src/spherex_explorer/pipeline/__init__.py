@@ -1,6 +1,7 @@
 """Pipeline: orchestrates one request across the archive, the targets and the frames."""
 
 from spherex_explorer.pipeline.candidates import (
+    FieldMemory,
     FieldReport,
     field_frame,
     find_field_candidates,
@@ -24,6 +25,7 @@ from spherex_explorer.pipeline.spectrum import (
 __all__ = [
     "ExposureArchive",
     "ExposureListing",
+    "FieldMemory",
     "FieldReport",
     "Frame",
     "FrameSource",

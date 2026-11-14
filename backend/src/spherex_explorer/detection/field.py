@@ -233,7 +233,8 @@ def _piles(frames: Sequence[FieldFrame]) -> dict[tuple[int, int], _Pile]:
             groups.setdefault((frame.detector, frame.pass_number), []).append(frame)
     piles = {}
     for key, group in sorted(groups.items()):
-        values = np.stack([f.image.astype(np.float64) - f.background for f in group])
+        # Single precision: a field is hundreds of frames, and their noise is far above it.
+        values = np.stack([f.image.astype(np.float32) - np.float32(f.background) for f in group])
         cleaned = without_outliers(values)
         piles[key] = _Pile(
             values=values,

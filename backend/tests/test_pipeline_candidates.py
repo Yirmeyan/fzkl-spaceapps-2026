@@ -12,6 +12,7 @@ from spherex_explorer.detection import MOVED
 from spherex_explorer.errors import UpstreamUnavailable
 from spherex_explorer.frames import Grid
 from spherex_explorer.pipeline import (
+    FieldMemory,
     ListedExposure,
     build_frame,
     field_frame,
@@ -133,3 +134,104 @@ def test_the_swing_of_a_nearby_object_is_read_on_the_grid_of_the_view():
     assert motion.parallax * scale == pytest.approx(0.6, abs=0.1)
     assert -motion.rate_x * scale * 365.25 == pytest.approx(-2.0, abs=0.15)
     assert -motion.rate_y * scale * 365.25 == pytest.approx(0.5, abs=0.15)
+
+
+# --- the memory of the fields
+
+
+class Counted:
+    """A measurement that counts its runs, and can be slow or fail."""
+
+    def __init__(self, delay_s: float = 0.0, failure: Exception | None = None):
+        self.runs = 0
+        self.delay_s = delay_s
+        self.failure = failure
+
+    async def __call__(self):
+        self.runs += 1
+        await asyncio.sleep(self.delay_s)
+        if self.failure is not None:
+            raise self.failure
+        return report_field(TARGET, GRID, [])
+
+
+def test_a_field_asked_twice_is_measured_once():
+    async def scenario():
+        memory, measure = FieldMemory(), Counted(delay_s=0.01)
+        together = await asyncio.gather(memory.report("a", measure), memory.report("a", measure))
+        later = await memory.report("a", measure)
+        other = await memory.report("b", measure)
+        return measure.runs, together[0] is together[1] is later, other is later
+
+    assert asyncio.run(scenario()) == (2, True, False)
+
+
+def test_a_report_is_measured_again_once_it_is_stale():
+    async def scenario():
+        now = [0.0]
+        memory, measure = FieldMemory(fresh_s=100.0, clock=lambda: now[0]), Counted()
+        await memory.report("a", measure)
+        now[0] = 100.0
+        await memory.report("a", measure)
+        now[0] = 201.0
+        await memory.report("a", measure)
+        return measure.runs
+
+    assert asyncio.run(scenario()) == 2
+
+
+def test_only_the_latest_fields_are_kept():
+    async def scenario():
+        memory, measure = FieldMemory(kept=2), Counted()
+        for key in ("a", "b", "a", "c", "a", "b"):
+            await memory.report(key, measure)
+        return measure.runs
+
+    # "b" was the oldest when "c" came, and is measured again when asked.
+    assert asyncio.run(scenario()) == 4
+
+
+def test_a_failure_is_given_to_everyone_waiting_and_is_not_kept():
+    async def scenario():
+        memory = FieldMemory()
+        failing = Counted(delay_s=0.01, failure=UpstreamUnavailable("Storage", "HTTP 503", 5))
+        results = await asyncio.gather(
+            memory.report("a", failing), memory.report("a", failing), return_exceptions=True
+        )
+        working = Counted()
+        await memory.report("a", working)
+        return [type(result) for result in results], failing.runs, working.runs
+
+    assert asyncio.run(scenario()) == ([UpstreamUnavailable, UpstreamUnavailable], 1, 1)
+
+
+def test_a_request_that_gives_up_does_not_stop_the_measurement():
+    async def scenario():
+        memory, measure = FieldMemory(), Counted(delay_s=0.05)
+        with pytest.raises(TimeoutError):
+            async with asyncio.timeout(0.01):
+                await memory.report("a", measure)
+        await asyncio.sleep(0.1)
+        await memory.report("a", measure)
+        return measure.runs
+
+    assert asyncio.run(scenario()) == 1
+
+
+def test_few_fields_are_measured_at_the_same_time():
+    async def scenario():
+        memory = FieldMemory()
+        running = peak = 0
+
+        async def measure():
+            nonlocal running, peak
+            running += 1
+            peak = max(peak, running)
+            await asyncio.sleep(0.01)
+            running -= 1
+            return report_field(TARGET, GRID, [])
+
+        await asyncio.gather(*(memory.report(key, measure) for key in "abcde"))
+        return peak
+
+    assert asyncio.run(scenario()) == 2

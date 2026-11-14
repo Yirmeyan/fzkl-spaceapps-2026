@@ -1,12 +1,23 @@
-"""The candidates of a field as docs/api-contract.md writes them."""
+"""Route that tells what moved or changed around a target, as described in docs/api-contract.md."""
 
+import asyncio
 import math
+from typing import Annotated
 
 import numpy as np
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
 
-from spherex_explorer.api.exposures import GridOut, TargetOut, grid_out
+from spherex_explorer.api.exposures import (
+    GridOut,
+    TargetOut,
+    get_archive,
+    get_time_budget_s,
+    grid_out,
+)
+from spherex_explorer.api.frames import get_frame_source
 from spherex_explorer.api.numbers import TIME_DECIMALS
+from spherex_explorer.api.params import Dec, Epoch, PmDec, PmRa, Ra
 from spherex_explorer.detection import (
     CLAIM,
     MOVED,
@@ -17,10 +28,24 @@ from spherex_explorer.detection import (
     Motion,
     Sighting,
 )
+from spherex_explorer.errors import UpstreamUnavailable
 from spherex_explorer.frames import Grid, grid_to_sky, sky_to_grid
 from spherex_explorer.mjd import mjd_to_iso
-from spherex_explorer.pipeline.candidates import FieldReport
+from spherex_explorer.pipeline import (
+    ExposureArchive,
+    FieldMemory,
+    FieldReport,
+    FrameSource,
+    find_field_candidates,
+)
 from spherex_explorer.targets import LIGHT_YEARS_AT_ONE_ARCSECOND, Target, position_at
+
+router = APIRouter(tags=["candidates"])
+
+# As for the list of exposures: new ones are published every week.
+_CACHE_CONTROL = "public, max-age=3600"
+# Seconds a client is asked to wait before it asks again for a field still being measured.
+_RETRY_AFTER_S = 10
 
 _ARCSEC_PER_DEGREE = 3600.0
 _MAS_PER_ARCSEC = 1000.0
@@ -271,3 +296,41 @@ def candidates_out(report: FieldReport) -> CandidatesOut:
         saturated=saturated,
         candidates=[_candidate_out(target, grid, candidate) for candidate in report.candidates],
     )
+
+
+def get_field_memory(request: Request) -> FieldMemory:
+    """Reports the running application already made, or is making."""
+    return request.app.state.fields
+
+
+@router.get("/candidates", response_model=CandidatesOut)
+async def read_candidates(
+    response: Response,
+    archive: Annotated[ExposureArchive, Depends(get_archive)],
+    source: Annotated[FrameSource, Depends(get_frame_source)],
+    time_budget_s: Annotated[float, Depends(get_time_budget_s)],
+    memory: Annotated[FieldMemory, Depends(get_field_memory)],
+    ra: Ra,
+    dec: Dec,
+    epoch: Epoch = 2000.0,
+    pm_ra: PmRa = 0.0,
+    pm_dec: PmDec = 0.0,
+) -> CandidatesOut:
+    target = Target(ra=ra, dec=dec, epoch=epoch, pm_ra=pm_ra, pm_dec=pm_dec)
+    try:
+        # Every frame of the view is read. A request that runs out of time leaves the
+        # measurement going: the next one, a few seconds later, finds it done.
+        async with asyncio.timeout(time_budget_s):
+            report = await memory.report(
+                (ra, dec, epoch, pm_ra, pm_dec),
+                lambda: find_field_candidates(archive, source, target),
+            )
+    except TimeoutError as exc:
+        raise UpstreamUnavailable(
+            "The SPHEREx archive",
+            f"the field is still being measured after {time_budget_s:g} s",
+            retry_after_s=_RETRY_AFTER_S,
+        ) from exc
+
+    response.headers["Cache-Control"] = _CACHE_CONTROL
+    return candidates_out(report)

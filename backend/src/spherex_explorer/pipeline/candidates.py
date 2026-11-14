@@ -7,7 +7,9 @@ second or two, and runs aside so that the service keeps answering meanwhile.
 
 import asyncio
 import logging
-from collections.abc import Sequence
+import time
+from collections import OrderedDict
+from collections.abc import Awaitable, Callable, Hashable, Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -32,6 +34,8 @@ logger = logging.getLogger(__name__)
 _PARALLEL = 32
 # Seconds a client is asked to wait when too many files could not be read.
 _RETRY_AFTER_S = 5
+# Fields measured at the same time in one process: each holds hundreds of frames.
+_FIELDS_AT_ONCE = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,3 +119,58 @@ async def find_field_candidates(
         ) from failures[0]
     frames = [frame for frame in built if frame is not None]
     return await asyncio.to_thread(report_field, target, listing.grid, frames)
+
+
+class FieldMemory:
+    """Reports already made, and those being made.
+
+    Measuring a field reads hundreds of files. The same field asked twice is measured
+    once: a second request joins the first while it runs, and finds its report
+    afterwards for as long as it stays fresh. A request that gives up waiting does not
+    stop the measurement, so that the next one finds it done. A failure is not kept.
+    """
+
+    def __init__(
+        self,
+        *,
+        fresh_s: float = 3600.0,
+        kept: int = 64,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self._fresh_s = fresh_s
+        self._kept = kept
+        self._clock = clock
+        self._reports: OrderedDict[Hashable, tuple[float, FieldReport]] = OrderedDict()
+        self._running: dict[Hashable, asyncio.Task[FieldReport]] = {}
+        self._slots = asyncio.Semaphore(_FIELDS_AT_ONCE)
+
+    async def report(
+        self, key: Hashable, measure: Callable[[], Awaitable[FieldReport]]
+    ) -> FieldReport:
+        """The report of the field `key`, measured with `measure` unless it is known."""
+        known = self._reports.get(key)
+        if known is not None and self._clock() - known[0] <= self._fresh_s:
+            self._reports.move_to_end(key)
+            return known[1]
+        task = self._running.get(key)
+        if task is None:
+            task = asyncio.create_task(self._measure(key, measure))
+            self._running[key] = task
+            # A measurement nobody waits for any more may still fail: its error is read
+            # here, so that it is not reported as forgotten.
+            task.add_done_callback(lambda done: done.cancelled() or done.exception())
+        return await asyncio.shield(task)
+
+    async def _measure(
+        self, key: Hashable, measure: Callable[[], Awaitable[FieldReport]]
+    ) -> FieldReport:
+        try:
+            async with self._slots:
+                report = await measure()
+            self._reports[key] = (self._clock(), report)
+            self._reports.move_to_end(key)
+            while len(self._reports) > self._kept:
+                self._reports.popitem(last=False)
+            return report
+        finally:
+            del self._running[key]

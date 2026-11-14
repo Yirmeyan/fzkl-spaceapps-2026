@@ -1,10 +1,19 @@
-"""The candidates of a field as the contract writes them."""
+"""The candidates of a field: the route, and the answer as the contract writes it."""
+
+import asyncio
+import time
 
 import numpy as np
 import pytest
+from fastapi.testclient import TestClient
 
+from level2_file import MJD, SKY_CENTER, FakeStorage, build_level2_file
 from made_up_field import OVERFLOW, field_frames, steady_stars
+from spherex_explorer.api.app import create_app
 from spherex_explorer.api.candidates import candidates_out
+from spherex_explorer.archive import Exposure, Level2Reader, key_from_id
+from spherex_explorer.config import Settings
+from spherex_explorer.errors import UpstreamUnavailable
 from spherex_explorer.frames import Grid, grid_to_sky, sky_to_grid
 from spherex_explorer.pipeline import report_field
 from spherex_explorer.targets import Target, parallax_shift
@@ -191,3 +200,137 @@ def test_a_saturated_star_is_placed_on_the_sky():
     assert (star["ra"], star["dec"]) == pytest.approx(place(48.0, 48.0), abs=1e-6)
     assert star["radius_arcsec"] == pytest.approx(np.sqrt(49 / np.pi) * SCALE, abs=0.1)
     assert star["detectors"] == [2, 5]
+
+
+# --- the route
+
+ORIGIN = "https://site.example"
+HERE = {"ra": SKY_CENTER[0], "dec": SKY_CENTER[1]}
+# Two visits of two detectors, three exposures each.
+IDS = [
+    f"dr1.2025W{week}_2B_{number:04d}_1D{detector}.l2b-v27-2026-229"
+    for week in (20, 46)
+    for detector in (2, 5)
+    for number in range(3)
+]
+
+
+class FakeArchive:
+    def __init__(self, failure: Exception | None = None, delay_s: float = 0.0):
+        self.failure = failure
+        self.delay_s = delay_s
+        self.searches = 0
+
+    async def find_exposures(self, ra: float, dec: float) -> list[Exposure]:
+        self.searches += 1
+        await asyncio.sleep(self.delay_s)
+        if self.failure is not None:
+            raise self.failure
+        return [
+            Exposure(
+                id=identifier,
+                collection="dr1",
+                detector=int(identifier.split(".")[1][-1]),
+                time_mjd=MJD + 7.0 * (int(identifier[9:11]) - 20) + index / 100,
+            )
+            for index, identifier in enumerate(IDS)
+        ]
+
+
+@pytest.fixture(scope="module")
+def source() -> Level2Reader:
+    content = build_level2_file(flags=np.zeros((72, 96), dtype=np.int32))
+    return Level2Reader(FakeStorage({key_from_id(identifier): content for identifier in IDS}))
+
+
+def make_client(source, archive=None, **settings) -> TestClient:
+    app = create_app(
+        Settings(_env_file=None, allowed_origins=ORIGIN, **settings),
+        archive=archive or FakeArchive(),
+        frames=source,
+    )
+    return TestClient(app, raise_server_exceptions=False)
+
+
+def test_the_route_answers_as_the_contract_writes_it(source):
+    response = make_client(source).get("/api/candidates", params=HERE)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert list(body) == [
+        "target",
+        "grid",
+        "frames",
+        "sources",
+        "visits",
+        "limits",
+        "saturated",
+        "candidates",
+    ]
+    assert body["target"] == {**HERE, "epoch": 2000.0, "pm_ra": 0.0, "pm_dec": 0.0}
+    assert body["grid"] == {**HERE, "fov_deg": 0.1, "size": 128}
+    assert body["frames"] == len(IDS)
+    assert [(visit["pass"], visit["frames"]) for visit in body["visits"]] == [(1, 6), (2, 6)]
+    assert list(body["visits"][0]) == ["pass", "time_mjd", "time_iso", "frames"]
+    assert body["limits"] == {"significance": 5.0, "shift_arcsec": 1.0, "change": 0.1}
+    # The same file stands for every exposure: nothing moves and nothing changes.
+    assert body["candidates"] == []
+    assert response.headers["cache-control"] == "public, max-age=3600"
+
+
+def test_a_field_already_measured_is_answered_from_memory(source):
+    archive = FakeArchive()
+    with make_client(source, archive=archive) as client:
+        first = client.get("/api/candidates", params=HERE)
+        again = client.get("/api/candidates", params=HERE)
+        elsewhere = client.get("/api/candidates", params={**HERE, "pm_ra": 100.0})
+
+    assert first.status_code == again.status_code == elsewhere.status_code == 200
+    assert first.json() == again.json()
+    # One search for the field asked twice, one for the other target.
+    assert archive.searches == 2
+
+
+def test_a_place_never_observed_has_no_candidate_and_no_visit(source):
+    class Nothing:
+        async def find_exposures(self, ra: float, dec: float) -> list[Exposure]:
+            return []
+
+    body = make_client(source, archive=Nothing()).get("/api/candidates", params=HERE).json()
+
+    assert (body["frames"], body["sources"], body["visits"], body["candidates"]) == (0, 0, [], [])
+
+
+@pytest.mark.parametrize("params", [{}, {"ra": 400, "dec": 4}, {"ra": 10}, {**HERE, "pm_ra": "x"}])
+def test_invalid_request_is_refused(source, params):
+    response = make_client(source).get("/api/candidates", params=params)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_request"
+
+
+def test_silent_archive_gives_a_503_the_browser_can_read(source):
+    failure = UpstreamUnavailable("The IRSA exposure search", "HTTP 503", retry_after_s=10)
+    client = make_client(source, archive=FakeArchive(failure=failure))
+
+    response = client.get("/api/candidates", params=HERE, headers={"Origin": ORIGIN})
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "upstream_unavailable"
+    assert response.headers["retry-after"] == "10"
+    assert response.headers["access-control-expose-headers"] == "Retry-After"
+
+
+def test_a_field_that_takes_too_long_is_ready_for_the_next_request(source):
+    archive = FakeArchive(delay_s=0.3)
+    with make_client(source, archive=archive, archive_budget_s=0.05) as client:
+        early = client.get("/api/candidates", params=HERE)
+        time.sleep(1.5)
+        later = client.get("/api/candidates", params=HERE)
+
+    assert early.status_code == 503
+    assert early.json()["error"]["code"] == "upstream_unavailable"
+    assert early.headers["retry-after"] == "10"
+    assert later.status_code == 200
+    assert later.json()["frames"] == len(IDS)
+    assert archive.searches == 1
