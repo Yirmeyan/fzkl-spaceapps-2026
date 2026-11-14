@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   applyContrast,
+  closestFrameIndex,
   filterFrames,
   filterNearWavelength,
   uniqueDetectors,
@@ -23,7 +24,7 @@ import {
   stackPassClean,
   stackTrackingTarget,
 } from "./compose/stack";
-import { type CandidatesFile, fetchCandidatesFile } from "./data/candidates";
+import { type CandidatesFile, discoveryFlashLine, fetchCandidatesFile } from "./data/candidates";
 import {
   ApiError,
   fetchBundle,
@@ -133,6 +134,8 @@ export default function App() {
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
   const [searchInput, setSearchInput] = useState(view.query);
   const [blinkPasses, setBlinkPasses] = useState(false);
+  /** Infrared color locked for the blink hop (matched across visits). */
+  const blinkWaveRef = useRef<number | null>(null);
   /** Hide chrome; sky fills the viewport like looking through an eyepiece (E). */
   const [eyepiece, setEyepiece] = useState(false);
   /** Brief double-exposure of the previous visit while blinking (hop afterimage). */
@@ -176,6 +179,9 @@ export default function App() {
   skyTargetRef.current = skyTarget;
   const [displayPx, setDisplayPx] = useState(400);
   const [splitVisits, setSplitVisits] = useState(false);
+  /** Which visits the Split panels show (defaults: first / last). */
+  const [splitPassA, setSplitPassA] = useState<number | null>(null);
+  const [splitPassB, setSplitPassB] = useState<number | null>(null);
   const [ghostVisits, setGhostVisits] = useState(false);
   const [spotMover, setSpotMover] = useState(false);
   /** Tommy item 5: cycle clean per-pass stacks (WISE default on). */
@@ -254,12 +260,15 @@ export default function App() {
     if (!el) return;
     const update = () => {
       // Classic desk: square fits the viewport with chrome. no page scroll.
-      // Eyepiece: grow the cutout toward the full viewport.
+      // Eyepiece / Split: grow so the sky stays readable.
       const colW = el.clientWidth;
       const maxByWidth = Math.floor(colW - 12);
-      const maxByHeight = Math.floor(window.innerHeight * (eyepiece ? 0.78 : 0.52));
-      const cap = eyepiece ? 720 : 440;
-      const floor = eyepiece ? 360 : 280;
+      const maxByHeight = Math.floor(
+        window.innerHeight * (eyepiece ? 0.78 : splitVisits ? 0.64 : 0.52),
+      );
+      // Split: size one tile; stage will hold two side by side.
+      const cap = eyepiece ? 720 : splitVisits ? 420 : 440;
+      const floor = eyepiece ? 360 : splitVisits ? 300 : 280;
       const px = Math.max(floor, Math.min(cap, maxByWidth, maxByHeight));
       setDisplayPx(px);
     };
@@ -271,7 +280,7 @@ export default function App() {
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [eyepiece]);
+  }, [eyepiece, splitVisits]);
 
   const loadFromService = useCallback(
     async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
@@ -806,6 +815,19 @@ export default function App() {
     () => (load.status === "ready" ? uniquePasses(load.data.frames) : []),
     [load],
   );
+
+  useEffect(() => {
+    if (passes.length < 2) {
+      setSplitPassA(null);
+      setSplitPassB(null);
+      return;
+    }
+    setSplitPassA((prev) => (prev != null && passes.includes(prev) ? prev : passes[0]!));
+    setSplitPassB((prev) =>
+      prev != null && passes.includes(prev) ? prev : passes[passes.length - 1]!,
+    );
+  }, [passes]);
+
   const hasCatalogMotion = useMemo(() => {
     if (load.status !== "ready") return false;
     const { pm_ra, pm_dec } = load.data.target;
@@ -837,10 +859,20 @@ export default function App() {
   /** Blend / side-by-side / spot / blink must never stack. leftover flags cause broken stage visuals. */
   function clearPresentationOverlays() {
     setBlinkPasses(false);
+    blinkWaveRef.current = null;
     setGhostVisits(false);
     setSplitVisits(false);
     setSpotMover(false);
     setPassMovie(false);
+  }
+
+  /** Turn on exactly one presentation overlay (or none). Avoids Blend+Split both looking active. */
+  function setExclusiveOverlay(kind: "ghost" | "split" | "spot" | null) {
+    setBlinkPasses(false);
+    setPassMovie(false);
+    setGhostVisits(kind === "ghost");
+    setSplitVisits(kind === "split");
+    setSpotMover(kind === "spot");
   }
 
   /** Tommy B4: each preset opens in the view that shows what it’s for. */
@@ -892,34 +924,59 @@ export default function App() {
     setTimelineOpen(key === "barnard" || key === "rdra");
   }
 
+  // Blink must flip visits at the *same* infrared color — frame 0 of each pass
+  // is a different λ, which looks like a spectrum change, not motion.
   useEffect(() => {
     if (!blinkPasses || view.mode !== "single" || blinkA == null || blinkB == null) return;
+    if (load.status !== "ready") return;
+
+    if (blinkWaveRef.current == null) {
+      const seedPool = filterFrames(load.data.frames, { pass: blinkA, detector: view.detector });
+      blinkWaveRef.current =
+        seedPool.length > 0 ? seedPool[Math.floor(seedPool.length / 2)]!.frame.wavelength_um : null;
+    }
+    const wave = blinkWaveRef.current;
+
+    const go = (pass: number) => {
+      // Pass-only list (waveUm cleared) so frameIndex maps 1:1 onto `filtered`.
+      const pool = filterFrames(load.data.frames, { pass, detector: view.detector });
+      if (pool.length === 0) {
+        patchView({ pass, frameIndex: 0, playing: false, waveUm: null });
+        return;
+      }
+      const idx = wave != null ? closestFrameIndex(pool, wave) : Math.floor(pool.length / 2);
+      patchView({ pass, frameIndex: idx, playing: false, waveUm: null });
+    };
+
+    go(blinkA);
     let toggle = false;
-    patchView({ pass: blinkA, frameIndex: 0, playing: false });
     const id = window.setInterval(() => {
       toggle = !toggle;
-      patchView({ pass: toggle ? blinkB : blinkA, frameIndex: 0, playing: false });
+      go(toggle ? blinkB : blinkA);
     }, 500);
     return () => window.clearInterval(id);
-  }, [blinkPasses, view.mode, blinkA, blinkB, patchView]);
+    // Lock reference λ from the first blink tick; do not re-seed on waveUm edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blinkPasses, view.mode, blinkA, blinkB, load, view.detector, patchView]);
 
-  // Cinematic arrival when the service first reports a mover that is the target.
+  // Cinematic arrival when the service first reports a target mover or changer.
   useEffect(() => {
     if (!candidatesFile) {
       discoverySeenRef.current = null;
       return;
     }
     const hit = candidatesFile.candidates.find(
-      (c) => c.is_target && c.kind === "moved" && c.motion,
+      (c) =>
+        c.is_target &&
+        ((c.kind === "moved" && c.motion) || (c.kind === "changed" && c.changes.length > 0)),
     );
-    if (!hit?.motion) return;
-    const key = `${hit.ra.toFixed(5)},${hit.dec.toFixed(5)},${hit.motion.rate_arcsec_per_year}`;
+    if (!hit) return;
+    const line = discoveryFlashLine(hit);
+    if (!line) return;
+    const key = `${hit.ra.toFixed(5)},${hit.dec.toFixed(5)},${hit.kind},${line}`;
     if (discoverySeenRef.current === key) return;
     discoverySeenRef.current = key;
-    const rate = hit.motion.rate_arcsec_per_year.toFixed(2);
-    const ly =
-      hit.motion.distance_ly != null ? ` · ~${hit.motion.distance_ly.toFixed(1)} light-years` : "";
-    setDiscoveryFlash(`Found a mover · ${rate}″ per year${ly}`);
+    setDiscoveryFlash(line);
     const t = window.setTimeout(() => setDiscoveryFlash(null), 3000);
     return () => window.clearTimeout(t);
   }, [candidatesFile]);
@@ -959,7 +1016,15 @@ export default function App() {
       return;
     }
     if (next === "compare") {
-      patchView({ mode: "single", pass: null, playing: false, frameIndex: 0 });
+      const cur = filtered[Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))];
+      blinkWaveRef.current = view.waveUm ?? cur?.frame.wavelength_um ?? null;
+      patchView({
+        mode: "single",
+        pass: blinkA,
+        playing: false,
+        frameIndex: 0,
+        waveUm: null,
+      });
       setBlinkPasses(true);
       return;
     }
@@ -1055,23 +1120,17 @@ export default function App() {
       }
       if (e.key === "s" || e.key === "S") {
         e.preventDefault();
-        const next = !splitVisits;
-        clearPresentationOverlays();
-        setSplitVisits(next);
+        setExclusiveOverlay(splitVisits ? null : "split");
         patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
       }
       if (e.key === "g" || e.key === "G") {
         e.preventDefault();
-        const next = !ghostVisits;
-        clearPresentationOverlays();
-        setGhostVisits(next);
+        setExclusiveOverlay(ghostVisits ? null : "ghost");
         patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
       }
       if (e.key === "m" || e.key === "M") {
         e.preventDefault();
-        const next = !spotMover;
-        clearPresentationOverlays();
-        setSpotMover(next);
+        setExclusiveOverlay(spotMover ? null : "spot");
         patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
       }
     }
@@ -1172,7 +1231,17 @@ export default function App() {
         setSplitVisits(false);
         setGhostVisits(false);
         setSpotMover(false);
-        patchView({ mode: "single", playing: false, frameIndex: 0 });
+        {
+          const cur = filtered[Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))];
+          blinkWaveRef.current = view.waveUm ?? cur?.frame.wavelength_um ?? null;
+          patchView({
+            mode: "single",
+            playing: false,
+            frameIndex: 0,
+            pass: blinkA,
+            waveUm: null,
+          });
+        }
         setBlinkPasses(true);
       } else if (beat.phase === "ghost") {
         setBlinkPasses(false);
@@ -1211,7 +1280,7 @@ export default function App() {
 
   const visitStacks = useMemo(() => {
     if (load.status !== "ready" || passes.length < 2) return null;
-    if (!splitVisits && !ghostVisits && !spotMover) return null;
+    if (!ghostVisits && !spotMover) return null;
     const a = passes[0]!;
     const b = passes[passes.length - 1]!;
     const pool = forDifference;
@@ -1235,11 +1304,75 @@ export default function App() {
       view.contrast,
     );
     return { a, b, stackA, stackB, limits, size: load.data.grid.size };
-  }, [load, splitVisits, ghostVisits, spotMover, passes, forDifference, view.contrast]);
+  }, [load, ghostVisits, spotMover, passes, forDifference, view.contrast]);
 
-  const splitStacks = splitVisits ? visitStacks : null;
+  /**
+   * Split uses one frame per visit at the same infrared color (not a stack).
+   * Stacks of every wavelength look like a blend and hide the hop.
+   */
+  const splitPair = useMemo(() => {
+    if (!splitVisits || load.status !== "ready" || passes.length < 2) return null;
+    const a = splitPassA ?? passes[0]!;
+    const b = splitPassB ?? passes[passes.length - 1]!;
+    const pool = forDifference;
+    const pick = (pass: number) => {
+      const frames = pool.filter((f) => f.exposure.pass === pass);
+      if (frames.length === 0) return null;
+      if (view.waveUm == null) return frames[Math.floor(frames.length / 2)]!;
+      let best = frames[0]!;
+      let bestD = Math.abs(best.frame.wavelength_um - view.waveUm);
+      for (const f of frames) {
+        const d = Math.abs(f.frame.wavelength_um - view.waveUm);
+        if (d < bestD) {
+          best = f;
+          bestD = d;
+        }
+      }
+      return best;
+    };
+    const frameA = pick(a);
+    const frameB = pick(b);
+    if (!frameA || !frameB) return null;
+    const limits = applyContrast(
+      computeDisplayLimits([
+        {
+          pixels: frameA.pixels,
+          mask: frameA.mask,
+          background: frameA.frame.background,
+          noise: frameA.frame.noise,
+        },
+        {
+          pixels: frameB.pixels,
+          mask: frameB.mask,
+          background: frameB.frame.background,
+          noise: frameB.frame.noise,
+        },
+      ]),
+      view.contrast,
+    );
+    return {
+      a,
+      b,
+      frameA,
+      frameB,
+      limits,
+      size: load.data.grid.size,
+    };
+  }, [
+    splitVisits,
+    load,
+    passes,
+    splitPassA,
+    splitPassB,
+    forDifference,
+    view.waveUm,
+    view.contrast,
+  ]);
+
   const ghostStacks = ghostVisits ? visitStacks : null;
   const spotStacks = spotMover ? visitStacks : null;
+  // Keep each Split tile near full single-frame size; stage grows to fit both.
+  const splitPx = Math.max(300, displayPx);
 
   const passStackMovie = useMemo(() => {
     if (!passMovie || load.status !== "ready") return null;
@@ -1752,16 +1885,20 @@ export default function App() {
           {/* Invisible width probe: column width, not the square box (avoids circular sizing). */}
           <div className="stage-width-probe" ref={measureRef} aria-hidden="true" />
           <div
-            className={`stage-measure${splitStacks ? " is-wide" : " is-square"}`}
+            className={`stage-measure${splitPair ? " is-wide" : " is-square"}`}
             style={
               {
                 ...(display?.meta?.frame.wavelength_um != null
                   ? { "--wave-hue": String(wavelengthHue(display.meta.frame.wavelength_um)) }
                   : {}),
                 // Hard-size the square so we never letterbox a cutout in a wide band.
-                ...(!splitStacks
+                ...(!splitPair
                   ? { width: displayPx + 10, height: displayPx + 10 }
-                  : { width: "100%" }),
+                  : {
+                      width: splitPx * 2 + 56,
+                      maxWidth: "100%",
+                      minHeight: splitPx + 64,
+                    }),
               } as CSSProperties
             }
             data-wave={
@@ -1847,40 +1984,86 @@ export default function App() {
               />
             )}
 
-            {splitStacks && !ghostStacks && (
+            {splitPair && !ghostStacks && (
               <div className="split-visits">
-                <figure>
+                <figure style={{ width: splitPx }}>
                   <FrameCanvas
-                    pixels={splitStacks.stackA.pixels}
-                    mask={splitStacks.stackA.mask}
-                    size={splitStacks.size}
-                    lo={splitStacks.limits.lo}
-                    hi={splitStacks.limits.hi}
-                    background={0}
+                    pixels={splitPair.frameA.pixels}
+                    mask={splitPair.frameA.mask}
+                    size={splitPair.size}
+                    lo={splitPair.limits.lo}
+                    hi={splitPair.limits.hi}
+                    background={splitPair.frameA.frame.background}
                     colorMap={view.colorMap}
-                    trail={trail}
-                    displayPx={Math.floor(displayPx * 0.48)}
+                    targetXy={splitPair.frameA.frame.target_xy}
+                    displayPx={splitPx}
                   />
-                  <figcaption>Visit {splitStacks.a} (earlier)</figcaption>
+                  <figcaption>
+                    <label className="split-pass-pick">
+                      <span className="sr-only">Left visit</span>
+                      <select
+                        value={splitPair.a}
+                        onChange={(e) => setSplitPassA(Number(e.target.value))}
+                        aria-label="Left visit"
+                      >
+                        {passes.map((p) => (
+                          <option key={`split-a-${p}`} value={p}>
+                            Visit {p}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <span className="split-wave">
+                      {splitPair.frameA.frame.wavelength_um.toFixed(2)} µm ·{" "}
+                      {new Date(splitPair.frameA.frame.time_iso).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </figcaption>
                 </figure>
-                <figure>
+                <figure style={{ width: splitPx }}>
                   <FrameCanvas
-                    pixels={splitStacks.stackB.pixels}
-                    mask={splitStacks.stackB.mask}
-                    size={splitStacks.size}
-                    lo={splitStacks.limits.lo}
-                    hi={splitStacks.limits.hi}
-                    background={0}
+                    pixels={splitPair.frameB.pixels}
+                    mask={splitPair.frameB.mask}
+                    size={splitPair.size}
+                    lo={splitPair.limits.lo}
+                    hi={splitPair.limits.hi}
+                    background={splitPair.frameB.frame.background}
                     colorMap={view.colorMap}
-                    trail={trail}
-                    displayPx={Math.floor(displayPx * 0.48)}
+                    targetXy={splitPair.frameB.frame.target_xy}
+                    displayPx={splitPx}
                   />
-                  <figcaption>Visit {splitStacks.b} (later)</figcaption>
+                  <figcaption>
+                    <label className="split-pass-pick">
+                      <span className="sr-only">Right visit</span>
+                      <select
+                        value={splitPair.b}
+                        onChange={(e) => setSplitPassB(Number(e.target.value))}
+                        aria-label="Right visit"
+                      >
+                        {passes.map((p) => (
+                          <option key={`split-b-${p}`} value={p}>
+                            Visit {p}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <span className="split-wave">
+                      {splitPair.frameB.frame.wavelength_um.toFixed(2)} µm ·{" "}
+                      {new Date(splitPair.frameB.frame.time_iso).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </figcaption>
                 </figure>
               </div>
             )}
 
-            {!splitStacks &&
+            {!splitPair &&
               !ghostStacks &&
               !spotStacks &&
               display &&
@@ -1926,7 +2109,7 @@ export default function App() {
                 </>
               )}
 
-            {!splitStacks &&
+            {!splitPair &&
               !ghostStacks &&
               !spotStacks &&
               display &&
@@ -1956,7 +2139,7 @@ export default function App() {
                 />
               ))}
 
-            {!splitStacks && !ghostStacks && !spotStacks && passStackMovie && (
+            {!splitPair && !ghostStacks && !spotStacks && passStackMovie && (
               <PassStackMovie
                 stacks={passStackMovie.stacks}
                 diff={passStackMovie.diff}
@@ -1974,7 +2157,7 @@ export default function App() {
               />
             )}
 
-            {!splitStacks &&
+            {!splitPair &&
               !ghostStacks &&
               !spotStacks &&
               !passStackMovie &&
@@ -2040,17 +2223,17 @@ export default function App() {
             />
           )}
 
-          {display && view.mode === "single" && display.kind === "single" && !blinkPasses && (
+          {display && view.mode === "single" && display.kind === "single" && (
             <>
               {!overlayActive && (
                 <FrameCaption
                   frames={filtered}
                   frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                  playing={view.playing}
+                  playing={view.playing || blinkPasses}
                   hasCatalogMotion={hasCatalogMotion}
                 />
               )}
-              {candidatesFile && load.status === "ready" && (
+              {candidatesFile && load.status === "ready" && !blinkPasses && (
                 <MatchVerdict
                   candidates={candidatesFile.candidates}
                   catalogPmRa={load.data.target.pm_ra}
@@ -2076,9 +2259,7 @@ export default function App() {
                   disabled={passes.length < 2}
                   title="Overlay early and late visits (G)"
                   onClick={() => {
-                    const next = !ghostVisits;
-                    clearPresentationOverlays();
-                    setGhostVisits(next);
+                    setExclusiveOverlay(ghostVisits ? null : "ghost");
                     patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
                   }}
                 >
@@ -2088,17 +2269,15 @@ export default function App() {
                   type="button"
                   className={splitVisits ? "active" : ""}
                   disabled={passes.length < 2}
-                  title="Early and late side by side (S)"
+                  title="Compare two visits side by side (S)"
                   onClick={() => {
-                    const next = !splitVisits;
-                    clearPresentationOverlays();
-                    setSplitVisits(next);
+                    setExclusiveOverlay(splitVisits ? null : "split");
                     patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
                   }}
                 >
                   Split
                 </button>
-                {!overlayActive && (
+                {!overlayActive && !blinkPasses && (
                   <input
                     type="range"
                     min={0}
@@ -2112,8 +2291,38 @@ export default function App() {
                     title="Drag to pick a frame by hand"
                   />
                 )}
+                {!overlayActive && !blinkPasses && (
+                  <label className="fps-field">
+                    FPS
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={view.fps}
+                      onChange={(e) => patchView({ fps: Number(e.target.value) || 4 })}
+                      aria-label="Frames per second"
+                    />
+                  </label>
+                )}
+                {blinkPasses && (
+                  <button
+                    type="button"
+                    className="active"
+                    onClick={() => {
+                      setBlinkPasses(false);
+                      blinkWaveRef.current = null;
+                      patchView({ pass: null, mode: "single" });
+                    }}
+                  >
+                    Stop blink
+                  </button>
+                )}
               </div>
               {eyepiece && <p className="app--eyepiece-hint">Eyepiece on · Esc or E to leave</p>}
+              {/* After commands: short tip. Skip when candidates already tell the motion story. */}
+              {!eyepiece && !candidatesFile && !candidatesWaiting && (
+                <ViewerGuide targetName={targetName} mode={guideMode} />
+              )}
             </>
           )}
 
@@ -2125,10 +2334,6 @@ export default function App() {
                 center means the star moved.
               </p>
             )}
-
-          {cinema && !eyepiece && !candidatesFile && !candidatesWaiting && (
-            <ViewerGuide targetName={targetName} mode={guideMode} />
-          )}
         </section>
 
         <aside className={`rail${cinema ? " rail--fit" : ""}`}>
@@ -2179,7 +2384,46 @@ export default function App() {
             </div>
           )}
 
-          <details className="rail-card details adjust-fold">
+          {display && load.status === "ready" && display.meta && (
+            <div className="rail-card frame-facts">
+              <p className="control-label">This frame</p>
+              <dl className="meta meta--compact">
+                <div>
+                  <dt>Date</dt>
+                  <dd>{display.meta.frame.time_iso}</dd>
+                </div>
+                <div>
+                  <dt>Visit / detector</dt>
+                  <dd>
+                    {display.meta.exposure.pass} / {display.meta.exposure.detector} ·{" "}
+                    {display.meta.exposure.collection}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Wavelength</dt>
+                  <dd>
+                    {display.meta.frame.wavelength_um.toFixed(4)} µm ±{" "}
+                    {(display.meta.frame.bandwidth_um / 2).toFixed(4)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Frame</dt>
+                  <dd>
+                    {Math.min(view.frameIndex, Math.max(filtered.length - 1, 0)) + 1} of{" "}
+                    {filtered.length || "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Photometry</dt>
+                  <dd>
+                    <span className="quality">{display.meta.frame.photometry.quality}</span>
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
+
+          <details className="rail-card details adjust-fold" open>
             <summary title="Visits, colors, cameras, contrast">Controls</summary>
 
             {load.status === "ready" && storyboard && (
@@ -2299,6 +2543,7 @@ export default function App() {
                     className="primary"
                     onClick={() => {
                       setBlinkPasses(false);
+                      blinkWaveRef.current = null;
                       patchView({ pass: null, mode: "single" });
                     }}
                   >

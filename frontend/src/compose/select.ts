@@ -51,6 +51,21 @@ export function filterNearWavelength(
   return frames.filter((f) => Math.abs(f.frame.wavelength_um - waveUm) <= tol);
 }
 
+/** Index of the frame whose wavelength is closest to `waveUm`. */
+export function closestFrameIndex(frames: DecodedFrame[], waveUm: number): number {
+  if (frames.length === 0) return 0;
+  let best = 0;
+  let bestD = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < frames.length; i++) {
+    const d = Math.abs(frames[i]!.frame.wavelength_um - waveUm);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
 /** Scale display limits: contrast > 1 tightens the asinh window (more punch). */
 export function applyContrast(
   limits: { lo: number; hi: number },
