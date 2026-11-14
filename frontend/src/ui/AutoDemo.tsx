@@ -1,14 +1,6 @@
 /** Timed captions for the one-button jury walkthrough. */
 
-export type DemoPhase =
-  | "idle"
-  | "intro"
-  | "play"
-  | "blink"
-  | "ghost"
-  | "difference"
-  | "predict"
-  | "done";
+export type DemoPhase = "idle" | "intro" | "play" | "blink" | "ghost" | "difference" | "done";
 
 export const DEMO_BEATS: {
   phase: DemoPhase;
@@ -41,14 +33,9 @@ export const DEMO_BEATS: {
     line: "Show the move: bright/dark pair = it moved. Fixed stars cancel to near zero.",
   },
   {
-    phase: "predict",
-    ms: 5000,
-    line: "Side panel: catalogue prediction vs what SPHEREx measured — the sky agrees.",
-  },
-  {
     phase: "done",
-    ms: 3500,
-    line: "That is the story: infrared movie, blink, blend, difference — motion anyone can see.",
+    ms: 4000,
+    line: "Trust the bright core in the pixels. The orange path is the catalogue guide on top.",
   },
 ];
 

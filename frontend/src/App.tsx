@@ -172,7 +172,7 @@ export default function App() {
     if (!el) return;
     const update = () => {
       const w = el.clientWidth;
-      setDisplayPx(Math.max(280, Math.min(720, Math.floor(w))));
+      setDisplayPx(Math.max(280, Math.min(960, Math.floor(w))));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -182,7 +182,7 @@ export default function App() {
 
   const loadFromService = useCallback(
     async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
-      setLoad({ status: "loading", message: "Live SPHEREx — listing exposures…" });
+      setLoad({ status: "loading", message: "SPHEREx archive — listing exposures…" });
       const { target: t, grid, exposures } = await fetchExposures(target, {}, signal);
       if (signal.aborted) return;
       if (exposures.length === 0) {
@@ -236,7 +236,7 @@ export default function App() {
         if (di === 0) {
           setLoad({
             status: "loading",
-            message: `Live SPHEREx — detector ${det}…`,
+            message: `SPHEREx archive — detector ${det}…`,
             loaded: 0,
             total: grandTotal,
           });
@@ -266,7 +266,7 @@ export default function App() {
                     ...prev,
                     loaded: loadedTotal,
                     total: grandTotal,
-                    message: `Live SPHEREx — D${det} ${batchLoaded}/${queue.length} · ${loadedTotal}/${grandTotal}`,
+                    message: `Archive — D${det} ${batchLoaded}/${queue.length} · ${loadedTotal}/${grandTotal}`,
                   }
                 : prev,
             );
@@ -320,7 +320,7 @@ export default function App() {
       }
       const canLive = known.ra != null && known.dec != null;
       if (preferLive && canLive) {
-        setLoad({ status: "loading", message: `Live SPHEREx feed for ${known.label}…` });
+        setLoad({ status: "loading", message: `Loading ${known.label} from SPHEREx archive…` });
         await loadFromService(
           {
             name: known.label,
@@ -337,7 +337,7 @@ export default function App() {
       }
       if (!known.bundleUrl) {
         if (canLive) {
-          setLoad({ status: "loading", message: `Live SPHEREx feed for ${known.label}…` });
+          setLoad({ status: "loading", message: `Loading ${known.label} from SPHEREx archive…` });
           await loadFromService(
             {
               name: known.label,
@@ -354,7 +354,7 @@ export default function App() {
         }
         setLoad({
           status: "error",
-          message: `${known.label} needs a bundle or coordinates. Try Barnard's Star or Live feed.`,
+          message: `${known.label} needs a bundle or coordinates. Try Barnard's Star.`,
         });
         return;
       }
@@ -771,23 +771,16 @@ export default function App() {
           diffPassA: passes[0] ?? 1,
           diffPassB: passes[passes.length - 1] ?? 3,
         });
-      } else if (beat.phase === "predict") {
+      } else if (beat.phase === "done") {
         setBlinkPasses(false);
         setGhostVisits(false);
-        setSpotMover(false);
-        setSplitVisits(false);
-        patchView({ mode: "single", playing: false, pass: null });
-        // Scroll predict ribbon into view for judges
+        patchView({ playing: false, mode: "single" });
         window.requestAnimationFrame(() => {
           document.querySelector(".motion-insight")?.scrollIntoView({
             behavior: "smooth",
             block: "nearest",
           });
         });
-      } else if (beat.phase === "done") {
-        setBlinkPasses(false);
-        setGhostVisits(false);
-        patchView({ playing: false, mode: "single" });
       }
       i += 1;
       demoTimer.current = window.setTimeout(step, beat.ms);
@@ -1003,7 +996,7 @@ export default function App() {
             >
               <span className="target-name">{t.label}</span>
               <span className="target-blurb">
-                {t.bundleUrl ? t.blurb : t.ra != null ? "Live feed available" : "Coming soon"}
+                {t.bundleUrl ? t.blurb : t.ra != null ? "Archive load available" : "Coming soon"}
               </span>
             </button>
           ))}
@@ -1071,14 +1064,14 @@ export default function App() {
                 Now viewing
                 {load.status === "ready" && (
                   <span
-                    className={`source-pill ${load.source === "live" ? "live" : "sample"}`}
+                    className={`source-pill ${load.source === "live" ? "archive" : "sample"}`}
                     title={
                       load.source === "live"
-                        ? "Frames from live Cloud Run SPHEREx API"
-                        : "Offline sample bundle"
+                        ? "Loaded from the SPHEREx archive API (past survey visits, not a live telescope stream)"
+                        : "Offline sample file bundled with the site"
                     }
                   >
-                    {load.source === "live" ? "LIVE" : "SAMPLE"}
+                    {load.source === "live" ? "ARCHIVE" : "SAMPLE"}
                   </span>
                 )}
               </p>
@@ -1088,30 +1081,39 @@ export default function App() {
               <p className="kbd-hint" title="Keyboard shortcuts">
                 J · G · S · B · D · F
               </p>
-              {targetByKey(view.targetKey)?.ra != null && (
-                <button
-                  type="button"
-                  className="ghost"
-                  disabled={load.status === "loading"}
-                  title="Pull fresh frames from the live SPHEREx API"
-                  onClick={() => {
-                    const ac = new AbortController();
-                    void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
-                      (err) => {
-                        const message =
-                          err instanceof ApiError
-                            ? err.message
-                            : err instanceof Error
+              {(() => {
+                const known = targetByKey(view.targetKey);
+                // Hide when the offline sample already covers this target (same visits today).
+                // Show for archive-only targets (e.g. WISE 0855) or to refresh an archive load.
+                const showArchive =
+                  known?.ra != null &&
+                  (!known.bundleUrl || (load.status === "ready" && load.source === "live"));
+                if (!showArchive) return null;
+                return (
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={load.status === "loading"}
+                    title="Load cutouts from the SPHEREx survey archive (past visits). Same data as the sample when both cover these visits — useful for targets without a sample file."
+                    onClick={() => {
+                      const ac = new AbortController();
+                      void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
+                        (err) => {
+                          const message =
+                            err instanceof ApiError
                               ? err.message
-                              : "Live feed failed";
-                        setLoad({ status: "error", message });
-                      },
-                    );
-                  }}
-                >
-                  Live feed
-                </button>
-              )}
+                              : err instanceof Error
+                                ? err.message
+                                : "Could not load from the SPHEREx archive";
+                          setLoad({ status: "error", message });
+                        },
+                      );
+                    }}
+                  >
+                    Load from archive
+                  </button>
+                );
+              })()}
               <button
                 type="button"
                 className="primary"
@@ -1389,9 +1391,7 @@ export default function App() {
         <aside className="rail">
           {load.status === "ready" && (
             <MotionInsight
-              target={load.data.target}
               grid={load.data.grid}
-              frames={load.data.frames}
               trail={trail}
               targetName={load.data.target.name ?? targetName}
             />

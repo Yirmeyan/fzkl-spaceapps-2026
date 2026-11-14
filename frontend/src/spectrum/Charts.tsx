@@ -25,8 +25,8 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
           watching
           {activeWave != null ? ` (${activeWave.toFixed(2)} µm)` : ""}. Click any dot to jump there.
           {withFlux.length === 0
-            ? " Brightness points appear when the live feed returns flux (saturated cores stay empty)."
-            : ` ${withFlux.length} flux point${withFlux.length === 1 ? "" : "s"} from the live photometry — flagged ones are marked.`}
+            ? " Brightness points appear when archive photometry returns flux (saturated cores stay empty)."
+            : ` ${withFlux.length} flux point${withFlux.length === 1 ? "" : "s"} from archive photometry — flagged ones are marked.`}
         </p>
         {withFlux.length > 0 && (
           <FluxSvg
