@@ -14,6 +14,10 @@
 
 set -euo pipefail
 
+# gcloud must never wait for an answer: some of its output is hidden below,
+# and a hidden question would freeze the script.
+export CLOUDSDK_CORE_DISABLE_PROMPTS=1
+
 PROJECT_ID="${PROJECT_ID:?Set PROJECT_ID to the Google Cloud project}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:?Set GITHUB_REPOSITORY to owner/name}"
 GITHUB_REPOSITORY_ID="${GITHUB_REPOSITORY_ID:?Set GITHUB_REPOSITORY_ID to the numeric id of the repository}"
@@ -77,6 +81,25 @@ gcloud services enable \
   sts.googleapis.com \
   cloudresourcemanager.googleapis.com \
   --project="$PROJECT_ID"
+
+# A service that was just enabled can refuse calls for a minute or two.
+wait_for() {
+  local label="$1"
+  shift
+  local attempt
+  for attempt in $(seq 1 24); do
+    if "$@" > /dev/null 2>&1; then
+      echo "${label} is ready."
+      return 0
+    fi
+    sleep 5
+  done
+  printf '%s did not become ready within two minutes. Run the script again.\n' "$label" >&2
+  return 1
+}
+wait_for "Artifact Registry" gcloud artifacts repositories list --project="$PROJECT_ID" --location="$REGION"
+wait_for "IAM" gcloud iam service-accounts list --project="$PROJECT_ID"
+wait_for "Cloud Run" gcloud run services list --project="$PROJECT_ID" --region="$REGION"
 
 step "Image repository"
 if gcloud artifacts repositories describe "$IMAGE_REPOSITORY" --location="$REGION" --project="$PROJECT_ID" > /dev/null 2>&1; then
