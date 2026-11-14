@@ -970,12 +970,17 @@ export default function App() {
 
       <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
 
-      <section className="picker" aria-label="Choose a star">
+      <section
+        className={`picker${load.status === "ready" ? " picker-compact" : ""}`}
+        aria-label="Choose a star"
+      >
         <div className="picker-head">
           <h2>Pick a star</h2>
-          <p>
-            Start with Barnard's Star — or type any name; live resolve now finds the sky position.
-          </p>
+          {load.status !== "ready" && (
+            <p>
+              Start with Barnard's Star — or type any name; live resolve finds the sky position.
+            </p>
+          )}
         </div>
         <div className="target-row">
           {KNOWN_TARGETS.map((t) => (
@@ -1013,8 +1018,13 @@ export default function App() {
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Name (live resolve) or RA, Dec"
             autoComplete="off"
+            title="Type a star name or sky coordinates (RA, Dec in degrees)"
           />
-          <button type="submit" className="primary">
+          <button
+            type="submit"
+            className="primary"
+            title="Resolve the name and load SPHEREx images for that sky position"
+          >
             Look up
           </button>
         </form>
@@ -1419,6 +1429,7 @@ export default function App() {
                   <button
                     type="button"
                     className={view.pass == null ? "active" : ""}
+                    title="Include frames from every SPHEREx visit of this field"
                     onClick={() => patchView({ pass: null, frameIndex: 0 })}
                   >
                     All visits
@@ -1428,6 +1439,7 @@ export default function App() {
                       key={p}
                       type="button"
                       className={view.pass === p ? "active" : ""}
+                      title={`Show only Visit ${p} frames`}
                       onClick={() => patchView({ pass: p, frameIndex: 0 })}
                     >
                       Visit {p}
@@ -1439,6 +1451,7 @@ export default function App() {
                   <button
                     type="button"
                     className={view.waveUm == null ? "active" : ""}
+                    title="Use every infrared wavelength in the movie"
                     onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
                   >
                     All colors
@@ -1447,6 +1460,7 @@ export default function App() {
                     type="button"
                     className={view.waveUm != null ? "active" : ""}
                     disabled={!display || !("meta" in display) || !display.meta}
+                    title="Keep only frames near this frame’s wavelength (fairer blink)"
                     onClick={() => {
                       if (!display || !("meta" in display) || !display.meta) return;
                       patchView({
@@ -1622,7 +1636,10 @@ export default function App() {
           </div>
 
           {load.status === "ready" && view.mode === "single" && (
-            <div className="rail-card">
+            <details className="rail-card details">
+              <summary title="Wavelength and visit timeline — optional for deeper look">
+                Infrared timeline
+              </summary>
               <Charts
                 frames={filtered}
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
@@ -1631,7 +1648,7 @@ export default function App() {
                   patchView({ frameIndex: index, playing: false, mode: "single" });
                 }}
               />
-            </div>
+            </details>
           )}
 
           <details
@@ -1639,7 +1656,7 @@ export default function App() {
             open={showAdvanced}
             onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}
           >
-            <summary>Technical details</summary>
+            <summary title="Raw metadata for reviewers who want numbers">Technical details</summary>
             {display && load.status === "ready" && display.meta ? (
               <AdvancedDetails
                 target={load.data.target}

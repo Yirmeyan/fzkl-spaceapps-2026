@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~15:20 ET — From: Nic — Kind: Shipped
+
+Follow-up presentation: **compact star picker** once loaded; **Infrared timeline** (charts) collapsed by default; more hover tips on visit/color chips. Still on PR #21.
+
 ### 2026-11-14 ~15:15 ET — From: Nic — Kind: Shipped
 
 **Presentation reset** (Nic human): clarity over mini-challenges.

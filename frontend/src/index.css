@@ -212,6 +212,26 @@ select {
   animation: rise 640ms ease both;
 }
 
+.picker-compact {
+  margin-bottom: 0.75rem;
+}
+
+.picker-compact .picker-head h2 {
+  font-size: 1.1rem;
+}
+
+.picker-compact .target-blurb {
+  display: none;
+}
+
+.picker-compact .target-card {
+  padding: 0.55rem 0.65rem;
+}
+
+.picker-compact .target-row {
+  gap: 0.45rem;
+}
+
 .picker-head h2 {
   margin: 0;
   font-family: Fraunces, Georgia, serif;

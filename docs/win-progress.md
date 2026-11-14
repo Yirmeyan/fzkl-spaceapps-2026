@@ -1,6 +1,6 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~15:15 America/Toronto.
+Last recalibration: 2026-11-14 ~15:20 America/Toronto.
 
 ## Mission
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **93%** | Recalibrated: clarity/layout pass; less challenge spam |
+| Unblocked Nic lane | **94%** | Compact picker + collapsed timeline; still polish |
 | Team win / top-tier | **78%** | B5 resolve live; B4/B6 still open |
 
 ## This loop’s wow
 
-**Presentation reset** — rename Blend visits, tooltips, insights in rail (less scroll), Spot demoted.
+**Less scroll, clearer stage** — compact picker when loaded; charts behind Infrared timeline.
 
 ## Backlog (phenomenal)
 
@@ -52,3 +52,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 15:00 | Infrared aurora + resolve live | 96 | 78 |
 | 15:05 | Motion fingerprint SVG | 97 | 78 |
 | 15:15 | Presentation reset (clarity > bling) | 93 | 78 |
+| 15:20 | Compact picker + collapsed charts | 94 | 78 |
