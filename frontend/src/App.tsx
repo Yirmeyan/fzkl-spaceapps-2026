@@ -40,7 +40,7 @@ import {
   sampleTargetByUiKey,
   spectrumFileUrl,
 } from "./data/sampleIndex";
-import { KNOWN_TARGETS, TARGET_MISSION_TIP, targetByKey } from "./data/targets";
+import { KNOWN_TARGETS, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
 import { fetchSpectrumFile, type SpectrumPoint } from "./spectrum/spectrumPoints";
 import { wavelengthHue } from "./spectrum/waveHue";
@@ -115,7 +115,7 @@ export default function App() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [spectrumWaiting, setSpectrumWaiting] = useState(false);
-  const [displayPx, setDisplayPx] = useState(560);
+  const [displayPx, setDisplayPx] = useState(400);
   const [splitVisits, setSplitVisits] = useState(false);
   const [ghostVisits, setGhostVisits] = useState(false);
   const [spotMover, setSpotMover] = useState(false);
@@ -183,11 +183,11 @@ export default function App() {
     const el = measureRef.current;
     if (!el) return;
     const update = () => {
-      // Fill the left stage column. original strength was a big square, not a postage stamp.
+      // Classic desk: square fits the viewport with chrome. no page scroll.
       const colW = el.clientWidth;
-      const maxByWidth = Math.floor(colW - 16);
-      const maxByHeight = Math.floor(window.innerHeight * 0.78);
-      const px = Math.max(320, Math.min(900, maxByWidth, maxByHeight));
+      const maxByWidth = Math.floor(colW - 12);
+      const maxByHeight = Math.floor(window.innerHeight * 0.52);
+      const px = Math.max(280, Math.min(440, maxByWidth, maxByHeight));
       setDisplayPx(px);
     };
     update();
@@ -1301,7 +1301,7 @@ export default function App() {
   const cinema = load.status === "ready";
 
   return (
-    <div className={cinema ? "app app--cinema" : "app"}>
+    <div className={cinema ? "app app--fit app--ready" : "app app--fit"}>
       <div className="sky-wash" aria-hidden="true" />
 
       {showBriefing && load.status === "ready" && (
@@ -1314,23 +1314,19 @@ export default function App() {
 
       <header className="top">
         <div className="brand-block">
-          <p className="eyebrow">NASA Space Apps 2026 · FZKL</p>
           <h1 className="brand">SPHEREx Explorer</h1>
-          <p className="tagline">
-            Watch a real star drift across the infrared sky. clear enough for anyone, no astronomy
-            degree required.
-          </p>
+          <p className="tagline">Watch the near-infrared sky move. NASA Space Apps 2026</p>
         </div>
         <div className="top-actions">
           <HealthBadge />
           <button
             type="button"
-            className="primary impress-btn"
+            className="ghost"
             disabled={load.status !== "ready" || demoPhase !== "idle"}
             onClick={() => runAutoDemo()}
             title="Timed walkthrough for judges (J)"
           >
-            Auto demo (30s)
+            Demo
           </button>
           <button
             type="button"
@@ -1338,7 +1334,7 @@ export default function App() {
             onClick={() => copyJudgeLink()}
             title="Copy a link that auto-starts the jury demo"
           >
-            {linkCopied ? "Link copied" : "Judge link"}
+            {linkCopied ? "Copied" : "Link"}
           </button>
           <button
             type="button"
@@ -1346,7 +1342,7 @@ export default function App() {
             title="Short how-to: play, blink, blend, difference"
             onClick={() => patchView({ showHelp: !view.showHelp })}
           >
-            Quick guide
+            Help
           </button>
         </div>
       </header>
@@ -1360,7 +1356,7 @@ export default function App() {
         aria-label="Choose a star"
       >
         <div className="picker-head">
-          <h2>Pick a star</h2>
+          {load.status !== "ready" && <h2>Pick a star</h2>}
           {load.status !== "ready" && (
             <p>Start with Barnard's Star. or type any name; live resolve finds the sky position.</p>
           )}
@@ -1426,7 +1422,7 @@ export default function App() {
         ))}
       </nav>
 
-      <main className={`workspace${cinema ? " workspace--cinema" : ""}`}>
+      <main className={`workspace${cinema ? " workspace--fit" : ""}`}>
         <section className="stage" ref={stageRef}>
           <div className="stage-bar">
             <div>
@@ -1445,15 +1441,10 @@ export default function App() {
                   </span>
                 )}
               </h2>
-              {TARGET_MISSION_TIP[view.targetKey] && (
-                <p className="stage-mission-tip">{TARGET_MISSION_TIP[view.targetKey]}</p>
-              )}
             </div>
             <div className="stage-actions">
               {(() => {
                 const known = targetByKey(view.targetKey);
-                // Hide when the offline sample already covers this target (same visits today).
-                // Show for archive-only targets (e.g. WISE 0855) or to refresh an archive load.
                 const showArchive =
                   known != null &&
                   (known.inSampleIndex
@@ -1465,7 +1456,7 @@ export default function App() {
                     type="button"
                     className="ghost"
                     disabled={load.status === "loading"}
-                    title="Load cutouts from the SPHEREx survey archive (past visits). Same data as the sample when both cover these visits."
+                    title="Load cutouts from the SPHEREx survey archive (past visits)."
                     onClick={() => {
                       const ac = new AbortController();
                       void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
@@ -1481,18 +1472,10 @@ export default function App() {
                       );
                     }}
                   >
-                    Load from archive
+                    Archive
                   </button>
                 );
               })()}
-              <button
-                type="button"
-                className="primary"
-                title="Expand the sky stage to fill the screen (F)"
-                onClick={() => void toggleFullscreen()}
-              >
-                Fullscreen
-              </button>
             </div>
           </div>
 
@@ -1799,10 +1782,10 @@ export default function App() {
               </p>
             )}
 
-          {!cinema && <ViewerGuide targetName={targetName} mode={guideMode} />}
+          {cinema && <ViewerGuide targetName={targetName} mode={guideMode} />}
         </section>
 
-        <aside className={`rail${cinema ? " rail--cinema" : ""}`}>
+        <aside className={`rail${cinema ? " rail--fit" : ""}`}>
           {load.status === "ready" && (
             <MotionInsight
               grid={load.data.grid}
