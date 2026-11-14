@@ -1,0 +1,19 @@
+# Normalize line endings: LF in the repository and in every working tree
+* text=auto eol=lf
+
+# Windows command scripts need CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files are never converted or diffed as text
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.fits binary
+*.gz binary
+*.npy binary
+*.npz binary
