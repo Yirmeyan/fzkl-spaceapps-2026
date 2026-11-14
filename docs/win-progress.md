@@ -15,8 +15,8 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **98%** | Dark mission desk + B4 smart defaults |
-| Team win / top-tier | **88%** | B4 five targets + flux; FE charts + presets |
+| Unblocked Nic lane | **92%** | Eyepiece UI clutch in flight (#34); under-estimate |
+| Team win / top-tier | **86%** | Backend done; jury still needs eyepiece + URL deep links |
 
 ## This loop’s wow
 
