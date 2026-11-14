@@ -28,7 +28,14 @@ export interface Exposure {
   time_iso: string;
 }
 
-export type PhotometryQuality = "ok" | "flagged" | "masked" | "saturated" | "outside";
+/** Known SPHEREx photometry tags; unknown strings (e.g. halo measure) must still plot. */
+export type PhotometryQuality =
+  | "ok"
+  | "flagged"
+  | "masked"
+  | "saturated"
+  | "outside"
+  | (string & {});
 
 export interface Photometry {
   flux_mjy: number | null;
@@ -89,6 +96,18 @@ export const MASK_OUTLIER = 16;
 export const MASK_BLOOM = 32;
 export const MASK_HALO = 64;
 export const MASK_OTHER = 128;
+
+/** Contract Flags table: bit value, SPHEREx name, short reading for the UI. */
+export const MASK_BIT_LEGEND: { bit: number; flag: string; meaning: string }[] = [
+  { bit: 1, flag: "TRANSIENT", meaning: "Brief event, such as a cosmic ray" },
+  { bit: 2, flag: "OVERFLOW", meaning: "Near or past saturation" },
+  { bit: 4, flag: "SUR_ERROR", meaning: "Doubtful flux fit for the pixel" },
+  { bit: 8, flag: "PERSIST", meaning: "Afterglow from an earlier bright source" },
+  { bit: 16, flag: "OUTLIER", meaning: "Value far from what is expected" },
+  { bit: 32, flag: "BLOOM", meaning: "Charge spilled from a saturated neighbor" },
+  { bit: 64, flag: "HALO", meaning: "Halo of a bright source" },
+  { bit: 128, flag: "other", meaning: "Any other contamination flag" },
+];
 
 const DEG = Math.PI / 180;
 
@@ -273,6 +292,7 @@ export function renderFrameToRgba(
   hi: number,
   background: number | null,
   colorMap: ColorMap = "heat",
+  tintMask = false,
 ): Uint8ClampedArray {
   const n = size * size;
   const rgba = new Uint8ClampedArray(n * 4);
@@ -285,9 +305,10 @@ export function renderFrameToRgba(
   for (let i = 0; i < n; i++) {
     const o = i * 4;
     const raw = pixels[i]!;
+    const m = mask[i]!;
 
     if (Number.isNaN(raw)) {
-      if ((mask[i]! & MASK_OVERFLOW) !== 0) {
+      if ((m & MASK_OVERFLOW) !== 0) {
         const [r, g, b] = colorMap === "heat" ? heatColor(1) : [255, 255, 255];
         rgba[o] = r;
         rgba[o + 1] = g;
@@ -304,7 +325,13 @@ export function renderFrameToRgba(
       continue;
     }
 
-    const [r, g, b] = residualToRgb(raw - bg, lo, hi, soft, denom, colorMap);
+    let [r, g, b] = residualToRgb(raw - bg, lo, hi, soft, denom, colorMap);
+    // Tommy item 6: tint contamination flags so judges see the mask bits on screen.
+    if (tintMask && m !== 0) {
+      r = Math.min(255, Math.round(r * 0.45 + 200 * 0.55));
+      g = Math.min(255, Math.round(g * 0.45 + 60 * 0.55));
+      b = Math.min(255, Math.round(b * 0.45 + 180 * 0.55));
+    }
     rgba[o] = r;
     rgba[o + 1] = g;
     rgba[o + 2] = b;

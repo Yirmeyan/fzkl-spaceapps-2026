@@ -10,6 +10,8 @@ export interface FrameCanvasProps {
   hi: number;
   background: number | null;
   colorMap?: ColorMap;
+  /** Tint pixels whose mask byte is not 0 (Tommy item 6). */
+  tintMask?: boolean;
   targetXy?: [number, number] | null;
   trail?: TrailPoint[];
   className?: string;
@@ -24,6 +26,7 @@ export function FrameCanvas({
   hi,
   background,
   colorMap = "heat",
+  tintMask = false,
   targetXy,
   trail = [],
   className,
@@ -40,7 +43,7 @@ export function FrameCanvas({
 
     ctx.fillStyle = "#05080e";
     ctx.fillRect(0, 0, size, size);
-    const rgba = renderFrameToRgba(pixels, mask, size, lo, hi, background, colorMap);
+    const rgba = renderFrameToRgba(pixels, mask, size, lo, hi, background, colorMap, tintMask);
     const imageData = ctx.createImageData(size, size);
     imageData.data.set(rgba);
     ctx.putImageData(imageData, 0, 0);
@@ -48,7 +51,7 @@ export function FrameCanvas({
     if (targetXy) {
       drawTargetOverlay(ctx, targetXy, trail);
     }
-  }, [pixels, mask, size, lo, hi, background, colorMap, targetXy, trail]);
+  }, [pixels, mask, size, lo, hi, background, colorMap, tintMask, targetXy, trail]);
 
   return (
     <canvas

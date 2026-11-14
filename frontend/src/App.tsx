@@ -32,7 +32,7 @@ import {
   resolveName,
 } from "./data/client";
 import type { Bundle, Frame, Grid, Target } from "./data/contract";
-import { computeDisplayLimits, mjdToDate } from "./data/contract";
+import { computeDisplayLimits, MASK_BIT_LEGEND, mjdToDate } from "./data/contract";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
 import {
   clearSampleIndexCache,
@@ -121,7 +121,9 @@ export default function App() {
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
   const [searchInput, setSearchInput] = useState(view.query);
   const [blinkPasses, setBlinkPasses] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(true);
+  /** Tommy item 6: tint non-zero mask pixels on the stage. */
+  const [tintMask, setTintMask] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [spectrumWaiting, setSpectrumWaiting] = useState(false);
@@ -1718,6 +1720,7 @@ export default function App() {
                   hi={display.hi}
                   size={display.size}
                   colorMap={view.colorMap}
+                  tintMask={tintMask}
                   displayPx={displayPx}
                   trail={trail}
                   onFrameIndexChange={onPlayerFrame}
@@ -1741,6 +1744,7 @@ export default function App() {
                   hi={display.hi!}
                   background={0}
                   colorMap={view.colorMap}
+                  tintMask={tintMask}
                   targetXy={display.targetXy}
                   trail={trail}
                   displayPx={displayPx}
@@ -1780,6 +1784,7 @@ export default function App() {
                   hi={display.hi}
                   background={display.background}
                   colorMap={view.colorMap}
+                  tintMask={tintMask}
                   targetXy={display.targetXy}
                   trail={trail}
                   displayPx={displayPx}
@@ -2188,6 +2193,14 @@ export default function App() {
                     Gray
                   </button>
                 </div>
+                <label className="tint-mask-row">
+                  <input
+                    type="checkbox"
+                    checked={tintMask}
+                    onChange={(e) => setTintMask(e.target.checked)}
+                  />
+                  <span>Tint flagged pixels</span>
+                </label>
               </div>
             </div>
           </details>
@@ -2229,6 +2242,7 @@ export default function App() {
                 frame={display.meta}
                 filteredCount={view.mode === "difference" ? forDifference.length : filtered.length}
                 mode={view.mode}
+                tintMask={tintMask}
               />
             ) : (
               <p className="micro">Load a star to see technical metadata.</p>
@@ -2251,68 +2265,93 @@ function AdvancedDetails({
   frame,
   filteredCount,
   mode,
+  tintMask,
 }: {
   target: Target;
   grid: Grid;
   frame: DecodedFrame;
   filteredCount: number;
   mode: ComposeMode;
+  tintMask: boolean;
 }) {
   const f = frame.frame;
   const e = frame.exposure;
   return (
-    <dl className="meta">
-      <div>
-        <dt>Target</dt>
-        <dd>{target.name ?? `${target.ra.toFixed(5)}, ${target.dec.toFixed(5)}`}</dd>
+    <div className="frame-meta">
+      <dl className="meta">
+        <div>
+          <dt>Target</dt>
+          <dd>{target.name ?? `${target.ra.toFixed(5)}, ${target.dec.toFixed(5)}`}</dd>
+        </div>
+        <div>
+          <dt>UTC date</dt>
+          <dd>{f.time_iso}</dd>
+        </div>
+        <div>
+          <dt>Wavelength</dt>
+          <dd>
+            {f.wavelength_um.toFixed(4)} µm · band {f.bandwidth_um.toFixed(4)} µm wide
+          </dd>
+        </div>
+        <div>
+          <dt>Detector / visit</dt>
+          <dd>
+            Detector {e.detector} · Visit {e.pass} · {e.collection}
+          </dd>
+        </div>
+        <div>
+          <dt>Exposure</dt>
+          <dd>{f.exposure_s.toFixed(1)} s</dd>
+        </div>
+        <div>
+          <dt>Valid fraction</dt>
+          <dd>{(f.valid_fraction * 100).toFixed(0)}%</dd>
+        </div>
+        <div>
+          <dt>Quality</dt>
+          <dd>
+            <span className="quality">{f.photometry.quality}</span>
+            {f.photometry.flux_mjy != null
+              ? ` · ${f.photometry.flux_mjy.toFixed(3)} ± ${f.photometry.error_mjy?.toFixed(3)} mJy`
+              : " · flux unavailable"}
+          </dd>
+        </div>
+        <div>
+          <dt>Catalogue pixel</dt>
+          <dd>
+            ({f.target_xy[0].toFixed(2)}, {f.target_xy[1].toFixed(2)})
+          </dd>
+        </div>
+        <div>
+          <dt>Background / noise</dt>
+          <dd>
+            {f.background?.toFixed(3) ?? "—"} / {f.noise?.toFixed(3) ?? "—"} MJy/sr
+          </dd>
+        </div>
+        <div>
+          <dt>Cutout</dt>
+          <dd>
+            {grid.size}² · {grid.fov_deg}° · {mode} · {filteredCount} frames
+          </dd>
+        </div>
+      </dl>
+      <div className={`mask-legend${tintMask ? " mask-legend--on" : ""}`}>
+        <p className="mask-legend-title">Mask bits (SPHEREx Flags)</p>
+        <p className="mask-legend-hint">
+          {tintMask
+            ? "Tint is on: pink-magenta pixels have any flag set."
+            : "Turn on Tint flagged pixels in Look to see them on the image."}
+        </p>
+        <ul className="mask-legend-list">
+          {MASK_BIT_LEGEND.map((row) => (
+            <li key={row.bit}>
+              <span className="mask-legend-bit">{row.bit}</span>
+              <span className="mask-legend-flag">{row.flag}</span>
+              <span className="mask-legend-meaning">{row.meaning}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-      <div>
-        <dt>UTC date</dt>
-        <dd>{f.time_iso}</dd>
-      </div>
-      <div>
-        <dt>Wavelength</dt>
-        <dd>
-          {f.wavelength_um.toFixed(4)} µm ± {(f.bandwidth_um / 2).toFixed(4)}
-        </dd>
-      </div>
-      <div>
-        <dt>Visit / detector</dt>
-        <dd>
-          {e.pass} / {e.detector} · {e.collection}
-        </dd>
-      </div>
-      <div>
-        <dt>Catalogue pixel</dt>
-        <dd>
-          ({f.target_xy[0].toFixed(2)}, {f.target_xy[1].toFixed(2)})
-        </dd>
-      </div>
-      <div>
-        <dt>Photometry</dt>
-        <dd>
-          {f.photometry.flux_mjy != null
-            ? `${f.photometry.flux_mjy.toFixed(3)} ± ${f.photometry.error_mjy?.toFixed(3)} mJy`
-            : "Unavailable (saturated)"}{" "}
-          <span className="quality">{f.photometry.quality}</span>
-        </dd>
-      </div>
-      <div>
-        <dt>Background / noise</dt>
-        <dd>
-          {f.background?.toFixed(3) ?? ". "} / {f.noise?.toFixed(3) ?? ". "} MJy/sr
-        </dd>
-      </div>
-      <div>
-        <dt>Valid pixels</dt>
-        <dd>{(f.valid_fraction * 100).toFixed(0)}%</dd>
-      </div>
-      <div>
-        <dt>Cutout</dt>
-        <dd>
-          {grid.size}² · {grid.fov_deg}° · {mode} · {filteredCount} frames
-        </dd>
-      </div>
-    </dl>
+    </div>
   );
 }

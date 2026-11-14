@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Honest Orion sky** — Tommy’s three production fixes: µm stays µm, no fake hop when PM is absent, missing pixels blend with background instead of black holes (#38, after #37 WISE stack on main).
+**See the contamination** — frame metadata on screen (date, λ + band width, detector, visit, exposure, valid fraction, quality) plus Tint flagged pixels with the eight SPHEREx mask bits. Item 6 (#39).
 
 ## Backlog (phenomenal)
 
