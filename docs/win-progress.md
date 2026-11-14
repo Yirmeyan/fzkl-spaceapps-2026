@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Discovery flash** — when the service first finds the target mover, a 3-second stage whisper announces the rate (and distance) over the sky, then fades into the verdict strip.
+**Classic desk + honest hop:** restore early button/meta style; blink/split at matched λ; large Split tiles; date/visit/frame visible again.
 
 ## Backlog (phenomenal)
 

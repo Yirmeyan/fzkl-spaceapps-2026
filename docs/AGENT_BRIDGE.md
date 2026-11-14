@@ -37,6 +37,14 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:25 ET — From: Nic — Kind: Shipped
+
+**Classic hop desk:** IBM Plex/Syne + 4px controls; This frame meta (date/visit/λ/frame); blink matches λ across visits (was frame 0 = different IR); Split visit pickers + large tiles; guide under transport, skipped when candidates tell the story.
+
+### 2026-11-14 18:20 ET — From: Nic — Kind: Shipped
+
+**Split fix:** exclusive overlay (no Blend+Split), visit pickers on each panel, wavelength-matched single frames (not stacks), much larger tiles (~0.9× displayPx).
+
 ### 2026-11-14 18:10 ET — From: Nic — Kind: Shipped
 
 **Discovery flash:** when candidates first find an is_target mover, a 3s stage whisper shows the rate (and distance when known). #52 eyepiece on main.
