@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Blind discovery on screen** — service candidates drawn as rings/arrows with plain sentences; Study this loads that place (#43 / Tommy addition A). Live `GET /api/candidates` wired too (#44).
+**Wider sky on demand** — one switch reloads the live cutout at 0.3° / 256² so faster movers have room to hop (Tommy item 7 / challenge FOV).
 
 ## Backlog (phenomenal)
 

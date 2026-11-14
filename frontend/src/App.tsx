@@ -77,6 +77,13 @@ import { SkyPlayer } from "./viewer/SkyPlayer";
 
 type UiMode = "watch" | "compare" | "difference" | "more";
 
+/** Tommy item 7: live archive FOV. Sample bundles stay at the default. */
+const FIELD_PRESETS = {
+  default: { fov: 0.1, size: 128, label: "0.1° · 128²" },
+  wide: { fov: 0.3, size: 256, label: "0.3° · 256²" },
+} as const;
+type FieldPreset = keyof typeof FIELD_PRESETS;
+
 function meanPassTrail(frames: DecodedFrame[]): TrailPoint[] {
   const map = new Map<number, { sx: number; sy: number; n: number }>();
   for (const f of frames) {
@@ -128,6 +135,9 @@ export default function App() {
   const [showAdvanced, setShowAdvanced] = useState(true);
   /** Tommy item 6: tint non-zero mask pixels on the stage. */
   const [tintMask, setTintMask] = useState(false);
+  const [fieldPreset, setFieldPreset] = useState<FieldPreset>("default");
+  const fieldPresetRef = useRef<FieldPreset>("default");
+  fieldPresetRef.current = fieldPreset;
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [spectrumWaiting, setSpectrumWaiting] = useState(false);
@@ -281,7 +291,12 @@ export default function App() {
           if (!signal.aborted) setCandidatesWaiting(false);
         });
 
-      const { target: t, grid, exposures } = await fetchExposures(target, {}, signal);
+      const field = FIELD_PRESETS[fieldPresetRef.current];
+      const {
+        target: t,
+        grid,
+        exposures,
+      } = await fetchExposures(target, { fov: field.fov, size: field.size }, signal);
       if (signal.aborted) return;
       if (exposures.length === 0) {
         setSpectrumWaiting(false);
@@ -427,6 +442,11 @@ export default function App() {
       setSpectrumPoints(null);
       setCandidatesFile(null);
       setActiveCandidate(null);
+      // Sample bundles are always the default cutout.
+      if (!preferLive) {
+        setFieldPreset("default");
+        fieldPresetRef.current = "default";
+      }
       skyTargetRef.current = null;
       setSkyTarget(null);
       clearSampleIndexCache();
@@ -2302,6 +2322,54 @@ export default function App() {
                   />
                   <span>Tint flagged pixels</span>
                 </label>
+                <p className="control-label">Field of view</p>
+                <div className="chip-row">
+                  <button
+                    type="button"
+                    className={fieldPreset === "default" ? "active" : ""}
+                    title="Default SPHEREx explorer cutout"
+                    onClick={() => {
+                      if (fieldPreset === "default") return;
+                      setFieldPreset("default");
+                      fieldPresetRef.current = "default";
+                      if (load.status !== "ready") return;
+                      const t = load.data.target;
+                      const ac = new AbortController();
+                      void loadFromService(
+                        t,
+                        ac.signal,
+                        view.targetKey === "custom" ? "custom" : view.targetKey,
+                      );
+                    }}
+                  >
+                    Default
+                  </button>
+                  <button
+                    type="button"
+                    className={fieldPreset === "wide" ? "active" : ""}
+                    title="Wider live cutout: fov=0.3° size=256 (Tommy item 7)"
+                    onClick={() => {
+                      if (fieldPreset === "wide") return;
+                      setFieldPreset("wide");
+                      fieldPresetRef.current = "wide";
+                      if (load.status !== "ready") return;
+                      const t = load.data.target;
+                      const ac = new AbortController();
+                      void loadFromService(
+                        t,
+                        ac.signal,
+                        view.targetKey === "custom" ? "custom" : view.targetKey,
+                      );
+                    }}
+                  >
+                    Wider
+                  </button>
+                </div>
+                <p className="micro">
+                  {fieldPreset === "wide"
+                    ? `Live archive ${FIELD_PRESETS.wide.label}. Sample movies stay at 0.1°.`
+                    : `Default cutout ${FIELD_PRESETS.default.label}. Wider reloads from the live archive.`}
+                </p>
               </div>
             </div>
           </details>

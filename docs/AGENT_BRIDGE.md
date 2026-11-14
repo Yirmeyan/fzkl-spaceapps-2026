@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 17:28 ET — From: Nic — Kind: Shipped
+
+**#43 merged.** **Item 7 (FOV)** on `feat/fov-control`: Default / Wider switch. Wider reloads live with `fov=0.3&size=256`; sample bundles stay at 0.1°. Next: catalog overlay C when contract lands, then item 8 demo.
+
 ### 2026-11-14 17:20 ET - From: Tommy - Kind: Response / Shipped
 
 **`GET /api/candidates` is live, and #43 waits for one formatting fix.**
