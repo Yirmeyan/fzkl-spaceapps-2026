@@ -13,7 +13,7 @@ from spherex_explorer.api.params import Dec, Epoch, Fov, GridDec, GridRa, PmDec,
 from spherex_explorer.errors import UpstreamUnavailable
 from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE, Grid
 from spherex_explorer.mjd import mjd_to_iso
-from spherex_explorer.pipeline import FrameSource, build_frame
+from spherex_explorer.pipeline import Frame, FrameSource, build_frame
 from spherex_explorer.targets import Target
 
 router = APIRouter(tags=["frames"])
@@ -28,6 +28,7 @@ _FLOAT16_MAX = 65504.0
 _TIME_DECIMALS = 6
 _SKY_DECIMALS = 4
 _PIXEL_DECIMALS = 2
+_FRACTION_DECIMALS = 3
 _FLUX_DIGITS = 5
 
 
@@ -80,6 +81,32 @@ def _significant(value: float | None) -> float | None:
     return None if value is None else float(f"{value:.{_FLUX_DIGITS}g}")
 
 
+def frame_out(frame: Frame) -> FrameOut:
+    """A frame as the contract writes it: rounded numbers, pixels and flags in base64."""
+    return FrameOut(
+        id=frame.id,
+        time_mjd=round(frame.time_mjd, _TIME_DECIMALS),
+        time_iso=mjd_to_iso(frame.time_mjd),
+        exposure_s=round(frame.exposure_s, 1),
+        wavelength_um=round(frame.wavelength_um, _SKY_DECIMALS),
+        bandwidth_um=round(frame.bandwidth_um, _SKY_DECIMALS),
+        background=_rounded(frame.background, _SKY_DECIMALS),
+        noise=_rounded(frame.noise, _SKY_DECIMALS),
+        valid_fraction=round(frame.valid_fraction, _FRACTION_DECIMALS),
+        target_xy=(
+            round(frame.target_xy[0], _PIXEL_DECIMALS),
+            round(frame.target_xy[1], _PIXEL_DECIMALS),
+        ),
+        photometry=PhotometryOut(
+            flux_mjy=_significant(frame.photometry.flux_mjy),
+            error_mjy=_significant(frame.photometry.error_mjy),
+            quality=frame.photometry.quality,
+        ),
+        image=encode_image(frame.image),
+        mask=encode_mask(frame.mask),
+    )
+
+
 @router.get("/frames/{exposure_id}", response_model=FrameOut)
 async def read_frame(
     response: Response,
@@ -118,25 +145,4 @@ async def read_frame(
         ) from exc
 
     response.headers["Cache-Control"] = _CACHE_CONTROL
-    return FrameOut(
-        id=frame.id,
-        time_mjd=round(frame.time_mjd, _TIME_DECIMALS),
-        time_iso=mjd_to_iso(frame.time_mjd),
-        exposure_s=round(frame.exposure_s, 1),
-        wavelength_um=round(frame.wavelength_um, _SKY_DECIMALS),
-        bandwidth_um=round(frame.bandwidth_um, _SKY_DECIMALS),
-        background=_rounded(frame.background, _SKY_DECIMALS),
-        noise=_rounded(frame.noise, _SKY_DECIMALS),
-        valid_fraction=round(frame.valid_fraction, _PIXEL_DECIMALS),
-        target_xy=(
-            round(frame.target_xy[0], _PIXEL_DECIMALS),
-            round(frame.target_xy[1], _PIXEL_DECIMALS),
-        ),
-        photometry=PhotometryOut(
-            flux_mjy=_significant(frame.photometry.flux_mjy),
-            error_mjy=_significant(frame.photometry.error_mjy),
-            quality=frame.photometry.quality,
-        ),
-        image=encode_image(frame.image),
-        mask=encode_mask(frame.mask),
-    )
+    return frame_out(frame)

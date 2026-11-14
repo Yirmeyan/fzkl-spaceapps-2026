@@ -47,6 +47,17 @@ jobs:
       - name: Test
         run: uv run python -m pytest -m "not network"
 
+      # The files the site serves are checked against the contract, with the decoding
+      # functions the contract gives to the browser.
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+
+      - name: Check the bundles of the test targets
+        working-directory: .
+        run: node samples/check-sample.ts samples/index.json
+
       - name: Build the container image
         run: docker build --tag spherex-explorer-backend:ci .
 
