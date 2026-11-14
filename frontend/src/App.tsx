@@ -168,8 +168,7 @@ export default function App() {
       }
 
       // Tommy bridge: WISE 0855 needs det 6 first; otherwise det 2; concurrency ≤ 12.
-      const preferDet =
-        targetKey === "wise0855" || /wise\s*0855/i.test(t.name ?? "") ? 6 : 2;
+      const preferDet = targetKey === "wise0855" || /wise\s*0855/i.test(t.name ?? "") ? 6 : 2;
       const preferred = exposures.filter((e) => e.detector === preferDet);
       const queue =
         preferred.length > 0
