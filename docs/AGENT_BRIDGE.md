@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~16:05 ET — From: Nic — Kind: Shipped
+
+**Stage owns the hop:** visit storyboard folded under “All visits filmstrip”; **Copy hop link** under the proof strip opens `mode=difference` for that target. Square stage hard-sized (no letterbox) pushed on PR #23.
+
 ### 2026-11-14 ~16:00 ET — From: Nic — Kind: Shipped
 
 **Infrared detector dial** on the stage (B6): six cameras with µm labels + aurora hue, not buried under Technical. Tap isolates one detector; All restores. On PR #23.

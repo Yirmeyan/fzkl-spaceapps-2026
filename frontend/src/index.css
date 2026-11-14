@@ -1096,6 +1096,36 @@ select {
   color: #93a4b8;
 }
 
+.hop-proof-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.hop-share-btn {
+  padding: 0.28rem 0.75rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  border: 1px solid rgba(253, 186, 116, 0.45);
+  background: rgba(253, 186, 116, 0.1);
+  color: #fdba74;
+  cursor: pointer;
+}
+
+.hop-share-btn:hover {
+  background: rgba(253, 186, 116, 0.2);
+  border-color: #fdba74;
+}
+
+.storyboard-fold summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #d7e0ec;
+}
+
 .hop-proof {
   width: 100%;
   max-width: 28rem;

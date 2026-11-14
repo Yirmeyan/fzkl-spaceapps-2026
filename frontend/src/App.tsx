@@ -156,6 +156,8 @@ export default function App() {
     });
   }
 
+  const [hopLinkCopied, setHopLinkCopied] = useState(false);
+
   const patchView = useCallback((partial: Partial<ViewState>) => {
     setView((prev) => {
       const next = { ...prev, ...partial };
@@ -1050,6 +1052,20 @@ export default function App() {
     });
   }
 
+  function copyHopLink() {
+    if (!hopProof) return;
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("target", view.targetKey || "barnard");
+    url.searchParams.set("mode", "difference");
+    url.searchParams.set("a", String(hopProof.a));
+    url.searchParams.set("b", String(hopProof.b));
+    void navigator.clipboard.writeText(url.toString()).then(() => {
+      setHopLinkCopied(true);
+      window.setTimeout(() => setHopLinkCopied(false), 2000);
+    });
+  }
+
   async function onSearch(e: FormEvent) {
     e.preventDefault();
     const raw = searchInput.trim();
@@ -1506,20 +1522,30 @@ export default function App() {
           </div>
 
           {hopProof && (
-            <HopProofStrip
-              size={hopProof.size}
-              lo={hopProof.limits.lo}
-              hi={hopProof.limits.hi}
-              colorMap={view.colorMap}
-              early={hopProof.early}
-              diff={hopProof.diff}
-              late={hopProof.late}
-              trail={trail}
-              earlyXy={hopProof.earlyXy}
-              lateXy={hopProof.lateXy}
-              active={hopProofActive}
-              onPick={onHopProofPick}
-            />
+            <div className="hop-proof-wrap">
+              <HopProofStrip
+                size={hopProof.size}
+                lo={hopProof.limits.lo}
+                hi={hopProof.limits.hi}
+                colorMap={view.colorMap}
+                early={hopProof.early}
+                diff={hopProof.diff}
+                late={hopProof.late}
+                trail={trail}
+                earlyXy={hopProof.earlyXy}
+                lateXy={hopProof.lateXy}
+                active={hopProofActive}
+                onPick={onHopProofPick}
+              />
+              <button
+                type="button"
+                className="hop-share-btn"
+                title="Copy a link that opens Show the move for this star"
+                onClick={() => copyHopLink()}
+              >
+                {hopLinkCopied ? "Hop link copied" : "Copy hop link"}
+              </button>
+            </div>
           )}
 
           {detectorBands.length > 1 && (
@@ -1635,19 +1661,24 @@ export default function App() {
           )}
 
           {load.status === "ready" && storyboard && (
-            <VisitStoryboard
-              size={storyboard.size}
-              lo={storyboard.limits.lo}
-              hi={storyboard.limits.hi}
-              colorMap={view.colorMap}
-              cells={storyboard.cells}
-              trail={trail}
-              activePass={view.pass}
-              onPickPass={(pass) => {
-                clearPresentationOverlays();
-                patchView({ mode: "single", pass, frameIndex: 0, playing: false });
-              }}
-            />
+            <details className="rail-card details storyboard-fold">
+              <summary title="Full visit filmstrip — optional; the hop proof under the square is enough for most viewers">
+                All visits filmstrip
+              </summary>
+              <VisitStoryboard
+                size={storyboard.size}
+                lo={storyboard.limits.lo}
+                hi={storyboard.limits.hi}
+                colorMap={view.colorMap}
+                cells={storyboard.cells}
+                trail={trail}
+                activePass={view.pass}
+                onPickPass={(pass) => {
+                  clearPresentationOverlays();
+                  patchView({ mode: "single", pass, frameIndex: 0, playing: false });
+                }}
+              />
+            </details>
           )}
 
           <div className="rail-card">

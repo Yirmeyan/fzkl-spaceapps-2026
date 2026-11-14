@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **97%** | Detector dial on stage; hop proof; mode hygiene |
+| Unblocked Nic lane | **97%** | Stage-first hop + share link; square hard-size pushed |
 | Team win / top-tier | **82%** | B6 on main; FE consumes index; other targets await B4 |
 
 ## This loop’s wow
 
-**Infrared detector dial** — B6’s six cameras as a stage dial (not buried in Technical); tap a band, aurora + frames switch.
+**Stage owns the hop** — visit storyboard collapsed (hop proof is enough); one-tap “Copy hop link” opens Show-the-move for judges.
 
 ## Backlog (phenomenal)
 
@@ -57,3 +57,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 15:55 | Mode exclusivity + square stage (less scroll) | 96 | 82 |
 | 15:50 | Hop proof strip (Early · Diff · Late) | 96 | 82 |
 | 16:00 | Infrared detector dial on stage (B6) | 97 | 82 |
+| 16:05 | Fold storyboard + Copy hop link | 97 | 82 |
