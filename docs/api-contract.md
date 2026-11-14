@@ -460,7 +460,8 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
       "detectors": [
         { "detector": 1, "file": "barnard-star-d1.json", "frames": 60, "wavelength_um": [0.7413, 1.1074], "bytes": 3962335 }
       ],
-      "spectrum": { "file": "barnard-star-spectrum.json", "points": 364, "with_flux": 101, "bytes": 83927 }
+      "spectrum": { "file": "barnard-star-spectrum.json", "points": 364, "with_flux": 101, "bytes": 83927 },
+      "candidates": { "file": "barnard-star-candidates.json", "count": 1, "moved": 1, "changed": 0, "bytes": 1627 }
     }
   ]
 }
@@ -480,10 +481,139 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
 | `spectrum.file` | string | Name of the [spectrum file](#the-spectrum-file), relative to the index |
 | `spectrum.points`, `spectrum.with_flux` | integers | Number of points, and how many of them hold a flux |
 | `spectrum.bytes` | integer | Size of the spectrum file before compression in transit |
+| `candidates.file` | string | Name of the [candidates file](#candidates), relative to the index |
+| `candidates.count`, `candidates.moved`, `candidates.changed` | integers | Number of candidates, and how many of each kind |
+| `candidates.bytes` | integer | Size of the candidates file |
 
 - The keys of the five test targets are `barnard-star`, `epsilon-indi-b`, `wise-0855`, `rw-aurigae` and `r-draconis`.
 - An exposure whose file is gone from the archive is left out of both `exposures` and `frames`, so the two lists of a bundle always have the same length.
 - The bundles are built by the code of the service, with `python -m spherex_explorer.precompute`: a frame of a bundle is the frame the service returns for the same target and grid.
+- The candidates of a test target are measured on the frames of its bundles, the very ones the site shows. `python -m spherex_explorer.precompute --output samples --candidates-only` writes them again without any download.
+
+## Candidates
+
+A fifth question: **what moved or changed in this field?** The service follows every source of the default view from one visit of SPHEREx to the next and keeps the ones that stand out. The visitor no longer has to spot them by eye.
+
+The five test targets have the answer in a static file, `<key>-candidates.json`, of 1 to 2 kB. The same answer for any position, `GET /api/candidates`, is the next step: it will take the parameters of `exposures` and return this object without its first three fields.
+
+```json
+{
+  "format": "spherex-explorer/candidates",
+  "version": 1,
+  "generated": "2026-11-14T22:00:45Z",
+  "target": {"name": "Epsilon Indi B", "ra": 331.044147, "dec": -56.782844, "epoch": 2000.0, "pm_ra": 3981.977, "pm_dec": -2466.832},
+  "grid": {"ra": 331.096709, "dec": -56.800682, "fov_deg": 0.1, "size": 128},
+  "frames": 462,
+  "sources": 13,
+  "visits": [
+    {"pass": 1, "time_mjd": 60804.640346, "time_iso": "2025-05-09T15:22:06Z", "frames": 121}
+  ],
+  "limits": {"significance": 5.0, "shift_arcsec": 1.0, "change": 0.1},
+  "saturated": [],
+  "candidates": [
+    {
+      "kind": "moved",
+      "confidence": "high",
+      "significance": 77.5,
+      "is_target": true,
+      "ra": 331.096876,
+      "dec": -56.800851,
+      "epoch": 2026.045,
+      "xy": [63.38, 63.72],
+      "detectors": [1, 2, 3, 4, 5, 6],
+      "track": [
+        {"pass": 1, "time_mjd": 60804.140287, "time_iso": "2025-05-09T03:22:01Z", "ra": 331.095604, "dec": -56.800337, "xy": [64.27, 63.06], "error_arcsec": 0.056, "detectors": [1, 2, 3, 4, 5, 6]},
+        {"pass": 2, "time_mjd": 60959.445332, "time_iso": "2025-10-11T10:41:17Z", "ra": 331.096233, "dec": -56.800728, "xy": [63.83, 63.56], "error_arcsec": 0.057, "detectors": [1, 2, 3, 4, 5, 6]}
+      ],
+      "motion": {
+        "shift_arcsec": 6.43,
+        "days": 507.1,
+        "rate_arcsec_per_year": 4.63,
+        "rate_error_arcsec_per_year": 0.06,
+        "angle_deg": 121.8,
+        "pm_ra": 3939.0,
+        "pm_dec": -2443.0,
+        "parallax_arcsec": 0.305,
+        "parallax_error_arcsec": 0.037,
+        "distance_ly": 10.7,
+        "distance_ly_range": [9.5, 12.1]
+      },
+      "changes": []
+    }
+  ]
+}
+```
+
+This is Epsilon Indi B, found with no position given. The catalog says 4.68 arcseconds per year toward 121.8 degrees, and 12.0 light-years.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `target`, `grid` | objects | The view that was measured: always the default one, 0.1 degree on 128 pixels |
+| `frames`, `sources` | integers | Frames measured, and sources followed in them |
+| `visits[]` | objects | Each visit of SPHEREx: its `pass`, its mean date, its number of frames |
+| `limits` | object | The least that is claimed: `significance` in sigma, `shift_arcsec` for a motion, `change` as a share of the brightness |
+| `saturated[]` | objects | Stars too bright to be measured: place (`ra`, `dec`, `xy`), `radius_arcsec` of the saturated heart, and the `detectors` it saturates |
+| `candidates[]` | objects | The sources that stand out, the surest first. An empty list is a result: nothing moved or changed above the limits |
+
+One candidate:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `kind` | string | `moved` or `changed`. Other kinds can be added: ignore the ones you do not know |
+| `confidence` | string | `high` or `medium`. See below |
+| `significance` | number | How many times its uncertainty the motion, or the clearest change, is |
+| `is_target` | boolean | The candidate is where the catalog puts the target at the date of each visit |
+| `ra`, `dec`, `xy` | numbers | Mean place over the visits, on the sky and on the grid of the file |
+| `epoch` | number | Date of that place, as a Julian year: the middle of the sightings |
+| `detectors` | integers | Detectors the measurement rests on |
+| `track[]` | objects | Where the source was in each visit: `pass`, date, `ra`, `dec`, `xy`, `error_arcsec` along each axis, `detectors` |
+| `motion` | object or null | The fitted motion. Present for `moved` only |
+| `changes[]` | objects | The clearest change of each detector that shows one, the clearest first. Empty unless the brightness changed |
+
+`motion`:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `shift_arcsec`, `days` | numbers | Motion between the first and the last sighting, and the days between them |
+| `rate_arcsec_per_year`, `rate_error_arcsec_per_year` | numbers | Speed on the sky and its one sigma uncertainty |
+| `angle_deg` | number | Direction of the motion: 0 is north, 90 is east |
+| `pm_ra`, `pm_dec` | numbers | The same motion as a proper motion, in milliarcseconds per year, ready for `exposures` |
+| `parallax_arcsec`, `parallax_error_arcsec` | numbers or null | Swing of the object with the seasons, when the positions ask for one |
+| `distance_ly`, `distance_ly_range` | number, two numbers, or null | Distance the parallax gives, in light-years, and the distances one sigma allows. The range alone is `null` when the parallax is too unsure to bound the far side |
+
+`changes[]`:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `detector` | integer | 1 to 6 |
+| `from_pass`, `to_pass` | integers | The two visits compared |
+| `ratio`, `error` | numbers | Brightness in `to_pass` over brightness in `from_pass`, and its one sigma uncertainty |
+| `significance` | number | How many times its uncertainty the change is |
+| `wavelength_um` | two numbers | The wavelengths at which the two visits were compared |
+
+To show a candidate, draw `track` on the image: `xy` is on the default grid, and `ra`, `dec` go through `skyToPixel` for any other grid. To study it, make it the target: its `ra`, `dec` and `epoch`, with the `pm_ra` and `pm_dec` of its `motion` when it has one, are the parameters of `exposures`.
+
+### How a candidate is measured
+
+- **Visit by visit.** Nothing has time to move within a visit. The frames of a visit are averaged, detector by detector, after the accidents of a single exposure are removed. Each source is measured in each average.
+- **Measured uncertainties.** The frames of a visit are split in two halves at random, eight times, and the two halves are asked for the same position. They are also split by wavelength: two stars too close to be told apart, of different colors, have a center that slides with the wavelength.
+- **The field corrects itself.** Most sources are steady. Their median shift lines each visit up on the others, and their median brightness ratio between two visits is taken out.
+- **A motion is a straight line, plus a swing.** A nearby object swings back and forth with the seasons: its parallax. The swing is kept when three visits or more ask for it clearly, and it gives the distance.
+- **A motion must follow its path.** When the path fits badly, the motion counts for less, all the more as few measurements are left to judge it.
+- **A change is compared at equal wavelengths.** Two frames are compared when they differ by less than half the width of their band, so that the color of a source is not taken for a change. A change must show in two detectors: a reflection of a bright star outside the field touches one.
+- **A cold object in front of a star** is followed in the detectors that show it move, when the others disagree. This is how WISE 0855 is found, in detectors 5 and 6 alone.
+
+`confidence` is `high` when the significance is 10 or more and, for a motion, when three visits or more could check its path. Otherwise it is `medium`.
+
+### What is not claimed
+
+- A shift under 1 arcsecond, a sixth of a SPHEREx pixel, or a change under 10 percent.
+- Anything within reach of a saturated star, or in the glare of a star thousands of times brighter.
+- A source with a neighbor closer than 22 arcseconds and at least a third as bright, in the detectors that show both.
+- A star saturated in all its detectors: it is listed in `saturated`, as R Draconis is.
+- An object that crosses more than the field between two visits. A planet of the solar system would: its parallax is hundreds of times that of a star. Such an object shows in one visit only, which this version does not report.
+
+A candidate is a measurement that stands out, not a discovery. Say "candidate" on screen.
 
 ## Errors
 
@@ -522,6 +652,8 @@ One frame that fails does not fail the view: show the others.
 ## Stable and provisional
 
 Stable, safe to build on: the calls, the names of the parameters and of the fields, the units, the orientation, the two encodings, the error body and its codes.
+
+The candidates are new. The names of their fields are stable. Their thresholds, their limits and the kinds of candidates can still change.
 
 Provisional, the values can change but not the shape:
 
@@ -566,5 +698,27 @@ The flux, checked at step B4 on stars of known brightness:
 | Scatter between exposures | 1 to 3 percent for a steady star, where the variance of the file alone predicts 0.3 to 1 percent. Hence the 2 percent term of `error_mjy` |
 | Near saturation | A star of about 1 Jy whose pixels all carry `OVERFLOW`: 2 to 5 percent above 2MASS, with 4 to 5 percent of scatter between exposures. Hence the 5 percent term |
 | PSF model | The same in files of 2025 and 2026 and in both data releases, for the three detectors compared. Its share inside the circle varies by less than 0.01 across a detector |
+
+The candidates, checked on November 14, 2026 on the frames of 18 fields, with no position given to the detection:
+
+| Field | Result | Measured | Catalog (SIMBAD) |
+| --- | --- | --- | --- |
+| Barnard's Star | `moved`, high | 10.5 ± 0.9 arcsec per year | 10.39 |
+| Epsilon Indi B | `moved`, high | 4.63 ± 0.06 arcsec per year, parallax 0.31 ± 0.04 arcsec | 4.68, 0.271 |
+| WISE 0855 | `moved`, medium, detectors 5 and 6 | 7.5 ± 0.8 arcsec per year | 8.15 |
+| RW Aurigae | `changed`, high | Half as bright from 3.8 to 5 micrometers, 1.3 to 1.4 times brighter under 1.6 | A T Tauri star known for its deep fadings |
+| R Draconis | Listed as saturated in the six detectors | | |
+| Teegarden's Star | `moved`, high | 4.88 ± 0.14, parallax 0.27 ± 0.05 | 5.12, 0.261 |
+| Luhman 16 | `moved`, high | 2.84 ± 0.09, parallax 0.47 ± 0.04 | 2.79, 0.502 |
+| SCR J1845-6357 | `moved`, high | 2.58 ± 0.10, parallax 0.25 ± 0.04 | 2.65, 0.250 |
+| Wolf 359 | `moved`, medium | 4.83 ± 0.51 | 4.72 |
+| DENIS J0255-4700 | `moved`, high | 1.10 ± 0.08, parallax 0.21 ± 0.04 | 1.15, 0.205 |
+| Six quiet fields far from the Milky Way, 176 sources | No candidate | | |
+| Orion Nebula | No candidate, five saturated stars listed | | |
+| A place of the Milky Way taken at random (280.0, 0.0), 39 sources | One `changed`, high, seen in five detectors | 0.18 arcsecond from IRAS 18372-0002 | A long-period variable star |
+
+- The eight objects that move were all found, and each measured rate is within two sigma of the catalog.
+- The five parallaxes are within one sigma of the catalog. They are a twelfth to a thirtieth of a SPHEREx pixel.
+- The last eight rows also served to find and fix two causes of false alarms. They are not an independent test.
 
 `node samples/check-sample.ts samples/barnard-star-d2.json --bright-star` replays the checks that need no network. `node samples/check-sample.ts samples/index.json` checks every file of the index.

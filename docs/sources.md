@@ -9,10 +9,18 @@ Every external resource this project uses, with its license. A pull request that
 | [SPHEREx spectral images](https://irsa.ipac.caltech.edu/Missions/spherex.html), level 2, releases DR1 and QR3, from the NASA/IPAC Infrared Science Archive (IRSA) | Read by the service from the public bucket `nasa-irsa-spherex`, a few byte ranges per exposure, and served as frames by `GET /api/frames/{id}`. The header of one image is kept in `backend/tests/data/` for the tests. Pixels, flags and wavelengths of `samples/barnard-star-d2.json` come from it | [IRSA data use terms](https://irsa.ipac.caltech.edu/data_use_terms.html). Acknowledgements requested by [SPHEREx](https://irsa.ipac.caltech.edu/data/SPHEREx/docs/overview_qr.html) and by [IRSA](https://irsa.ipac.caltech.edu/ack.html) |
 | [IRSA Simple Image Access service](https://irsa.ipac.caltech.edu/ibe/sia.html) (SIA version 2), collections `spherex_dr1` and `spherex_qr3` | Called by `GET /api/exposures` to list the exposures of a position. One recorded answer, the index entries of Barnard's Star, is kept in `backend/tests/data/` for the tests | Same IRSA terms and acknowledgements as the images |
 | [IRSA cutout service](https://irsa.ipac.caltech.edu/onlinehelp/spherex/spherex/cutouts.html) | Reference of one on-demand test: the pixels the service reads must be those the archive cuts itself. Nothing is stored | Same IRSA terms and acknowledgements as the images |
-| [SIMBAD](https://simbad.cds.unistra.fr/simbad/), through the [CDS Sesame](https://cds.unistra.fr/cgi-bin/nph-sesame) name resolver | Called by `GET /api/resolve` to turn a name into a position and a proper motion. Position and proper motion of Barnard's Star in the sample | Credit: SIMBAD database, CDS, Strasbourg, France |
+| [SIMBAD](https://simbad.cds.unistra.fr/simbad/), through the [CDS Sesame](https://cds.unistra.fr/cgi-bin/nph-sesame) name resolver | Called by `GET /api/resolve` to turn a name into a position and a proper motion. Position and proper motion of Barnard's Star in the sample. Proper motions and parallaxes of eight nearby stars, and the type of one variable star, as the reference the candidates are checked against | Credit: SIMBAD database, CDS, Strasbourg, France |
 | 2MASS Point Source Catalog (Skrutskie et al. 2006) and AllWISE Source Catalog (Cutri et al. 2013), queried at IRSA and through [VizieR](https://vizier.cds.unistra.fr/) (catalogs II/246 and II/328) | One-time checks: the orientation of the sample, and the flux scale of step B4 on 8 stars. No catalog data is stored in the repository | Public catalogs. Acknowledgements of 2MASS, WISE, IRSA and VizieR (CDS, Strasbourg, France) |
 
 The exact acknowledgement sentences and the identifier (DOI) of each data release go in the README and in the submission at step P1.
+
+## Formulas
+
+| Formula | Use in this repository | Source |
+| --- | --- | --- |
+| Low-precision position of the Sun | `targets/parallax.py`: where the Earth is at a date, to fit the parallax of a moving object | The Astronomical Almanac, section C, U.S. Naval Observatory and HM Nautical Almanac Office. Checked in the tests against the ephemeris built in Astropy |
+| Normal approximation of the law of Student | `detection/field.py`: how much a motion counts when its uncertainty was drawn from a few leftovers of a fit | D. L. Wallace, "Bounds on normal approximations to Student's and the chi-square distributions", Annals of Mathematical Statistics 30, 1121 (1959) |
+| Center of light under a Gaussian window that follows it | `detection/sources.py`: position of a source in a stacked image | The windowed positions of SExtractor (E. Bertin and S. Arnouts, Astronomy and Astrophysics Supplement 117, 393, 1996). Written again here, no code taken |
 
 The other services the project plans to call are listed in the [architecture plan](architecture.md#sources). Their terms are added here when the code that calls them is merged.
 
