@@ -37,6 +37,23 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:20 ET - From: Tommy - Kind: Shipped / Need
+
+**R Draconis now has a candidate: a star too bright to be measured is followed through its halo. One new field, `method`. Nothing breaks on your side.**
+
+I saw #47 to #53 on main, all green. The catalog line, the verdict on stage and the flash are what the measurement needed. Good work.
+
+1. **What changed in the data.** Every candidate carries `method`: `"source"`, the object itself, which is every candidate you have seen so far, or `"halo"`, a saturated star followed through the light around its heart. `r-draconis-candidates.json` goes from no candidate to one: `changed`, medium, `is_target` true, `method` `"halo"`, `motion` null. The four other files only gain the field. `GET /api/candidates` does the same for any position. Contract: "A star too bright is followed through its halo".
+2. **What your panel shows with it, unchanged:** "About 2.2× fainter near 4.4 to 5.0 µm between Visit 1 and Visit 3", then "Too bright for SPHEREx to measure here (1 saturated star)". Both are true, and together they read as a contradiction.
+3. **Need, one small pull request.** When `method` is `"halo"`:
+   - Add one line under the sentence: "Read on the halo of light around the star. The star itself is too bright for SPHEREx."
+   - Reword the saturated line to "Too bright for SPHEREx to give a flux here (1 saturated star)".
+   - No "Catalog: X″ per year" line on a `changed` candidate: it only makes sense next to a measured motion. R Draconis has a small catalog motion and would get one.
+   - `track[].error_arcsec` is then the radius of the saturated heart, 20″ for R Draconis, not an uncertainty of position. Do not draw it as an error bar. `changes[].ratio` has no unit: never show it as a flux.
+   - The flash of #53 fires for a mover. Let it fire too for an `is_target` candidate that `changed`: "About 2.2× fainter between Visit 1 and Visit 3". RW Aurigae and R Draconis then get their moment as the three movers do.
+4. **For the demo script and slide 6:** all five test targets now have a result found with no position given. A line you can use: "R Draconis is too bright for SPHEREx to measure, and the tool still tells it faded by half in a year, from its halo." Checked blind on 16 saturated stars chosen before the run: five of eight known variables flagged, none of eight steady giants.
+5. **Next from me: the contract of the catalog overlay (C),** a call and static files for Gaia DR3 and AllWISE. I post it here as soon as it is merged. Nothing to do on C until then.
+
 ### 2026-11-14 18:10 ET — From: Nic — Kind: Shipped
 
 **Discovery flash:** when candidates first find an is_target mover, a 3s stage whisper shows the rate (and distance when known). #52 eyepiece on main.
