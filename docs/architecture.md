@@ -137,36 +137,37 @@ Three reasons behind this split:
 
 ## Contract between the service and the browser
 
-The contract is three calls and one unit of data, the frame. It is written before any code, in `docs/api-contract.md`, and every change to it goes through a pull request approved by the other teammate.
+The contract is three calls and one unit of data, the frame. It is written in full in [`api-contract.md`](api-contract.md), which is the reference: this section is a summary. Every change to it goes through a pull request approved by the other teammate.
 
 | Call | Response | Measured time | Cache |
 | --- | --- | --- | --- |
-| `GET /api/resolve?name=` | Position, proper motion and parallax of a named object | 1.5 s | 1 day |
-| `GET /api/exposures?ra=&dec=` | Exposures that cover the position: identifier, date, detector, data release | 1.6 s | 1 hour |
-| `GET /api/frames/{id}?ra=&dec=&fov=` | One frame | 0.4 s | Forever: a frame never changes |
+| `GET /api/resolve?name=` | Position and proper motion of a named object | 1.5 s | 1 day |
+| `GET /api/exposures?ra=&dec=` | The grid of the view and the exposures that cover the position: identifier, date, detector, pass, data release | 1.6 s | 1 hour |
+| `GET /api/frames/{id}?ra=&dec=` | One frame | 0.4 s | 1 day while the pipeline changes, much longer once it is frozen |
 | `GET /api/health` | Service status | Immediate | None |
 
 After the MVP, `GET /api/catalog?ra=&dec=&radius=&epoch=` will return Gaia sources already moved to the requested date.
 
-A frame looks like this. The identifier, the flux and the noise are made up for the example:
+The main fields of a frame, with the values of the sample file:
 
 ```json
 {
-  "id": "dr1.2025W34_2B.0090_4D2",
-  "time_mjd": 60908.98,
-  "detector": 2,
-  "wavelength_um": 1.1014,
-  "bandwidth_um": 0.0269,
-  "grid": { "ra": 269.4461, "dec": 4.7696, "fov_deg": 0.1, "size": 128 },
-  "image": "base64 float32, MJy/sr, NaN = masked pixel",
-  "noise": 0.032,
-  "photometry": { "flux_mjy": 512.3, "error_mjy": 1.9 }
+  "id": "dr1.2025W34_2B_0090_4D2.l2b-v27-2026-229",
+  "time_mjd": 60908.982595,
+  "wavelength_um": 1.1012,
+  "bandwidth_um": 0.0254,
+  "background": 0.4371,
+  "noise": 0.1643,
+  "target_xy": [63.35, 65.47],
+  "photometry": { "flux_mjy": null, "error_mjy": null, "quality": "saturated" },
+  "image": "base64 of 16-bit floats, MJy/sr, NaN = no value",
+  "mask": "base64, one byte of flags per pixel"
 }
 ```
 
 Four rules:
 
-1. **One grid per view.** All frames share the same center, the same size, north up and east left. The browser never does astrometry. Overlaying a catalog later is a linear conversion.
+1. **One grid per view.** All frames share the same center, the same size, north up and east left. The browser never realigns an image. Going from a sky position to a pixel is one short function, given in the contract, which is all a catalog overlay needs.
 2. **Each frame carries its measurement.** Wavelength, date and flux arrive with the image. The spectrum is the chart of the frames already loaded, and so is the light curve. This is what lets us add the spectrum last without restructuring.
 3. **Same format for precomputed data.** The static file of a target holds the list of exposures and its frames, in the exact format of the service. The browser has a single code path.
 4. **No address supplied by the client.** The identifier of an exposure is checked against a strict pattern, and the service downloads only from the SPHEREx storage. Otherwise anyone could make it read an address of their choice.
@@ -195,7 +196,7 @@ Six levers hold the first priority. The first three come from the measurements, 
 | Contrast, animation, stacking | Under 50 ms | Estimate: 62 images of 128 × 128 pixels |
 | Service asleep | A few more seconds | Estimate |
 
-The size of the grid and the precision of the numbers sent to the browser are tuned at step S1, on the sample file. They set the weight of a view.
+Step S1 set the size of the grid and the precision of the numbers on the sample file: 128 × 128 pixels in 16-bit floats, 66 kB per frame and 31 kB once compressed.
 
 ## Hosting and tooling
 
@@ -241,7 +242,7 @@ The MVP has 17 steps. Each one is a short branch, a pull request and a validatio
 | B6 | Yirmeyan | Script that precomputes the five targets | Five files in the contract format, each displayed by the browser |
 | B7 | Yirmeyan | Robustness: IRSA fallback, retries, rate limit, clear error messages | With S3 cut on purpose, the service still answers |
 | F1 | Nicolas | Viewer: frames of the sample, asinh stretch, common limits | Barnard's Star visible, same contrast from one image to the next |
-| F2 | Nicolas | Animation, selection by pass and by band | Barnard's Star jumps by about 1 pixel between two passes |
+| F2 | Nicolas | Animation, selection by pass and by band | Barnard's Star jumps by about 2 pixels of the grid, 1 SPHEREx pixel, between two passes |
 | F3 | Nicolas | Entry by coordinates or by name, progressive loading, waiting and error states | WISE 0855 loaded from its coordinates |
 | F4 | Nicolas | Composition: stacking, difference, motion tracking | WISE 0855 searched in the stack of detector 6. The object is at the detection limit, so the result is uncertain |
 | F5 | Nicolas | State of the view in the page URL, metadata panel | A copied link reopens exactly the same view |

@@ -17,3 +17,6 @@
 *.gz binary
 *.npy binary
 *.npz binary
+
+# Generated data samples: no line-by-line diff, collapsed in pull requests
+samples/*.json -diff linguist-generated=true

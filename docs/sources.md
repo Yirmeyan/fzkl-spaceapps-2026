@@ -4,7 +4,15 @@ Every external resource this project uses, with its license. A pull request that
 
 ## Data and services
 
-The data sources and the services we call are listed in the [architecture plan](architecture.md#sources). Their terms are added here when the code that calls them is merged.
+| Source | Use in this repository | Terms and credit |
+| --- | --- | --- |
+| [SPHEREx spectral images](https://irsa.ipac.caltech.edu/Missions/spherex.html), level 2, releases DR1 and QR3, from the NASA/IPAC Infrared Science Archive (IRSA) | Pixels, flags and wavelengths of `samples/barnard-star-d2.json`, read from the public bucket `nasa-irsa-spherex` | [IRSA data use terms](https://irsa.ipac.caltech.edu/data_use_terms.html). Acknowledgements requested by [SPHEREx](https://irsa.ipac.caltech.edu/data/SPHEREx/docs/overview_qr.html) and by [IRSA](https://irsa.ipac.caltech.edu/ack.html) |
+| [SIMBAD](https://simbad.cds.unistra.fr/simbad/), through the [CDS Sesame](https://cds.unistra.fr/cgi-bin/nph-sesame) name resolver | Position and proper motion of Barnard's Star in the sample | Credit: SIMBAD database, CDS, Strasbourg, France |
+| 2MASS Point Source Catalog, queried at IRSA | One-time check of the orientation of the sample. No 2MASS data is stored in the repository | Same IRSA terms |
+
+The exact acknowledgement sentences and the identifier (DOI) of each data release go in the README and in the submission at step P1.
+
+The other services the project plans to call are listed in the [architecture plan](architecture.md#sources). Their terms are added here when the code that calls them is merged.
 
 ## Backend dependencies
 
