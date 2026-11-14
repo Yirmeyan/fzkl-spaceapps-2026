@@ -7,6 +7,14 @@ from spherex_explorer.pipeline.candidates import (
     find_field_candidates,
     report_field,
 )
+from spherex_explorer.pipeline.catalog import (
+    CatalogView,
+    SkyCatalogs,
+    place_at,
+    sources_in_view,
+    view_catalog,
+    view_catalogs,
+)
 from spherex_explorer.pipeline.exposures import (
     ExposureArchive,
     ExposureListing,
@@ -23,6 +31,7 @@ from spherex_explorer.pipeline.spectrum import (
 )
 
 __all__ = [
+    "CatalogView",
     "ExposureArchive",
     "ExposureListing",
     "FieldMemory",
@@ -30,6 +39,7 @@ __all__ = [
     "Frame",
     "FrameSource",
     "ListedExposure",
+    "SkyCatalogs",
     "Spectrum",
     "SpectrumPoint",
     "build_frame",
@@ -39,5 +49,9 @@ __all__ = [
     "measure_exposure",
     "measure_spectrum",
     "number_passes",
+    "place_at",
     "report_field",
+    "sources_in_view",
+    "view_catalog",
+    "view_catalogs",
 ]
