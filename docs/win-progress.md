@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Eyepiece focus** — press E (or the button): chrome drops away, the cutout grows and centers like looking through a telescope, Esc returns (still one viewport).
+**Discovery flash** — when the service first finds the target mover, a 3-second stage whisper announces the rate (and distance) over the sky, then fades into the verdict strip.
 
 ## Backlog (phenomenal)
 

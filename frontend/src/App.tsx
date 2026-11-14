@@ -168,6 +168,9 @@ export default function App() {
   const [candidatesFile, setCandidatesFile] = useState<CandidatesFile | null>(null);
   const [candidatesWaiting, setCandidatesWaiting] = useState(false);
   const [activeCandidate, setActiveCandidate] = useState<number | null>(null);
+  /** Brief stage whisper when the service first finds a target mover. */
+  const [discoveryFlash, setDiscoveryFlash] = useState<string | null>(null);
+  const discoverySeenRef = useRef<string | null>(null);
   const [skyTarget, setSkyTarget] = useState<TargetExtras | null>(() => readSkyFromUrl());
   const skyTargetRef = useRef(skyTarget);
   skyTargetRef.current = skyTarget;
@@ -899,6 +902,27 @@ export default function App() {
     }, 500);
     return () => window.clearInterval(id);
   }, [blinkPasses, view.mode, blinkA, blinkB, patchView]);
+
+  // Cinematic arrival when the service first reports a mover that is the target.
+  useEffect(() => {
+    if (!candidatesFile) {
+      discoverySeenRef.current = null;
+      return;
+    }
+    const hit = candidatesFile.candidates.find(
+      (c) => c.is_target && c.kind === "moved" && c.motion,
+    );
+    if (!hit?.motion) return;
+    const key = `${hit.ra.toFixed(5)},${hit.dec.toFixed(5)},${hit.motion.rate_arcsec_per_year}`;
+    if (discoverySeenRef.current === key) return;
+    discoverySeenRef.current = key;
+    const rate = hit.motion.rate_arcsec_per_year.toFixed(2);
+    const ly =
+      hit.motion.distance_ly != null ? ` · ~${hit.motion.distance_ly.toFixed(1)} light-years` : "";
+    setDiscoveryFlash(`Found a mover · ${rate}″ per year${ly}`);
+    const t = window.setTimeout(() => setDiscoveryFlash(null), 3000);
+    return () => window.clearTimeout(t);
+  }, [candidatesFile]);
 
   // Capture the previous visit for a short afterimage so the hop is visible as a double exposure.
   useEffect(() => {
@@ -1750,6 +1774,12 @@ export default function App() {
               <p className="wave-aurora-chip" aria-live="polite">
                 Infrared color · {display.meta.frame.wavelength_um.toFixed(2)} µm
               </p>
+            )}
+            {discoveryFlash && (
+              <div className="discovery-flash" role="status" aria-live="polite">
+                <p className="discovery-flash-kicker">Service measurement</p>
+                <p className="discovery-flash-line">{discoveryFlash}</p>
+              </div>
             )}
             {load.status === "loading" && (
               <div className="status-banner">
