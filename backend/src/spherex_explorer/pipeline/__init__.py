@@ -7,11 +7,15 @@ from spherex_explorer.pipeline.exposures import (
     list_exposures,
     number_passes,
 )
+from spherex_explorer.pipeline.frames import Frame, FrameSource, build_frame
 
 __all__ = [
     "ExposureArchive",
     "ExposureListing",
+    "Frame",
+    "FrameSource",
     "ListedExposure",
+    "build_frame",
     "list_exposures",
     "number_passes",
 ]

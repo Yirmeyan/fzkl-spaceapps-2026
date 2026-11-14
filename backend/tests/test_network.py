@@ -1,6 +1,7 @@
 """Tests that call the real archive. Run them on demand: uv run python -m pytest -m network"""
 
 import asyncio
+import base64
 import io
 
 import httpx2
@@ -11,7 +12,8 @@ from astropy.io import fits
 from conftest import BARNARD
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive, Window, key_from_id
 from spherex_explorer.config import Settings
-from spherex_explorer.pipeline import list_exposures
+from spherex_explorer.frames import Grid
+from spherex_explorer.pipeline import build_frame, list_exposures
 from spherex_explorer.targets import Target
 
 pytestmark = pytest.mark.network
@@ -95,3 +97,47 @@ def test_window_of_a_real_file_is_identical_to_the_cutout_of_the_archive():
                 assert np.array_equal(table.values, expected["VALUES"][0])
 
     asyncio.run(run())
+
+
+def test_frame_of_a_real_exposure_is_the_one_of_the_sample_of_the_contract(sample_bundle):
+    """The sample was made by a prototype checked on catalog stars: the service must agree."""
+    expected = sample_bundle["frames"][0]
+    grid = Grid(**{key: sample_bundle["grid"][key] for key in ("ra", "dec", "fov_deg", "size")})
+    settings = Settings(_env_file=None)
+
+    async def run():
+        async with httpx2.AsyncClient(timeout=30) as client:
+            reader = Level2Reader(
+                S3Reader(
+                    client,
+                    base_url=settings.storage_url,
+                    timeout_s=settings.storage_timeout_s,
+                    attempts=settings.storage_attempts,
+                    concurrency=settings.storage_concurrency,
+                )
+            )
+            return await build_frame(reader, expected["id"], Target(**BARNARD), grid)
+
+    frame = asyncio.run(run())
+    image = np.frombuffer(base64.b64decode(expected["image"]), dtype="<f2").astype(np.float32)
+    image = image.reshape(grid.size, grid.size)
+    mask = np.frombuffer(base64.b64decode(expected["mask"]), dtype=np.uint8)
+    mask = mask.reshape(grid.size, grid.size)
+
+    assert frame.time_mjd == pytest.approx(expected["time_mjd"], abs=1e-6)
+    assert frame.exposure_s == pytest.approx(expected["exposure_s"], abs=0.05)
+    assert frame.wavelength_um == pytest.approx(expected["wavelength_um"], abs=1e-4)
+    assert frame.bandwidth_um == pytest.approx(expected["bandwidth_um"], abs=1e-4)
+    assert frame.target_xy == pytest.approx(expected["target_xy"], abs=0.006)
+    assert frame.valid_fraction == pytest.approx(expected["valid_fraction"], abs=0.006)
+    assert frame.photometry.quality == expected["photometry"]["quality"]
+    # The prototype approximated the geometry to 0.02 pixel and took its background
+    # from other pixels: a few pixels near the saturated star and the two summaries differ.
+    assert frame.background == pytest.approx(expected["background"], rel=0.05)
+    assert frame.noise == pytest.approx(expected["noise"], rel=0.15)
+    assert np.count_nonzero(np.isnan(frame.image) != np.isnan(image)) <= 4
+    assert np.count_nonzero(frame.mask != mask) <= 20
+    both = np.isfinite(frame.image) & np.isfinite(image)
+    relative = np.abs(frame.image - image)[both] / np.maximum(np.abs(image[both]), 1e-6)
+    assert np.median(relative) < 0.002
+    assert np.percentile(relative, 99) < 0.03

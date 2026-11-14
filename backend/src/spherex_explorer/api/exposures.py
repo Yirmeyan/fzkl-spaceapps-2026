@@ -3,18 +3,12 @@
 import asyncio
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
 
+from spherex_explorer.api.params import Dec, Epoch, Fov, PmDec, PmRa, Ra, Size
 from spherex_explorer.errors import UpstreamUnavailable
-from spherex_explorer.frames import (
-    DEFAULT_FOV_DEG,
-    DEFAULT_SIZE,
-    MAX_FOV_DEG,
-    MAX_SIZE,
-    MIN_FOV_DEG,
-    MIN_SIZE,
-)
+from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE
 from spherex_explorer.mjd import mjd_to_iso
 from spherex_explorer.pipeline import ExposureArchive, list_exposures
 from spherex_explorer.targets import Target
@@ -24,8 +18,6 @@ router = APIRouter(tags=["exposures"])
 # New exposures are published every week: a list may be reused for an hour, not longer.
 _CACHE_CONTROL = "public, max-age=3600"
 _TIME_DECIMALS = 6
-# Widest proper motion accepted, in milliarcseconds per year. The fastest star reaches 10,400.
-_MAX_PROPER_MOTION = 20000.0
 # Seconds a client is asked to wait before it tries again.
 _RETRY_AFTER_S = 10
 
@@ -79,33 +71,13 @@ async def read_exposures(
     response: Response,
     archive: Annotated[ExposureArchive, Depends(get_archive)],
     time_budget_s: Annotated[float, Depends(get_time_budget_s)],
-    ra: Annotated[float, Query(ge=0, lt=360, description="Right ascension, degrees (ICRS).")],
-    dec: Annotated[float, Query(ge=-90, le=90, description="Declination, degrees (ICRS).")],
-    epoch: Annotated[
-        float, Query(ge=1900, le=2100, description="Date of the position, Julian year.")
-    ] = 2000.0,
-    pm_ra: Annotated[
-        float,
-        Query(
-            ge=-_MAX_PROPER_MOTION,
-            le=_MAX_PROPER_MOTION,
-            description="Proper motion toward the east, mas per year, cos(dec) included.",
-        ),
-    ] = 0.0,
-    pm_dec: Annotated[
-        float,
-        Query(
-            ge=-_MAX_PROPER_MOTION,
-            le=_MAX_PROPER_MOTION,
-            description="Proper motion toward the north, mas per year.",
-        ),
-    ] = 0.0,
-    fov: Annotated[
-        float, Query(ge=MIN_FOV_DEG, le=MAX_FOV_DEG, description="Width of the view, degrees.")
-    ] = DEFAULT_FOV_DEG,
-    size: Annotated[
-        int, Query(ge=MIN_SIZE, le=MAX_SIZE, description="Width of the view, pixels.")
-    ] = DEFAULT_SIZE,
+    ra: Ra,
+    dec: Dec,
+    epoch: Epoch = 2000.0,
+    pm_ra: PmRa = 0.0,
+    pm_dec: PmDec = 0.0,
+    fov: Fov = DEFAULT_FOV_DEG,
+    size: Size = DEFAULT_SIZE,
 ) -> ExposuresOut:
     target = Target(ra=ra, dec=dec, epoch=epoch, pm_ra=pm_ra, pm_dec=pm_dec)
     try:
