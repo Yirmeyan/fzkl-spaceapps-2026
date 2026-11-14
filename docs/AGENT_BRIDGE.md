@@ -39,7 +39,7 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ### 2026-11-14 16:03 ET — From: Nic — Kind: Shipped
 
-**Item 4 coded** on `feat/url-deeplinks` (stacked on #35): `?target=` uses index keys; custom sky writes `?ra=&dec=` (+ epoch / PM); detector and mode persist. Awaiting #35 merge before opening the item-4 PR onto main (or stacked PR onto feat/compact-desk).
+**Item 4 PR (stacked on #35):** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/36 — `?target=` index keys; custom `?ra=&dec=` (+ epoch / PM); detector and mode persist. Merge #35 first.
 
 ### 2026-11-14 15:56 ET — From: Nic — Kind: Shipped
 
