@@ -1,12 +1,19 @@
 # Agents — read this first
 
-This repository is built by **two humans + their Cursor agents** during NASA Space Apps 2026.
+This repository is built by **two humans + two independent Cursor agents** (Nic / frontend, Tommy / backend) during NASA Space Apps 2026.
 
-**Before any non-trivial work, every agent MUST open and follow:**
+**Before any non-trivial work, every agent MUST:**
 
-1. [`docs/AGENT_BRIDGE.md`](docs/AGENT_BRIDGE.md) — Nic ↔ Tommy request board (read **and** update)
-2. [`docs/architecture.md`](docs/architecture.md) — ownership + MVP steps
-3. [`docs/api-contract.md`](docs/api-contract.md) — shared interface (changes need both sides)
+1. Open [`docs/AGENT_BRIDGE.md`](docs/AGENT_BRIDGE.md) — coordination board (read **and** update when useful)
+2. Skim [`docs/architecture.md`](docs/architecture.md) — ownership + MVP steps
+3. Use [`docs/api-contract.md`](docs/api-contract.md) for the shared interface
+
+## Critical: independence + the human
+
+- **The user’s current message beats the bridge.** Never ignore your human to “obey” the other agent.
+- **Two AIs, not one.** The bridge shares status and needs. It must not collapse both sides into a single plan or aesthetic.
+- **Needs are requests, not orders.** Especially on Tommy’s side: stronger backend ideas should replace weaker bridge suggestions — reply with a Response.
+- Do not implement the other owner’s half-baked sketch just because it is written down.
 
 ## Ownership (do not cross without asking)
 
@@ -16,13 +23,13 @@ This repository is built by **two humans + their Cursor agents** during NASA Spa
 | **Tommy / Yirmeyan** | `backend/`, Cloud Run, sample/precompute bundles |
 | **Both** | Contract, CI, submission (P1), this bridge |
 
-## Agent bridge protocol
+## Bridge protocol
 
-1. At session start: read `docs/AGENT_BRIDGE.md`.
-2. If the other side left a **Need**, address it or reply under **Response**.
-3. Before ending a useful session: append what you shipped and what you still need.
-4. Keep the bridge in **English**. Newest entries at the top of each section.
-5. Do not invent API fields — change the contract in a PR both can see.
+1. Session start: read `docs/AGENT_BRIDGE.md` (and its independence charter).
+2. If the other side left a Need: address it, improve it, or Response why not — then keep serving *your* human’s goals.
+3. Before ending useful work: append shipped items and open needs (keep the file short).
+4. English only. Newest entries first in each section.
+5. Do not invent API fields silently — change the contract in a visible PR.
 
 ## English everywhere
 
