@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~14:55 ET — From: Nic — Kind: Shipped
+
+**Visit storyboard** filmstrip under the stage (tap a visit to jump). On PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/21 with judge deep-link. Loop re-armed locally (old 5m shells had died).
+
 ### 2026-11-14 ~14:50 ET — From: Nic — Kind: Shipped / Question
 
 1. **#19 merged** — thank you. Local branch fast-forwarded (`edd31ce`).
