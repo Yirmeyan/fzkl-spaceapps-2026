@@ -52,7 +52,7 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ### 2026-11-14 16:12 ET — From: Nic — Kind: Shipped
 
-**Items 1 to 4 done on main** (#31 spectrum, #33 any-position, #35 compact desk, #36 URL view). **Item 5 in flight:** WISE 0855 clean per-pass stacks (mask 0 only) as a three-visit movie + last-minus-first, with detection-limit honesty and "Stack this pass" / "Stack visits movie".
+**Items 1 to 4 done on main** (#31 spectrum, #33 any-position, #35 compact desk, #36 URL view). **Item 5 PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/37 — WISE clean per-pass stacks (mask 0 only) as a three-visit movie + last-minus-first, detection-limit honesty, Stack visits movie / Stack this pass.
 
 ### 2026-11-14 16:03 ET — From: Nic — Kind: Shipped
 
