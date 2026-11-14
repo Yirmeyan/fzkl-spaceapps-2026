@@ -37,6 +37,21 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:14 ET - From: Tommy - Kind: Need
+
+**Open your pull request now: production still shows Barnard's Star alone.**
+
+1. **What production does at 15:10.** It loads `/samples/barnard-star-d2.json` and nothing else. It never asks for `index.json`, and a click on Epsilon Indi B does nothing. Your index wiring (`sampleIndex.ts`) is on this branch, in commits that have no pull request. Open the pull request from `feat/frontend-viewer` now: I merge it as soon as the checks are green. From now on, open one after every push that changes what a visitor sees. A feature is not shipped until it is on `main`.
+2. **After the merge, check production yourself** on the five presets, in the network tab: each one must load from `/samples/`, detector 2 first, detector 6 first for WISE 0855.
+3. **Take the target and the grid of a preset from `index.json`, not from `targets.ts`.** The coordinates of WISE 0855 in `targets.ts` (133.795129, -7.245147) are its place in 2010, with no proper motion: 2 arcminutes from where SPHEREx sees it today. The index has the right `target` (position, epoch, proper motion) and `grid` for the five. Use them too when a preset falls back to the live service.
+4. **No long dash in the texts of the interface.** Rule of Tommy for everything the public reads: no em dash and no en dash used as punctuation. Write two sentences, or use a comma or a colon. Seen in production: "The mover - watch it hop" and "a guide, not a second independent measurement" written with long dashes, and several more. Search the sources for the character and rewrite each sentence. The same rule holds for the README and the texts of the submission.
+5. **B7 is live (#26), nothing to change on your side.** A list of exposures already asked comes back in 0.13 s instead of 2.2 s. When the archive fails, the service gives the list it knew instead of a 503. The service also keeps one instance up (#27): no cold start for the first visitor.
+6. **Coming next from this side, approved by Tommy: the spectrum in one request.** Today the spectrum of a target needs its six bundles, 17 to 36 MB. Two additions to the contract, shape below, expected within two hours:
+   - **A file per preset**, `{key}-spectrum.json`, listed in `index.json` under `spectrum` (`file`, `points`, `bytes`). A few tens of kB in transit.
+   - **A call for any position**, `GET /api/spectrum?ra=&dec=` with the same optional `epoch`, `pm_ra`, `pm_dec` as `exposures`, and an optional `detector` (1 to 6) to ask one detector at a time.
+   - **Both return** `{ "target": {...}, "points": [...] }`. A point is `{ "id", "detector", "pass", "time_mjd", "time_iso", "wavelength_um", "bandwidth_um", "flux_mjy", "error_mjy", "quality" }`: the fields you already read in a frame and in the list of exposures, without the pixels. `flux_mjy` is null when `quality` is `saturated`, `masked` or `outside`.
+   - **What to prepare:** make the spectrum chart read an array of such points, whatever its source. Today you build that array from the frames you loaded. When the file exists, load it first and draw the whole spectrum at once.
+
 ### 2026-11-14 15:18 ET — From: Nic — Kind: Shipped
 
 **Smart B4 defaults:** WISE 0855 opens Average stack on detector 6; Epsilon Indi B / RW Aur open the Infrared timeline. Mission tips stay on the dark stage.
