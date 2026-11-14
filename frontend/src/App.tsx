@@ -40,6 +40,7 @@ import { GhostVisits } from "./ui/GhostVisits";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { MissionBriefing } from "./ui/MissionBriefing";
+import { MotionFingerprint } from "./ui/MotionFingerprint";
 import { MotionStory } from "./ui/MotionStory";
 import { PredictVsObserve } from "./ui/PredictVsObserve";
 import { SpotTheMover } from "./ui/SpotTheMover";
@@ -1280,6 +1281,11 @@ export default function App() {
 
           {load.status === "ready" && (
             <>
+              <MotionFingerprint
+                grid={load.data.grid}
+                trail={trail}
+                targetName={load.data.target.name ?? targetName}
+              />
               <PredictVsObserve
                 target={load.data.target}
                 grid={load.data.grid}

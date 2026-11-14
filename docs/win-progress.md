@@ -1,6 +1,6 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~15:00 America/Toronto.
+Last recalibration: 2026-11-14 ~15:05 America/Toronto.
 
 ## Mission
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **96%** | Infrared aurora + resolve live; PR #21 open |
-| Team win / top-tier | **78%** | B5 resolve live on Cloud Run; B4/B6 still open |
+| Unblocked Nic lane | **97%** | Motion fingerprint + aurora; PR #21 CI green |
+| Team win / top-tier | **78%** | B5 resolve live; B4/B6 still open |
 
 ## This loop’s wow
 
-**Infrared aurora** — stage glow tracks active λ while playing; resolve confirmed live.
+**Motion fingerprint** — animated SVG trail signature for screenshots / judges.
 
 ## Backlog (phenomenal)
 
@@ -50,3 +50,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 14:50 | Judge link ?demo=1 + #19 merged | 94 | 70 |
 | 14:55 | Visit storyboard filmstrip | 95 | 70 |
 | 15:00 | Infrared aurora + resolve live | 96 | 78 |
+| 15:05 | Motion fingerprint SVG | 97 | 78 |

@@ -431,6 +431,78 @@ select {
   flex-shrink: 0;
 }
 
+.motion-fingerprint {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(8, 16, 28, 0.95), rgba(28, 18, 12, 0.85));
+  border: 1px solid rgba(251, 191, 36, 0.22);
+}
+
+.motion-fingerprint-kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fbbf24;
+}
+
+.motion-fingerprint-title {
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  color: #fff;
+}
+
+.motion-fingerprint-stat {
+  margin: 0.45rem 0 0;
+  font-size: 1.05rem;
+  color: #e8eef6;
+}
+
+.motion-fingerprint-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: #93a4b8;
+}
+
+.motion-fingerprint-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+}
+
+.motion-fingerprint-path {
+  stroke-dasharray: 480;
+  stroke-dashoffset: 480;
+  animation: fingerprint-draw 1.4s ease-out forwards;
+}
+
+.motion-fingerprint-label {
+  fill: #e8eef6;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: Fraunces, Georgia, serif;
+}
+
+@keyframes fingerprint-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .motion-fingerprint {
+    grid-template-columns: 1fr;
+  }
+}
+
 .visit-storyboard {
   width: 100%;
   padding: 0.85rem 1rem 1rem;

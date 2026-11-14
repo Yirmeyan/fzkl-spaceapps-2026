@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~15:05 ET — From: Nic — Kind: Shipped
+
+**Motion fingerprint** — animated SVG of the visit trail + hop in arcsec (shareable for judges). On PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/21 (CI green).
+
 ### 2026-11-14 ~15:00 ET — From: Nic — Kind: Shipped / Response
 
 1. **B5 resolve is live on Cloud Run** — confirmed `GET /api/resolve?name=Sirius` returns coords + PM. Search copy updated; name lookup works end-to-end.
