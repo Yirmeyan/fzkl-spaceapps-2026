@@ -59,8 +59,8 @@ describe("contract helpers", () => {
     pixels[6] = Number.NaN;
     const mask = new Uint8Array(size * size);
     mask[5] = MASK_OVERFLOW;
-    const rgba = renderFrameToRgba(pixels, mask, size, -1, 5, 0);
-    expect(rgba[5 * 4]).toBe(255);
+    const rgba = renderFrameToRgba(pixels, mask, size, -1, 5, 0, "heat");
+    expect(rgba[5 * 4]).toBeGreaterThan(200);
     expect(rgba[5 * 4 + 3]).toBe(255);
     expect(rgba[6 * 4 + 3]).toBe(255);
     expect(rgba[6 * 4]).toBeLessThan(20);

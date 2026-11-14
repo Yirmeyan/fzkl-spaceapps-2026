@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { renderFrameToRgba } from "../data/contract";
+import { type ColorMap, renderFrameToRgba } from "../data/contract";
 import type { DecodedFrame } from "../data/decode";
 
 export interface SkyPlayerProps {
@@ -10,6 +10,7 @@ export interface SkyPlayerProps {
   lo: number;
   hi: number;
   size: number;
+  colorMap?: ColorMap;
   scale?: number;
   className?: string;
   onFrameIndexChange?: (index: number) => void;
@@ -28,6 +29,7 @@ export function SkyPlayer({
   lo,
   hi,
   size,
+  colorMap = "heat",
   scale = 4,
   className,
   onFrameIndexChange,
@@ -40,7 +42,7 @@ export function SkyPlayer({
   const onChangeRef = useRef(onFrameIndexChange);
   onChangeRef.current = onFrameIndexChange;
 
-  const cacheKey = `${size}|${lo}|${hi}|${frames.length}|${frames[0]?.frame.id ?? ""}|${frames[frames.length - 1]?.frame.id ?? ""}`;
+  const cacheKey = `${size}|${lo}|${hi}|${colorMap}|${frames.length}|${frames[0]?.frame.id ?? ""}|${frames[frames.length - 1]?.frame.id ?? ""}`;
 
   function ensureCtx(): CanvasRenderingContext2D | null {
     const canvas = canvasRef.current;
@@ -60,7 +62,15 @@ export function SkyPlayer({
     }
     cacheKeyRef.current = cacheKey;
     cacheRef.current = frames.map((f) => {
-      const rgba = renderFrameToRgba(f.pixels, f.mask, size, lo, hi, f.frame.background);
+      const rgba = renderFrameToRgba(
+        f.pixels,
+        f.mask,
+        size,
+        lo,
+        hi,
+        f.frame.background,
+        colorMap,
+      );
       const copy = new Uint8ClampedArray(rgba.length);
       copy.set(rgba);
       return new ImageData(copy, size, size);

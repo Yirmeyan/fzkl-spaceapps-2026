@@ -178,8 +178,9 @@ export interface DisplayFrameInput {
 /**
  * Common {lo, hi} in background-subtracted units (MJy/sr residual).
  *
- * lo = −1 × median(noise), hi = 5 × median(noise). Shared contrast across the
- * sequence so Barnard's Star stays readable from frame to frame.
+ * Wide window (−2σ … 35σ): a tight 5σ stretch turned the sky into TV static and
+ * crushed everything into black/white. Shared across the sequence so contrast
+ * stays stable from frame to frame.
  */
 export function computeDisplayLimits(frames: DisplayFrameInput[]): { lo: number; hi: number } {
   const noises: number[] = [];
@@ -198,7 +199,28 @@ export function computeDisplayLimits(frames: DisplayFrameInput[]): { lo: number;
   }
 
   if (!(sigma > 0) || !Number.isFinite(sigma)) sigma = 1;
-  return { lo: -sigma, hi: 5 * sigma };
+  return { lo: -2 * sigma, hi: 35 * sigma };
+}
+
+export type ColorMap = "heat" | "gray";
+
+/** False-color IR ramp: dark → red → orange → yellow → white. */
+export function heatColor(t: number): [number, number, number] {
+  const x = Math.min(1, Math.max(0, t));
+  if (x < 0.25) {
+    const u = x / 0.25;
+    return [Math.round(8 + 130 * u), Math.round(8 + 12 * u), Math.round(20 + 10 * u)];
+  }
+  if (x < 0.5) {
+    const u = (x - 0.25) / 0.25;
+    return [Math.round(138 + 90 * u), Math.round(20 + 70 * u), Math.round(30 - 10 * u)];
+  }
+  if (x < 0.75) {
+    const u = (x - 0.5) / 0.25;
+    return [Math.round(228 + 22 * u), Math.round(90 + 100 * u), Math.round(20 + 30 * u)];
+  }
+  const u = (x - 0.75) / 0.25;
+  return [Math.round(250 + 5 * u), Math.round(190 + 60 * u), Math.round(50 + 170 * u)];
 }
 
 function estimateNoiseFromFrames(frames: DisplayFrameInput[]): number {
@@ -223,8 +245,9 @@ function estimateNoiseFromFrames(frames: DisplayFrameInput[]): number {
 }
 
 /**
- * Render one frame to RGBA. Subtracts background, asinh between lo/hi, grayscale.
- * NaN+OVERFLOW → bright; other NaN → transparent.
+ * Render one frame to RGBA. Subtracts background, soft asinh between lo/hi.
+ * Default heat colormap (IR false color). NaN+OVERFLOW → top of scale;
+ * other NaN → opaque void.
  */
 export function renderFrameToRgba(
   pixels: Float32Array,
@@ -233,12 +256,14 @@ export function renderFrameToRgba(
   lo: number,
   hi: number,
   background: number | null,
+  colorMap: ColorMap = "heat",
 ): Uint8ClampedArray {
   const n = size * size;
   const rgba = new Uint8ClampedArray(n * 4);
   const bg = background ?? 0;
   const span = hi - lo;
-  const soft = Math.max(Math.abs(span) / 10, 1e-12);
+  // Larger soft knee → less “crushed” black/white look.
+  const soft = Math.max(Math.abs(span) / 3.5, 1e-12);
   const denom = asinhStretch(span, soft);
 
   for (let i = 0; i < n; i++) {
@@ -247,14 +272,12 @@ export function renderFrameToRgba(
 
     if (Number.isNaN(raw)) {
       if ((mask[i]! & MASK_OVERFLOW) !== 0) {
-        // Saturated core: top of the scale, always opaque.
-        rgba[o] = 255;
-        rgba[o + 1] = 255;
-        rgba[o + 2] = 255;
+        const [r, g, b] = colorMap === "heat" ? heatColor(1) : [255, 255, 255];
+        rgba[o] = r;
+        rgba[o + 1] = g;
+        rgba[o + 2] = b;
         rgba[o + 3] = 255;
       } else {
-        // Missing / off-detector: opaque void (never alpha 0 — that caused
-        // compositor shimmer when frames changed under a CSS gradient page).
         rgba[o] = 5;
         rgba[o + 1] = 8;
         rgba[o + 2] = 14;
@@ -266,10 +289,18 @@ export function renderFrameToRgba(
     const residual = raw - bg;
     const clipped = Math.min(hi, Math.max(lo, residual));
     const t = denom === 0 ? 0 : asinhStretch(clipped - lo, soft) / denom;
-    const g = Math.round(Math.min(1, Math.max(0, t)) * 255);
-    rgba[o] = g;
-    rgba[o + 1] = g;
-    rgba[o + 2] = g;
+    const u = Math.min(1, Math.max(0, t));
+    if (colorMap === "heat") {
+      const [r, g, b] = heatColor(u);
+      rgba[o] = r;
+      rgba[o + 1] = g;
+      rgba[o + 2] = b;
+    } else {
+      const g = Math.round(u * 255);
+      rgba[o] = g;
+      rgba[o + 1] = g;
+      rgba[o + 2] = g;
+    }
     rgba[o + 3] = 255;
   }
 

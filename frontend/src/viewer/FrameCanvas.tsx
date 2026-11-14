@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { renderFrameToRgba } from "../data/contract";
+import { type ColorMap, renderFrameToRgba } from "../data/contract";
 
 export interface FrameCanvasProps {
   pixels: Float32Array;
@@ -8,6 +8,7 @@ export interface FrameCanvasProps {
   lo: number;
   hi: number;
   background: number | null;
+  colorMap?: ColorMap;
   /** Optional marker at target position [x, y] in grid pixels */
   targetXy?: [number, number] | null;
   className?: string;
@@ -22,6 +23,7 @@ export function FrameCanvas({
   lo,
   hi,
   background,
+  colorMap = "heat",
   targetXy,
   className,
   scale = 4,
@@ -36,7 +38,7 @@ export function FrameCanvas({
 
     ctx.fillStyle = "#05080e";
     ctx.fillRect(0, 0, size, size);
-    const rgba = renderFrameToRgba(pixels, mask, size, lo, hi, background);
+    const rgba = renderFrameToRgba(pixels, mask, size, lo, hi, background, colorMap);
     const imageData = ctx.createImageData(size, size);
     imageData.data.set(rgba);
     ctx.putImageData(imageData, 0, 0);
@@ -55,7 +57,7 @@ export function FrameCanvas({
       ctx.stroke();
       ctx.restore();
     }
-  }, [pixels, mask, size, lo, hi, background, targetXy]);
+  }, [pixels, mask, size, lo, hi, background, colorMap, targetXy]);
 
   const css = size * scale;
 

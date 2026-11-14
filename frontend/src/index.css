@@ -214,6 +214,36 @@ select {
   height: auto;
 }
 
+.viewer-guide {
+  width: 100%;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.65rem 0.8rem;
+}
+
+.viewer-guide-title {
+  margin: 0 0 0.35rem;
+  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.viewer-guide ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.viewer-guide li {
+  margin-bottom: 0.3rem;
+}
+
+.viewer-guide strong {
+  color: var(--text);
+}
+
 .transport {
   display: flex;
   flex-wrap: wrap;

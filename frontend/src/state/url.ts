@@ -1,3 +1,4 @@
+import type { ColorMap } from "../data/contract";
 import type { ComposeMode } from "../compose/stack";
 
 export interface ViewState {
@@ -18,6 +19,7 @@ export interface ViewState {
   waveTolUm: number;
   /** Display contrast (>1 = tighter asinh window) */
   contrast: number;
+  colorMap: ColorMap;
 }
 
 export const DEFAULT_VIEW: ViewState = {
@@ -25,16 +27,17 @@ export const DEFAULT_VIEW: ViewState = {
   pass: null,
   detector: null,
   frameIndex: 0,
-  playing: true,
-  fps: 8,
+  playing: false,
+  fps: 4,
   mode: "single",
   diffPassA: 1,
-  diffPassB: 2,
+  diffPassB: 3,
   showHelp: false,
   query: "",
   waveUm: null,
   waveTolUm: 0.03,
-  contrast: 1,
+  contrast: 0.85,
+  colorMap: "heat",
 };
 
 function num(v: string | null, fallback: number): number {
@@ -64,16 +67,17 @@ export function readViewFromUrl(search = window.location.search): ViewState {
     pass: optInt(q.get("pass")),
     detector: optInt(q.get("detector")),
     frameIndex: Math.max(0, num(q.get("frame"), 0)),
-    playing: q.get("play") !== "0",
+    playing: q.has("play") ? q.get("play") !== "0" : DEFAULT_VIEW.playing,
     fps: Math.min(30, Math.max(1, num(q.get("fps"), DEFAULT_VIEW.fps))),
     mode: validModes.includes(mode) ? mode : "single",
-    diffPassA: num(q.get("a"), 1),
-    diffPassB: num(q.get("b"), 2),
+    diffPassA: num(q.get("a"), DEFAULT_VIEW.diffPassA),
+    diffPassB: num(q.get("b"), DEFAULT_VIEW.diffPassB),
     showHelp: q.get("help") === "1",
     query: q.get("q") || "",
     waveUm: optFloat(q.get("wave")),
     waveTolUm: Math.min(0.5, Math.max(0.005, num(q.get("wtol"), DEFAULT_VIEW.waveTolUm))),
     contrast: Math.min(8, Math.max(0.25, num(q.get("contrast"), DEFAULT_VIEW.contrast))),
+    colorMap: q.get("cmap") === "gray" ? "gray" : "heat",
   };
 }
 
@@ -83,7 +87,7 @@ export function writeViewToUrl(state: ViewState, replace = true): void {
   if (state.pass != null) q.set("pass", String(state.pass));
   if (state.detector != null) q.set("detector", String(state.detector));
   if (state.frameIndex > 0) q.set("frame", String(state.frameIndex));
-  if (!state.playing) q.set("play", "0");
+  if (state.playing) q.set("play", "1");
   if (state.fps !== DEFAULT_VIEW.fps) q.set("fps", String(state.fps));
   if (state.mode !== "single") q.set("mode", state.mode);
   if (state.mode === "difference") {
@@ -95,6 +99,7 @@ export function writeViewToUrl(state: ViewState, replace = true): void {
   if (state.waveUm != null) q.set("wave", String(state.waveUm));
   if (state.waveTolUm !== DEFAULT_VIEW.waveTolUm) q.set("wtol", String(state.waveTolUm));
   if (state.contrast !== DEFAULT_VIEW.contrast) q.set("contrast", String(state.contrast));
+  if (state.colorMap !== DEFAULT_VIEW.colorMap) q.set("cmap", state.colorMap);
 
   const search = q.toString();
   const url = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;

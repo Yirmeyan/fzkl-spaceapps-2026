@@ -27,6 +27,7 @@ import { Charts } from "./spectrum/Charts";
 import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
+import { ViewerGuide } from "./ui/ViewerGuide";
 import { FrameCanvas } from "./viewer/FrameCanvas";
 import { SkyPlayer } from "./viewer/SkyPlayer";
 
@@ -409,7 +410,12 @@ export default function App() {
                 lo={display.lo}
                 hi={display.hi}
                 size={display.size}
+                colorMap={view.colorMap}
                 onFrameIndexChange={onPlayerFrame}
+              />
+              <ViewerGuide
+                targetName={load.status === "ready" ? load.data.target.name : undefined}
+                pass={view.pass}
               />
               <div className="transport">
                 <button type="button" onClick={() => patchView({ playing: !view.playing })}>
@@ -447,6 +453,7 @@ export default function App() {
               lo={display.lo}
               hi={display.hi}
               background={display.background}
+              colorMap={view.colorMap}
               targetXy={display.targetXy}
             />
           )}
@@ -559,8 +566,8 @@ export default function App() {
                 <span className="sr-only">Contrast</span>
                 <input
                   type="range"
-                  min={0.5}
-                  max={4}
+                  min={0.4}
+                  max={3}
                   step={0.1}
                   value={view.contrast}
                   onChange={(e) => patchView({ contrast: Number(e.target.value) })}
@@ -568,6 +575,24 @@ export default function App() {
                 />
                 <span>{view.contrast.toFixed(1)}×</span>
               </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Color</legend>
+              <button
+                type="button"
+                className={view.colorMap === "heat" ? "active" : ""}
+                onClick={() => patchView({ colorMap: "heat" })}
+              >
+                IR heat
+              </button>
+              <button
+                type="button"
+                className={view.colorMap === "gray" ? "active" : ""}
+                onClick={() => patchView({ colorMap: "gray" })}
+              >
+                Gray
+              </button>
             </fieldset>
 
             {view.mode === "difference" && (
