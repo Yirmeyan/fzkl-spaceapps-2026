@@ -1,11 +1,11 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~15:05 America/Toronto.
+Last recalibration: 2026-11-14 ~15:15 America/Toronto.
 
 ## Mission
 
 Become the **reference public SPHEREx motion site** — jury should feel NASA-grade wow, not “nice student dashboard”.
-Auto model OK. **Every loop = one phenomenal idea** (+ polish allowed as support).
+Auto model OK. **Presentation clarity beats feature spam** (human override 15:15).
 
 ## Stop rule
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **97%** | Motion fingerprint + aurora; PR #21 CI green |
+| Unblocked Nic lane | **93%** | Recalibrated: clarity/layout pass; less challenge spam |
 | Team win / top-tier | **78%** | B5 resolve live; B4/B6 still open |
 
 ## This loop’s wow
 
-**Motion fingerprint** — animated SVG trail signature for screenshots / judges.
+**Presentation reset** — rename Blend visits, tooltips, insights in rail (less scroll), Spot demoted.
 
 ## Backlog (phenomenal)
 
@@ -30,7 +30,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | P0b | Mission briefing / immersive first paint | **Shipping** |
 | P1 | A5 — ship to main/prod | **#17 + #19 on main** |
 | P2 | Predict-vs-observe PM ribbon | **Shipping** |
-| P3 | Spot-the-mover challenge | **Shipping** |
+| P3 | Spot-the-mover challenge | Demoted (key M only; not primary UI) |
 | P4 | Tommy live frames the hour they land | **Wired (Live feed)** |
 
 ## Work log
@@ -51,3 +51,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 14:55 | Visit storyboard filmstrip | 95 | 70 |
 | 15:00 | Infrared aurora + resolve live | 96 | 78 |
 | 15:05 | Motion fingerprint SVG | 97 | 78 |
+| 15:15 | Presentation reset (clarity > bling) | 93 | 78 |

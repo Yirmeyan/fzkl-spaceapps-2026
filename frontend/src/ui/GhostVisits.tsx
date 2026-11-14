@@ -74,7 +74,7 @@ export function GhostVisits({
       </div>
       <div className="ghost-caption">
         <span>{early.label}</span>
-        <span className="ghost-caption-mid">ghost blend</span>
+        <span className="ghost-caption-mid">both visits blended</span>
         <span>{late.label}</span>
       </div>
     </div>

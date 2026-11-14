@@ -40,9 +40,7 @@ import { GhostVisits } from "./ui/GhostVisits";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { MissionBriefing } from "./ui/MissionBriefing";
-import { MotionFingerprint } from "./ui/MotionFingerprint";
-import { MotionStory } from "./ui/MotionStory";
-import { PredictVsObserve } from "./ui/PredictVsObserve";
+import { MotionInsight } from "./ui/MotionInsight";
 import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { type StoryboardCell, VisitStoryboard } from "./ui/VisitStoryboard";
@@ -781,7 +779,7 @@ export default function App() {
         patchView({ mode: "single", playing: false, pass: null });
         // Scroll predict ribbon into view for judges
         window.requestAnimationFrame(() => {
-          document.querySelector(".predict-observe")?.scrollIntoView({
+          document.querySelector(".motion-insight")?.scrollIntoView({
             behavior: "smooth",
             block: "nearest",
           });
@@ -960,6 +958,7 @@ export default function App() {
           <button
             type="button"
             className="ghost"
+            title="Short how-to: play, blink, blend, difference"
             onClick={() => patchView({ showHelp: !view.showHelp })}
           >
             Quick guide
@@ -988,10 +987,19 @@ export default function App() {
                 setBlinkPasses(false);
                 patchView({ targetKey: t.key, mode: "single", pass: null });
               }}
-              disabled={!t.bundleUrl && t.key !== view.targetKey}
+              disabled={!t.bundleUrl && (t.ra == null || t.dec == null)}
+              title={
+                t.bundleUrl
+                  ? t.blurb
+                  : t.ra != null
+                    ? `${t.blurb} Loads from the live SPHEREx API.`
+                    : "Waiting on a sample bundle or coordinates."
+              }
             >
               <span className="target-name">{t.label}</span>
-              <span className="target-blurb">{t.bundleUrl ? t.blurb : "Coming soon"}</span>
+              <span className="target-blurb">
+                {t.bundleUrl ? t.blurb : t.ra != null ? "Live feed available" : "Coming soon"}
+              </span>
             </button>
           ))}
         </div>
@@ -1015,16 +1023,29 @@ export default function App() {
       <nav className="mode-tabs" aria-label="What do you want to do?">
         {(
           [
-            ["watch", "1 · Watch the movie"],
-            ["compare", "2 · Blink visits"],
-            ["difference", "3 · Show the move"],
-            ["more", "More views"],
-          ] as [UiMode, string][]
-        ).map(([id, label]) => (
+            [
+              "watch",
+              "1 · Watch the movie",
+              "Play infrared frames of this star — each frame is a slightly different color",
+            ],
+            [
+              "compare",
+              "2 · Blink visits",
+              "Flip between early and late SPHEREx visits so the star’s hop is obvious",
+            ],
+            [
+              "difference",
+              "3 · Show the move",
+              "Subtract two visits: a bright/dark pair means the star moved",
+            ],
+            ["more", "More views", "Averaged stack, tracking, and technical filters"],
+          ] as [UiMode, string, string][]
+        ).map(([id, label, tip]) => (
           <button
             key={id}
             type="button"
             className={uiMode === id ? "active" : ""}
+            title={tip}
             onClick={() => setUiMode(id)}
           >
             {label}
@@ -1055,7 +1076,7 @@ export default function App() {
             </div>
             <div className="stage-actions">
               <p className="kbd-hint" title="Keyboard shortcuts">
-                J · G · M · S · B · D · F
+                J · G · S · B · D · F
               </p>
               {targetByKey(view.targetKey)?.ra != null && (
                 <button
@@ -1081,7 +1102,12 @@ export default function App() {
                   Live feed
                 </button>
               )}
-              <button type="button" className="primary" onClick={() => void toggleFullscreen()}>
+              <button
+                type="button"
+                className="primary"
+                title="Expand the sky stage to fill the screen (F)"
+                onClick={() => void toggleFullscreen()}
+              >
                 Fullscreen
               </button>
             </div>
@@ -1260,41 +1286,6 @@ export default function App() {
               )}
           </div>
 
-          {load.status === "ready" && storyboard && (
-            <VisitStoryboard
-              size={storyboard.size}
-              lo={storyboard.limits.lo}
-              hi={storyboard.limits.hi}
-              colorMap={view.colorMap}
-              cells={storyboard.cells}
-              trail={trail}
-              activePass={view.pass}
-              onPickPass={(pass) => {
-                setBlinkPasses(false);
-                setGhostVisits(false);
-                setSpotMover(false);
-                setSplitVisits(false);
-                patchView({ mode: "single", pass, frameIndex: 0, playing: false });
-              }}
-            />
-          )}
-
-          {load.status === "ready" && (
-            <>
-              <MotionFingerprint
-                grid={load.data.grid}
-                trail={trail}
-                targetName={load.data.target.name ?? targetName}
-              />
-              <PredictVsObserve
-                target={load.data.target}
-                grid={load.data.grid}
-                frames={load.data.frames}
-              />
-              <MotionStory target={load.data.target} grid={load.data.grid} trail={trail} />
-            </>
-          )}
-
           {display && view.mode === "single" && display.kind === "single" && (
             <>
               <FrameCaption
@@ -1306,6 +1297,7 @@ export default function App() {
                 <button
                   type="button"
                   className="primary play-btn"
+                  title="Step through infrared wavelengths for this visit (Space)"
                   onClick={() => {
                     setBlinkPasses(false);
                     setSplitVisits(false);
@@ -1318,6 +1310,7 @@ export default function App() {
                   type="button"
                   className={ghostVisits ? "active" : ""}
                   disabled={passes.length < 2}
+                  title="Overlay early and late visits so the moving star shimmers (G)"
                   onClick={() => {
                     setBlinkPasses(false);
                     setSplitVisits(false);
@@ -1326,26 +1319,13 @@ export default function App() {
                     patchView({ playing: false, mode: "single" });
                   }}
                 >
-                  Ghost sky
-                </button>
-                <button
-                  type="button"
-                  className={spotMover ? "active" : ""}
-                  disabled={passes.length < 2 || trail.length < 2}
-                  onClick={() => {
-                    setBlinkPasses(false);
-                    setSplitVisits(false);
-                    setGhostVisits(false);
-                    setSpotMover((v) => !v);
-                    patchView({ playing: false, mode: "single" });
-                  }}
-                >
-                  Spot the mover
+                  Blend visits
                 </button>
                 <button
                   type="button"
                   className={splitVisits ? "active" : ""}
                   disabled={passes.length < 2}
+                  title="Show early and late visits next to each other (S)"
                   onClick={() => {
                     setBlinkPasses(false);
                     setGhostVisits(false);
@@ -1366,6 +1346,7 @@ export default function App() {
                   }
                   disabled={filtered.length === 0}
                   aria-label="Scrub through frames"
+                  title="Drag to pick a frame by hand"
                 />
               </div>
             </>
@@ -1396,10 +1377,39 @@ export default function App() {
         </section>
 
         <aside className="rail">
+          {load.status === "ready" && (
+            <MotionInsight
+              target={load.data.target}
+              grid={load.data.grid}
+              frames={load.data.frames}
+              trail={trail}
+              targetName={load.data.target.name ?? targetName}
+            />
+          )}
+
+          {load.status === "ready" && storyboard && (
+            <VisitStoryboard
+              size={storyboard.size}
+              lo={storyboard.limits.lo}
+              hi={storyboard.limits.hi}
+              colorMap={view.colorMap}
+              cells={storyboard.cells}
+              trail={trail}
+              activePass={view.pass}
+              onPickPass={(pass) => {
+                setBlinkPasses(false);
+                setGhostVisits(false);
+                setSpotMover(false);
+                setSplitVisits(false);
+                patchView({ mode: "single", pass, frameIndex: 0, playing: false });
+              }}
+            />
+          )}
+
           <div className="rail-card">
             <h3>Controls for this step</h3>
             <p className="rail-hint">
-              Only the buttons for the selected step are active. Switch steps with the tabs above.
+              Hover any button for a tip. Only the controls for the selected step are active.
             </p>
 
             {uiMode === "watch" && (

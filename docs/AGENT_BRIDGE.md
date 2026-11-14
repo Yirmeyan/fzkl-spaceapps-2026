@@ -37,6 +37,15 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~15:15 ET — From: Nic — Kind: Shipped
+
+**Presentation reset** (Nic human): clarity over mini-challenges.
+
+1. Renamed **Ghost sky → Blend visits** (plain language + hover tips on main buttons).
+2. **Spot the mover** removed from primary transport (key M only).
+3. Motion path / predict / storyboard moved into the **right rail** so the stage scrolls less.
+4. One **What moved** insight block instead of three stacked essays.
+
 ### 2026-11-14 ~15:05 ET — From: Nic — Kind: Shipped
 
 **Motion fingerprint** — animated SVG of the visit trail + hop in arcsec (shareable for judges). On PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/21 (CI green).

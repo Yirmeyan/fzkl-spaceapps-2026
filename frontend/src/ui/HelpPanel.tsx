@@ -21,25 +21,22 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
           Press <strong>Play movie</strong>. You walk through infrared “colors” the eye cannot see.
         </li>
         <li>
-          Press <strong>Blink visits</strong>. The star jumps north between Visit 1 and Visit 3
-          while background stars stay put. That jump is real motion through space.
+          Press <strong>Blink visits</strong>. The star jumps between Visit 1 and Visit 3 while
+          background stars stay put.
         </li>
         <li>
-          Try <strong>Show the move</strong>. A bright/dark pair means “it moved.”
+          Try <strong>Blend visits</strong> — early and late images together so the hop is obvious —
+          or <strong>Show the move</strong> for a bright/dark difference pair.
         </li>
         <li>
-          Use <strong>Fullscreen</strong> when showing others. Numbers live under{" "}
-          <strong>Technical details</strong> if you want them.
-        </li>
-        <li>
-          Keys: <strong>J</strong> auto demo · <strong>G</strong> ghost · <strong>M</strong> spot
-          the mover · <strong>S</strong> side-by-side · <strong>Space</strong> play ·{" "}
-          <strong>B</strong> blink · <strong>D</strong> difference · <strong>F</strong> fullscreen.
-          Or open a <strong>Judge link</strong> (<code>?demo=1</code>).
+          The right panel summarizes how far it moved and whether the catalogue agrees. Hover any
+          button for a short tip.
         </li>
       </ol>
       <p className="help-foot">
-        Data: NASA SPHEREx. Challenge: Planet X and SPHEREx · Space Apps 2026 · team FZKL.
+        Keys: <strong>J</strong> demo · <strong>G</strong> blend visits · <strong>S</strong>{" "}
+        side-by-side · <strong>B</strong> blink · <strong>D</strong> difference · <strong>F</strong>{" "}
+        fullscreen. Data: NASA SPHEREx · Space Apps 2026 · FZKL.
       </p>
     </aside>
   );

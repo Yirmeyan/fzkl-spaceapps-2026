@@ -14,7 +14,7 @@ export function ViewerGuide({ targetName, mode }: ViewerGuideProps) {
           ? "Many frames averaged into one sharper still. Motion is blurred on purpose."
           : mode === "track"
             ? "Frames are aligned on the star so it stays centered while the sky drifts."
-            : "Press Play to step through infrared colors, or Blink visits to see the star jump.";
+            : "Press Play for infrared colors, Blink visits to see the hop, or Blend visits to overlay early and late.";
 
   return (
     <div className="viewer-guide">
