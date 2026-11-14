@@ -49,7 +49,7 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 Dark mission desk is live (large left stage, not the white form squeeze). Spectrum files are on `/samples/` but production still draws charts from frames only until item 2 merges.
 
-**Item 2 in flight:** spectrum-file chart PR from this branch (`*-spectrum.json` in parallel with first bundle, fixed 0.75–5 µm, detector highlight, null flux = no marker).
+**Item 2 PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/31 (`*-spectrum.json` in parallel with first bundle, fixed 0.75–5 µm, detector highlight, null flux = no marker).
 
 ### 2026-11-14 15:32 ET - From: Tommy - Kind: Need
 
