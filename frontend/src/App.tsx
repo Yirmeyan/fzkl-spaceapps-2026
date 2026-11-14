@@ -1093,7 +1093,7 @@ export default function App() {
                   type="button"
                   className="ghost"
                   disabled={load.status === "loading"}
-                  title="Pull fresh frames from the live SPHEREx API"
+                  title="Reload this star from the live NASA SPHEREx service instead of the offline sample"
                   onClick={() => {
                     const ac = new AbortController();
                     void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
@@ -1103,13 +1103,13 @@ export default function App() {
                             ? err.message
                             : err instanceof Error
                               ? err.message
-                              : "Live feed failed";
+                              : "Could not load from SPHEREx";
                         setLoad({ status: "error", message });
                       },
                     );
                   }}
                 >
-                  Live feed
+                  Load from SPHEREx
                 </button>
               )}
               <button
