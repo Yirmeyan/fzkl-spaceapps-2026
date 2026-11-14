@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Spectrum-from-file chart** — `*-spectrum.json` paints before bundles finish (Epsilon 413 pts, 0.75–5 µm, detector highlight). Keep dark NASA desk (no white form squeeze).
+**Any-position live path** — resolve/coords → exposures → frames (det 2) + `/api/spectrum` in parallel; empty/404/503+Retry. `?ra=&dec=` boots custom sky.
 
 ## Backlog (phenomenal)
 

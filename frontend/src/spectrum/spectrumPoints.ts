@@ -1,8 +1,8 @@
-import type { PhotometryQuality } from "../data/contract";
+import type { PhotometryQuality, Target } from "../data/contract";
 import type { DecodedFrame } from "../data/decode";
 
 /**
- * Photometry-only spectrum point (Tommy B4 / upcoming spectrum file + GET /api/spectrum).
+ * Photometry-only spectrum point (Tommy B4 / spectrum file + GET /api/spectrum).
  * Same fields as a frame without pixels.
  */
 export interface SpectrumPoint {
@@ -16,6 +16,11 @@ export interface SpectrumPoint {
   flux_mjy: number | null;
   error_mjy: number | null;
   quality: PhotometryQuality;
+}
+
+export interface SpectrumApiResponse {
+  target: Target;
+  points: SpectrumPoint[];
 }
 
 /** Build spectrum points from loaded frames (fallback when no spectrum file). */

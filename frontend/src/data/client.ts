@@ -1,3 +1,4 @@
+import type { SpectrumPoint } from "../spectrum/spectrumPoints";
 import type {
   ApiErrorBody,
   Bundle,
@@ -99,20 +100,36 @@ export interface ExposuresResponse {
   exposures: Exposure[];
 }
 
-export async function fetchExposures(
-  target: Target,
-  opts: { fov?: number; size?: number } = {},
-  signal?: AbortSignal,
-): Promise<ExposuresResponse> {
+function targetQuery(target: Target): URLSearchParams {
   const q = new URLSearchParams();
   q.set("ra", String(target.ra));
   q.set("dec", String(target.dec));
   if (target.epoch != null) q.set("epoch", String(target.epoch));
   if (target.pm_ra != null) q.set("pm_ra", String(target.pm_ra));
   if (target.pm_dec != null) q.set("pm_dec", String(target.pm_dec));
+  return q;
+}
+
+export async function fetchExposures(
+  target: Target,
+  opts: { fov?: number; size?: number } = {},
+  signal?: AbortSignal,
+): Promise<ExposuresResponse> {
+  const q = targetQuery(target);
   if (opts.fov != null) q.set("fov", String(opts.fov));
   if (opts.size != null) q.set("size", String(opts.size));
   return getJson<ExposuresResponse>(`/api/exposures?${q}`, { signal });
+}
+
+/** GET /api/spectrum — photometry only, no pixels (Tommy Need item 3). */
+export async function fetchSpectrum(
+  target: Target,
+  opts: { detector?: number } = {},
+  signal?: AbortSignal,
+): Promise<{ target: Target; points: SpectrumPoint[] }> {
+  const q = targetQuery(target);
+  if (opts.detector != null) q.set("detector", String(opts.detector));
+  return getJson(`/api/spectrum?${q}`, { signal });
 }
 
 export async function fetchFrame(

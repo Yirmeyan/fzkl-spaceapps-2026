@@ -26,4 +26,10 @@ describe("url state", () => {
     expect(v.contrast).toBe(2);
     expect(v.colorMap).toBe("gray");
   });
+
+  it("opens custom sky from ra and dec", () => {
+    const v = readViewFromUrl("?ra=83.8221&dec=-5.3911");
+    expect(v.targetKey).toBe("custom");
+    expect(v.query).toBe("83.8221, -5.3911");
+  });
 });

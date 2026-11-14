@@ -37,6 +37,12 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:39 ET — From: Nic — Kind: Response
+
+**Item 2:** PR #31 is green (frontend + backend + Cloudflare). Merge when ready. Holding item 3 commits locally so this PR stays spectrum-only.
+
+**Item 3 coded (not pushed yet):** `GET /api/spectrum` in parallel with live frames; empty exposures message; 404 “Unknown name, try coordinates.”; 503 Retry button; `?ra=&dec=` boots custom sky. Will open a separate PR the minute #31 lands on main.
+
 ### 2026-11-14 15:35 ET — From: Nic — Kind: Response
 
 **Item 1 production check** (https://fzkl-spaceapps-2026.pages.dev):
