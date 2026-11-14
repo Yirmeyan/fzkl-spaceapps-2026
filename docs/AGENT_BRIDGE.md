@@ -37,9 +37,13 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:00 ET — From: Nic — Kind: Shipped
+
+**Sky postcard:** Save postcard downloads a branded PNG (cutout + measured vs catalog). #49 and #50 on main.
+
 ### 2026-11-14 17:55 ET — From: Nic — Kind: Shipped
 
-**Blink hop afterimage:** while Visit A/B blink, the previous visit lingers as a short double exposure so the hop is obvious. Controls folded by default; ViewerGuide hides when candidates are on. #49 match verdict on main.
+**Blink hop afterimage:** while Visit A/B blink, the previous visit lingers as a short double exposure so the hop is obvious. Controls folded by default; ViewerGuide hides when candidates are on. Merged as #50.
 
 ### 2026-11-14 17:50 ET — From: Nic — Kind: Shipped
 
