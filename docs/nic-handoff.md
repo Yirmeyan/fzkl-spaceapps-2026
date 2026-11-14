@@ -2,9 +2,11 @@
 
 Written while Nic sleeps (2026-11-14 night → morning). Branch: `feat/frontend-viewer`.
 
+**Pull request:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/8
+
 ## Verdict
 
-Frontend S0 + F1–F7 are implemented against the API contract and the Barnard's Star sample. Lint, typecheck, tests (10), and production build are green locally. Six S1 contract choices: **all accepted**.
+Frontend S0 + F1–F7 are implemented against the API contract and the Barnard's Star sample. Lint, typecheck, tests (10), and production build are green locally. Preview checked in the browser: Barnard's Star visible with crosshair, animation, passes, metadata. Six S1 contract choices: **all accepted**.
 
 ## Decisions taken
 
