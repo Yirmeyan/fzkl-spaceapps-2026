@@ -1,21 +1,18 @@
-import type { Grid, Target } from "../data/contract";
-import type { DecodedFrame } from "../data/decode";
+import type { Grid } from "../data/contract";
 import type { TrailPoint } from "../viewer/overlays";
 import { MotionFingerprint } from "./MotionFingerprint";
-import { PredictVsObserve } from "./PredictVsObserve";
 
 interface MotionInsightProps {
-  target: Target;
   grid: Grid;
-  frames: DecodedFrame[];
   trail: TrailPoint[];
   targetName: string;
 }
 
 /**
- * One presentation block: path + catalogue check — not three stacked essays.
+ * Honest summary: trail beads/cross are catalogue proper motion on the grid.
+ * The proof to trust is the bright core moving in the pixels.
  */
-export function MotionInsight({ target, grid, frames, trail, targetName }: MotionInsightProps) {
+export function MotionInsight({ grid, trail, targetName }: MotionInsightProps) {
   if (trail.length < 2) return null;
 
   const first = trail[0]!;
@@ -31,11 +28,12 @@ export function MotionInsight({ target, grid, frames, trail, targetName }: Motio
           About {hop.toFixed(1)}″ between Visit {first.pass} and Visit {last.pass}
         </h3>
         <p className="motion-insight-body">
-          Background stars barely move; {targetName} does. That hop is real motion through space.
+          The bright core in the image is the real SPHEREx data. The orange cross and numbered path
+          are the catalogue proper-motion track drawn on top — a guide, not a second independent
+          measurement. Watch {targetName} hop; background stars stay put.
         </p>
       </header>
       <MotionFingerprint grid={grid} trail={trail} targetName={targetName} />
-      <PredictVsObserve target={target} grid={grid} frames={frames} />
     </div>
   );
 }

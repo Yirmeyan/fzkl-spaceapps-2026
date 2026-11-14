@@ -771,23 +771,16 @@ export default function App() {
           diffPassA: passes[0] ?? 1,
           diffPassB: passes[passes.length - 1] ?? 3,
         });
-      } else if (beat.phase === "predict") {
+      } else if (beat.phase === "done") {
         setBlinkPasses(false);
         setGhostVisits(false);
-        setSpotMover(false);
-        setSplitVisits(false);
-        patchView({ mode: "single", playing: false, pass: null });
-        // Scroll predict ribbon into view for judges
+        patchView({ playing: false, mode: "single" });
         window.requestAnimationFrame(() => {
           document.querySelector(".motion-insight")?.scrollIntoView({
             behavior: "smooth",
             block: "nearest",
           });
         });
-      } else if (beat.phase === "done") {
-        setBlinkPasses(false);
-        setGhostVisits(false);
-        patchView({ playing: false, mode: "single" });
       }
       i += 1;
       demoTimer.current = window.setTimeout(step, beat.ms);
@@ -1398,9 +1391,7 @@ export default function App() {
         <aside className="rail">
           {load.status === "ready" && (
             <MotionInsight
-              target={load.data.target}
               grid={load.data.grid}
-              frames={load.data.frames}
               trail={trail}
               targetName={load.data.target.name ?? targetName}
             />
