@@ -7,31 +7,34 @@ Real SPHEREx data in the format of the [API contract](../docs/api-contract.md). 
 | File | Content |
 | --- | --- |
 | `index.json` | The list of the bundles: targets, detectors, frames, wavelengths and sizes. The browser reads it first |
-| `barnard-star-d1.json` to `barnard-star-d6.json` | Barnard's Star, one [bundle](../docs/api-contract.md#the-bundle) per detector |
+| `<key>-d1.json` to `<key>-d6.json` | One [bundle](../docs/api-contract.md#the-bundle) per target and per detector: 30 files |
 | `check-sample.ts` | The script that checks a bundle, or the index and every file it lists |
 
-The four other test targets (Epsilon Indi B, WISE 0855, RW Aurigae, R Draconis) get their files once the flux values are final, at step B4. Until then the site asks the service for them.
+The view of every target is 0.1 degree on 128 × 128 pixels, north up, east left. The six detectors of a target share it.
 
-## Barnard's Star
+## The five targets
 
-364 frames from August 15, 2025 to September 22, 2026, in 3 passes. The view is 0.1 degree on 128 × 128 pixels, north up, east left, and the six detectors share it.
+They are the test targets of the challenge. Detectors 1 to 6 cover 0.74 to 5.0 micrometers.
 
-| Detector | Wavelengths | Frames | Size | Compressed in transit |
-| --- | --- | --- | --- | --- |
-| 1 | 0.74 to 1.11 micrometers | 60 | 4.0 MB | 1.9 MB |
-| 2 | 1.09 to 1.66 micrometers | 62 | 4.1 MB | 1.9 MB |
-| 3 | 1.62 to 2.42 micrometers | 61 | 4.0 MB | 1.9 MB |
-| 4 | 2.42 to 3.80 micrometers | 59 | 3.9 MB | 1.8 MB |
-| 5 | 3.80 to 4.43 micrometers | 62 | 4.1 MB | 1.9 MB |
-| 6 | 4.40 to 5.00 micrometers | 60 | 4.0 MB | 1.8 MB |
+| Target | Key | Frames | Dates | Passes | Frames with a flux | Size, compressed in transit |
+| --- | --- | --- | --- | --- | --- | --- |
+| Barnard's Star | `barnard-star` | 364 | August 2025 to September 2026 | 3 | 101 | 24 MB, 11 MB |
+| Epsilon Indi B | `epsilon-indi-b` | 467 | April 2025 to October 2026 | 4 | 413 | 31 MB, 14 MB |
+| WISE 0855 | `wise-0855` | 258 | May 2025 to May 2026 | 3 | 228 | 17 MB, 8 MB |
+| RW Aurigae | `rw-aurigae` | 336 | September 2025 to September 2026 | 3 | 300 | 22 MB, 10 MB |
+| R Draconis | `r-draconis` | 548 | May 2025 to July 2026 | 3 | 2 | 36 MB, 17 MB |
 
-What to expect when you draw it:
+A file of one detector weighs 2.4 to 6.5 MB, 1 to 3 MB in transit.
 
-- Barnard's Star is the bright object at the center. It climbs toward the north by about 2 pixels from one pass to the next: in detector 2, `target_xy` goes from y = 65.4 to 63.4, then to 61.8. The other stars do not move.
-- The heart of the star is saturated in the six detectors. Its pixels are NaN and carry the `OVERFLOW` bit in the mask: draw them at the top of the color scale, or the star shows a hole.
-- `photometry.quality` is therefore `saturated` in 357 frames. It is `outside` in 6 frames, where the star falls off the edge of the detector, and `masked` in 1. No frame holds a flux value: the star is too bright for SPHEREx.
-- The background goes from 0.17 to 1.95 MJy/sr depending on the frame and the wavelength. Subtract `background` before comparing frames.
-- A few frames are partly empty (`valid_fraction` down to 0.31): the edge of the detector crosses the view. In two frames of detector 3, every pixel that has a value also carries a flag, so their `background` is `null`.
+What to expect when you draw them:
+
+- **Barnard's Star** moves fast. It climbs toward the north by about 2 pixels from one pass to the next: `target_xy` goes from y = 65.4 to 63.4, then to 61.8. The other stars do not move. Its heart is saturated: the pixels are NaN and carry the `OVERFLOW` bit, so draw them at the top of the color scale, or the star shows a hole. It only has a flux in detectors 5 and 6, `flagged`, steady within 1 percent from one pass to the next.
+- **Epsilon Indi B** is a pair of brown dwarfs that drifts by 0.6 pixel in x and 0.4 in y per pass. It is faint enough to be measured cleanly, and its spectrum is the most telling of the five: bright near 1.3, 1.6, 2.1 and 4.0 micrometers, up to 60 mJy, with deep bands in between where the water and the methane of its atmosphere absorb the light.
+- **WISE 0855** is the coldest and the fastest: 1.5 pixel per pass toward the west. No single frame shows it. It is only bright enough near 4.5 to 5 micrometers, in detector 6, about 0.5 mJy for a noise of 0.24 per frame: stack the frames of a pass to see it. Below 4 micrometers, the flux in its circle is that of a faint star of the background, not of the object.
+- **RW Aurigae** is a young variable star that does not move, and its light changes between passes. From 4.4 to 5 micrometers its flux drops from 3.2 to 2.1, then to 1.5 Jy, while it rises from 0.16 to 0.24 Jy below 1.1 micrometer. Its pixels near saturation, so most of its points are `flagged`: their value is good to about 5 percent.
+- **R Draconis** is a variable giant, far too bright for SPHEREx: its heart is saturated in every detector and `quality` is `saturated` in 532 frames of 548. What changes between its passes shows in the images, not in a flux.
+- The background changes with the frame and the wavelength. Subtract `background` before comparing frames.
+- Some frames are partly empty: the edge of the detector crosses the view. In a few of them every pixel that has a value also carries a flag, and `background` is `null`.
 
 ## Checking the files
 
@@ -52,10 +55,10 @@ The script decodes every frame with the functions printed in the contract, so it
 The bundles are made by the code of the service, so a frame of a bundle is the frame the service returns. From `backend/`:
 
 ```
-uv run python -m spherex_explorer.precompute --output ../samples --target barnard-star
+uv run python -m spherex_explorer.precompute --output ../samples
 ```
 
-Leave `--target` out to build every target. The command looks the target up by name, lists its exposures, reads the public SPHEREx files and writes one bundle per detector, then updates `index.json`. Barnard's Star takes about 20 seconds.
+Add `--target barnard-star` to build one target only. The command looks each target up by name, lists its exposures, reads the public SPHEREx files and writes one bundle per detector, then updates `index.json`. The five targets take about two minutes: 1,973 frames.
 
 ## Credits
 
