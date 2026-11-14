@@ -1,0 +1,25 @@
+---
+description: Nic frontend — phenomenal wow every loop; polish allowed as support
+alwaysApply: true
+---
+
+# Frontend mission (Nic) — reference-or-nothing
+
+Goal: the site judges wish NASA had shipped. 14k teams. Fall-on-the-floor wow.
+
+## Every loop MUST
+
+1. Invent **one phenomenal, outside-the-box idea** (would impress a strong critic, not just “nice UI”).
+2. Write it in `docs/win-progress.md` before coding (“This loop’s wow: …”).
+3. Ship that idea end-to-end.
+4. Cosmetic polish is **allowed** (and encouraged) **only as support** for the wow — never as the whole loop.
+
+## Bar for “phenomenal”
+
+Ask: if Claude / a NASA judge saw this for 10 seconds, would they **stop scrolling**?
+- New perception of motion, cinematic mission experience, discovery mechanic, shareable moment, immersive stage…
+- Not: another settings row, another synonym for “Play”.
+
+## Attitude
+
+Break conventions. Prefer bold product bets over safe dashboards. Under-estimate % in `win-progress.md`.

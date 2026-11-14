@@ -21,8 +21,8 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
           Press <strong>Play movie</strong>. You walk through infrared “colors” the eye cannot see.
         </li>
         <li>
-          Press <strong>Blink visits</strong>. The star jumps north between Visit 1 and Visit 3 while
-          background stars stay put. That jump is real motion through space.
+          Press <strong>Blink visits</strong>. The star jumps north between Visit 1 and Visit 3
+          while background stars stay put. That jump is real motion through space.
         </li>
         <li>
           Try <strong>Show the move</strong>. A bright/dark pair means “it moved.”
@@ -32,9 +32,9 @@ export function HelpPanel({ open, onClose }: HelpPanelProps) {
           <strong>Technical details</strong> if you want them.
         </li>
         <li>
-          Keys: <strong>J</strong> auto demo · <strong>S</strong> side-by-side ·{" "}
-          <strong>Space</strong> play · <strong>B</strong> blink · <strong>D</strong> difference ·{" "}
-          <strong>F</strong> fullscreen · <strong>?</strong> help.
+          Keys: <strong>J</strong> auto demo · <strong>G</strong> ghost sky · <strong>S</strong>{" "}
+          side-by-side · <strong>Space</strong> play · <strong>B</strong> blink · <strong>D</strong>{" "}
+          difference · <strong>F</strong> fullscreen.
         </li>
       </ol>
       <p className="help-foot">

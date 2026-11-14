@@ -1,84 +1,45 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~13:30 America/Toronto.
-Audience: **non-technical people** (not “schools only”). Friendly UX for anyone.
+Last recalibration: 2026-11-14 ~14:15 America/Toronto.
 
-## Stop rule for the agent loop
+## Mission
 
-Stop the local loop **only when all of these are true** (prefer under-estimate):
+Become the **reference public SPHEREx motion site** — jury should feel NASA-grade wow, not “nice student dashboard”.
+Auto model OK. **Every loop = one phenomenal idea** (+ polish allowed as support).
 
-1. **Nic unblocked lane ≥ 90%**
-2. **Team win / top-tier ≥ 90%** (needs Tommy data path + submission-ready story — do not claim 90% team while B2–B6 / live sky / P1 are missing)
-3. Or the human says **stop**
+## Stop rule
 
-If team win is still &lt; 90% because Tommy is blocked: **keep looping** on Nic polish + bridge watch, but do **not** fake team % upward. When Tommy marks B2/B3/… on `docs/AGENT_BRIDGE.md`, the next loop **must** pull `main`/bridge, wire what became available, and add progress rows for that integration.
+Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-estimate always. Read bridge every loop.
 
-## How to read %
-
-| Lane | Meaning |
-| --- | --- |
-| Nic unblocked | Sample UI, demo, docs Nic can finish alone |
-| Team win / top-tier | Literally ship-to-NASA / competitive win bar |
+## Lanes
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **74%** | +Auto demo, side-by-side visits, motion story arcsec readout; A5 still open |
-| Team win / top-tier | **42%** | Differentiator UX helps judges; data path still Tommy-gated |
+| Unblocked Nic lane | **87%** | Live frames wired + PR #17; still needs merge + polish |
+| Team win / top-tier | **58%** | B3 consumed in UI; B4–B6 + merge still open |
 
-## Checklist
+## This loop’s wow
 
-### A. Product story
+**Live SPHEREx feed** — stage button + progressive frames from Cloud Run; LIVE/SAMPLE pill; WISE 0855 via API.
 
-| ID | Item | Status |
+## Backlog (phenomenal)
+
+| Pri | Idea | Status |
 | --- | --- | --- |
-| A1 | 30s path: Barnard → Blink → Difference → Fullscreen | **Auto demo button (J)** |
-| A2 | English, non-technical copy (not school-only) | Done this loop |
-| A3 | Mode tabs hide irrelevant controls | Done |
-| A4 | Tech metadata behind disclosure | Done (“Technical details”) |
-| A5 | Latest UI on `main` / production | **Not done** |
-| A6 | Demo script / slide outline | Drafted `docs/demo-script.md` |
-
-### B. Frontend quality
-
-| ID | Item | Status |
-| --- | --- | --- |
-| B1–B4 | F1–F7 core, diff fix, trail, fullscreen | Done |
-| B5 | Mobile | Improved |
-| B6 | Keyboard shortcuts | Done |
-| B7 | Empty/error states | Partial |
-| B8 | CI green locally | Done |
-| B9 | a11y | Partial |
-
-### C. Backend-dependent (watch the bridge each loop)
-
-| ID | Item | Status |
-| --- | --- | --- |
-| C1 | B1 exposures | Done on main |
-| C2 | B2–B5 frames + resolve | Blocked — **re-check bridge every loop** |
-| C3 | B6 other bundles | Blocked — same |
-| C4 | `VITE_API_BASE` / CORS | Blocked |
-| C5 | Real flux spectrum | Blocked |
-
-### D. Submission
-
-| ID | Item | Status |
-| --- | --- | --- |
-| D1 | Space Apps page (human) | Open |
-| D2–D3 | Sources / AI disclosure | Partial |
-| D4 | P1 demo script | Draft started |
+| P0 | Ghost overlay visits | **Shipping** |
+| P0b | Mission briefing / immersive first paint | **Shipping** |
+| P1 | A5 — ship to main/prod | **PR #17 open** |
+| P2 | Predict-vs-observe PM ribbon | Todo |
+| P3 | Spot-the-mover challenge | Todo |
+| P4 | Tommy live frames the hour they land | **Wired (Live feed)** |
 
 ## Work log
 
-| Time | Loop | Action | Nic % | Team % | Recalibration |
-| --- | ---: | --- | ---: | ---: | --- |
-| 13:15 | 0 | Tracker created | 62 | 38 | Cut fake “90% F checklist” |
-| 13:30 | 1 | Keys, mobile, demo script, non-school copy; re-armed stop@90 both lanes | 68 | 40 | Team still honestly low |
-| 13:35 | 1b | Auto demo + side-by-side + motion arcsec story (judge differentiator) | 74 | 42 | Still not “pretty gradient”; A5/PR + Tommy remain |
-
-## Loop instructions (for ticks)
-
-1. `git fetch` + read `docs/AGENT_BRIDGE.md` + this file.
-2. If Tommy shipped B2/B3/… → integrate, test, update C-rows and **team %**.
-3. Else advance highest-value Nic item (A5 PR first).
-4. Update this file; **under-estimate**.
-5. If Nic≥90 **and** Team≥90 → kill loop PID. Else continue.
+| Time | Wow shipped | Nic | Team |
+| --- | --- | ---: | ---: |
+| 13:35 | Auto demo + side-by-side + motion story | 74 | 42 |
+| 13:48 | Law: game-breaking only | 74 | 42 |
+| 13:50 | Law upgraded: phenomenal wow + polish OK | 76 | 43 |
+| 13:52 | Ghost sky + mission briefing | 78 | 44 |
+| 14:05 | Merge main (B3) + open PR #17 | 84 | 52 |
+| 14:15 | Live feed + LIVE pill (B3 UI) | 87 | 58 |

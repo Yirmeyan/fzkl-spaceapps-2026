@@ -35,8 +35,10 @@ import { Charts } from "./spectrum/Charts";
 import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
 import { FrameCaption } from "./ui/FrameCaption";
+import { GhostVisits } from "./ui/GhostVisits";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
+import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionStory } from "./ui/MotionStory";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { FrameCanvas } from "./viewer/FrameCanvas";
@@ -71,7 +73,7 @@ type LoadState =
   | { status: "idle" }
   | { status: "loading"; message: string; loaded?: number; total?: number }
   | { status: "error"; message: string }
-  | { status: "ready"; data: DecodedBundle };
+  | { status: "ready"; data: DecodedBundle; source: "sample" | "live" };
 
 function parseCoordinateQuery(raw: string): Target | null {
   const trimmed = raw.trim();
@@ -96,11 +98,31 @@ export default function App() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [displayPx, setDisplayPx] = useState(560);
   const [splitVisits, setSplitVisits] = useState(false);
+  const [ghostVisits, setGhostVisits] = useState(false);
   const [demoPhase, setDemoPhase] = useState<DemoPhase>("idle");
   const [demoLine, setDemoLine] = useState("");
+  const [showBriefing, setShowBriefing] = useState(() => {
+    try {
+      return sessionStorage.getItem("spx-briefing-done") !== "1";
+    } catch {
+      return true;
+    }
+  });
   const stageRef = useRef<HTMLElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const demoTimer = useRef<number | null>(null);
+
+  function dismissBriefing(startDemo: boolean) {
+    try {
+      sessionStorage.setItem("spx-briefing-done", "1");
+    } catch {
+      /* ignore */
+    }
+    setShowBriefing(false);
+    if (startDemo) {
+      window.setTimeout(() => runAutoDemo(), 200);
+    }
+  }
 
   const patchView = useCallback((partial: Partial<ViewState>) => {
     setView((prev) => {
@@ -129,46 +151,15 @@ export default function App() {
     return () => ro.disconnect();
   }, []);
 
-  const loadKnownTarget = useCallback(
-    async (key: string, signal: AbortSignal) => {
-      const known = targetByKey(key);
-      if (!known) {
-        setLoad({ status: "error", message: `Unknown target “${key}”.` });
-        return;
-      }
-      if (!known.bundleUrl) {
-        setLoad({
-          status: "error",
-          message: `${known.label} is not ready yet. Try Barnard's Star — it works offline from the sample.`,
-        });
-        return;
-      }
-      setLoad({ status: "loading", message: `Loading ${known.label}…` });
-      const bundle = await fetchBundle(known.bundleUrl, signal);
-      if (signal.aborted) return;
-      const data = decodeBundle(bundle);
-      setLoad({ status: "ready", data });
-      patchView({
-        targetKey: key,
-        frameIndex: 0,
-        pass: null,
-        detector: null,
-        query: known.label,
-      });
-      setSearchInput(known.label);
-    },
-    [patchView],
-  );
-
   const loadFromService = useCallback(
-    async (target: Target, signal: AbortSignal) => {
-      setLoad({ status: "loading", message: "Looking up this patch of sky…" });
+    async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
+      setLoad({ status: "loading", message: "Live SPHEREx — listing exposures…" });
       const { target: t, grid, exposures } = await fetchExposures(target, {}, signal);
       if (signal.aborted) return;
       if (exposures.length === 0) {
         setLoad({
           status: "error",
-          message: "SPHEREx has no images here yet. Try Barnard's Star.",
+          message: "SPHEREx has no images here yet. Try Barnard's Star sample.",
         });
         return;
       }
@@ -183,7 +174,7 @@ export default function App() {
       let loaded = 0;
       setLoad({
         status: "loading",
-        message: `Loading images…`,
+        message: `Live SPHEREx — pulling frames…`,
         loaded: 0,
         total: queue.length,
       });
@@ -210,6 +201,7 @@ export default function App() {
               setLoad({
                 status: "ready",
                 data: decodeBundle(partial),
+                source: "live",
               });
             });
           }
@@ -219,7 +211,7 @@ export default function App() {
                   ...prev,
                   loaded,
                   total: queue.length,
-                  message: `Loading images… ${loaded}/${queue.length}`,
+                  message: `Live SPHEREx — ${loaded}/${queue.length} frames`,
                 }
               : prev,
           );
@@ -236,10 +228,81 @@ export default function App() {
         exposures: queue,
         frames: frames.filter(Boolean) as Frame[],
       };
-      setLoad({ status: "ready", data: decodeBundle(finalBundle) });
-      patchView({ targetKey: "custom", frameIndex: 0, query: t.name ?? `${t.ra}, ${t.dec}` });
+      setLoad({ status: "ready", data: decodeBundle(finalBundle), source: "live" });
+      patchView({
+        targetKey,
+        frameIndex: 0,
+        pass: null,
+        detector: null,
+        query: t.name ?? `${t.ra}, ${t.dec}`,
+      });
+      setSearchInput(t.name ?? `${t.ra}, ${t.dec}`);
     },
     [patchView],
+  );
+
+  const loadKnownTarget = useCallback(
+    async (key: string, signal: AbortSignal, preferLive = false) => {
+      const known = targetByKey(key);
+      if (!known) {
+        setLoad({ status: "error", message: `Unknown target “${key}”.` });
+        return;
+      }
+      const canLive = known.ra != null && known.dec != null;
+      if (preferLive && canLive) {
+        setLoad({ status: "loading", message: `Live SPHEREx feed for ${known.label}…` });
+        await loadFromService(
+          {
+            name: known.label,
+            ra: known.ra!,
+            dec: known.dec!,
+            epoch: 2000,
+            pm_ra: known.pm_ra ?? null,
+            pm_dec: known.pm_dec ?? null,
+          },
+          signal,
+          key,
+        );
+        return;
+      }
+      if (!known.bundleUrl) {
+        if (canLive) {
+          setLoad({ status: "loading", message: `Live SPHEREx feed for ${known.label}…` });
+          await loadFromService(
+            {
+              name: known.label,
+              ra: known.ra!,
+              dec: known.dec!,
+              epoch: 2000,
+              pm_ra: known.pm_ra ?? null,
+              pm_dec: known.pm_dec ?? null,
+            },
+            signal,
+            key,
+          );
+          return;
+        }
+        setLoad({
+          status: "error",
+          message: `${known.label} needs a bundle or coordinates. Try Barnard's Star or Live feed.`,
+        });
+        return;
+      }
+      setLoad({ status: "loading", message: `Loading ${known.label}…` });
+      const bundle = await fetchBundle(known.bundleUrl, signal);
+      if (signal.aborted) return;
+      const data = decodeBundle(bundle);
+      setLoad({ status: "ready", data, source: "sample" });
+      patchView({
+        targetKey: key,
+        frameIndex: 0,
+        pass: null,
+        detector: null,
+        query: known.label,
+      });
+      setSearchInput(known.label);
+    },
+    [patchView, loadFromService],
   );
 
   useEffect(() => {
@@ -504,14 +567,31 @@ export default function App() {
       if (e.key === "s" || e.key === "S") {
         e.preventDefault();
         setBlinkPasses(false);
+        setGhostVisits(false);
         setSplitVisits((v) => !v);
+        patchView({ playing: false, mode: "single" });
+      }
+      if (e.key === "g" || e.key === "G") {
+        e.preventDefault();
+        setBlinkPasses(false);
+        setSplitVisits(false);
+        setGhostVisits((v) => !v);
         patchView({ playing: false, mode: "single" });
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.playing, view.mode, view.showHelp, blinkPasses, passes, patchView, demoPhase, splitVisits]);
+  }, [
+    view.playing,
+    view.mode,
+    view.showHelp,
+    blinkPasses,
+    passes,
+    patchView,
+    demoPhase,
+    splitVisits,
+  ]);
 
   async function toggleFullscreen() {
     const el = stageRef.current;
@@ -587,8 +667,9 @@ export default function App() {
     step();
   }
 
-  const splitStacks = useMemo(() => {
-    if (load.status !== "ready" || !splitVisits || passes.length < 2) return null;
+  const visitStacks = useMemo(() => {
+    if (load.status !== "ready" || passes.length < 2) return null;
+    if (!splitVisits && !ghostVisits) return null;
     const a = passes[0]!;
     const b = passes[passes.length - 1]!;
     const pool = forDifference;
@@ -612,7 +693,10 @@ export default function App() {
       view.contrast,
     );
     return { a, b, stackA, stackB, limits, size: load.data.grid.size };
-  }, [load, splitVisits, passes, forDifference, view.contrast]);
+  }, [load, splitVisits, ghostVisits, passes, forDifference, view.contrast]);
+
+  const splitStacks = splitVisits ? visitStacks : null;
+  const ghostStacks = ghostVisits ? visitStacks : null;
 
   async function onSearch(e: FormEvent) {
     e.preventDefault();
@@ -623,7 +707,7 @@ export default function App() {
       const known = KNOWN_TARGETS.find(
         (t) => t.label.toLowerCase() === raw.toLowerCase() || t.key === raw.toLowerCase(),
       );
-      if (known?.bundleUrl) {
+      if (known && (known.bundleUrl || (known.ra != null && known.dec != null))) {
         patchView({ targetKey: known.key, query: known.label });
         await loadKnownTarget(known.key, ac.signal);
         return;
@@ -671,6 +755,14 @@ export default function App() {
     <div className="app">
       <div className="sky-wash" aria-hidden="true" />
 
+      {showBriefing && load.status === "ready" && (
+        <MissionBriefing
+          targetName={targetName}
+          onEnter={() => dismissBriefing(true)}
+          onSkip={() => dismissBriefing(false)}
+        />
+      )}
+
       <header className="top">
         <div className="brand-block">
           <p className="eyebrow">NASA Space Apps 2026 · FZKL</p>
@@ -691,7 +783,11 @@ export default function App() {
           >
             Auto demo (30s)
           </button>
-          <button type="button" className="ghost" onClick={() => patchView({ showHelp: !view.showHelp })}>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => patchView({ showHelp: !view.showHelp })}
+          >
             Quick guide
           </button>
         </div>
@@ -764,13 +860,51 @@ export default function App() {
         <section className="stage" ref={stageRef}>
           <div className="stage-bar">
             <div>
-              <p className="stage-kicker">Now viewing</p>
+              <p className="stage-kicker">
+                Now viewing
+                {load.status === "ready" && (
+                  <span
+                    className={`source-pill ${load.source === "live" ? "live" : "sample"}`}
+                    title={
+                      load.source === "live"
+                        ? "Frames from live Cloud Run SPHEREx API"
+                        : "Offline sample bundle"
+                    }
+                  >
+                    {load.source === "live" ? "LIVE" : "SAMPLE"}
+                  </span>
+                )}
+              </p>
               <h2 className="stage-title">{targetName}</h2>
             </div>
             <div className="stage-actions">
               <p className="kbd-hint" title="Keyboard shortcuts">
-                Space · B · D · F · ?
+                J · G · S · B · D · F
               </p>
+              {targetByKey(view.targetKey)?.ra != null && (
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={load.status === "loading"}
+                  title="Pull fresh frames from the live SPHEREx API"
+                  onClick={() => {
+                    const ac = new AbortController();
+                    void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
+                      (err) => {
+                        const message =
+                          err instanceof ApiError
+                            ? err.message
+                            : err instanceof Error
+                              ? err.message
+                              : "Live feed failed";
+                        setLoad({ status: "error", message });
+                      },
+                    );
+                  }}
+                >
+                  Live feed
+                </button>
+              )}
               <button type="button" className="primary" onClick={() => void toggleFullscreen()}>
                 Fullscreen
               </button>
@@ -788,7 +922,28 @@ export default function App() {
             )}
             {load.status === "error" && <div className="status-banner error">{load.message}</div>}
 
-            {splitStacks && (
+            {ghostStacks && (
+              <GhostVisits
+                size={ghostStacks.size}
+                lo={ghostStacks.limits.lo}
+                hi={ghostStacks.limits.hi}
+                colorMap={view.colorMap}
+                displayPx={displayPx}
+                early={{
+                  pixels: ghostStacks.stackA.pixels,
+                  mask: ghostStacks.stackA.mask,
+                  label: `Visit ${ghostStacks.a}`,
+                }}
+                late={{
+                  pixels: ghostStacks.stackB.pixels,
+                  mask: ghostStacks.stackB.mask,
+                  label: `Visit ${ghostStacks.b}`,
+                }}
+                trail={trail}
+              />
+            )}
+
+            {splitStacks && !ghostStacks && (
               <div className="split-visits">
                 <figure>
                   <FrameCanvas
@@ -821,44 +976,50 @@ export default function App() {
               </div>
             )}
 
-            {!splitStacks && display && view.mode === "single" && display.kind === "single" && (
-              <SkyPlayer
-                frames={filtered}
-                frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                playing={view.playing}
-                fps={view.fps}
-                lo={display.lo}
-                hi={display.hi}
-                size={display.size}
-                colorMap={view.colorMap}
-                displayPx={displayPx}
-                trail={trail}
-                onFrameIndexChange={onPlayerFrame}
-              />
-            )}
-
-            {!splitStacks && display && view.mode === "difference" && display.kind === "difference" && (
-              <>
-                {"error" in display && display.error ? (
-                  <div className="status-banner error">{display.error}</div>
-                ) : (
-                  <FrameCanvas
-                    pixels={display.pixels!}
-                    mask={display.mask!}
-                    size={display.size}
-                    lo={display.lo!}
-                    hi={display.hi!}
-                    background={0}
-                    colorMap={view.colorMap}
-                    targetXy={display.targetXy}
-                    trail={trail}
-                    displayPx={displayPx}
-                  />
-                )}
-              </>
-            )}
+            {!splitStacks &&
+              !ghostStacks &&
+              display &&
+              view.mode === "single" &&
+              display.kind === "single" && (
+                <SkyPlayer
+                  frames={filtered}
+                  frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                  playing={view.playing}
+                  fps={view.fps}
+                  lo={display.lo}
+                  hi={display.hi}
+                  size={display.size}
+                  colorMap={view.colorMap}
+                  displayPx={displayPx}
+                  trail={trail}
+                  onFrameIndexChange={onPlayerFrame}
+                />
+              )}
 
             {!splitStacks &&
+              !ghostStacks &&
+              display &&
+              view.mode === "difference" &&
+              display.kind === "difference" &&
+              ("error" in display && display.error ? (
+                <div className="status-banner error">{display.error}</div>
+              ) : (
+                <FrameCanvas
+                  pixels={display.pixels!}
+                  mask={display.mask!}
+                  size={display.size}
+                  lo={display.lo!}
+                  hi={display.hi!}
+                  background={0}
+                  colorMap={view.colorMap}
+                  targetXy={display.targetXy}
+                  trail={trail}
+                  displayPx={displayPx}
+                />
+              ))}
+
+            {!splitStacks &&
+              !ghostStacks &&
               display &&
               (view.mode === "stack" || view.mode === "track") &&
               display.kind === "compose" && (
@@ -902,15 +1063,29 @@ export default function App() {
                 </button>
                 <button
                   type="button"
+                  className={ghostVisits ? "active" : ""}
+                  disabled={passes.length < 2}
+                  onClick={() => {
+                    setBlinkPasses(false);
+                    setSplitVisits(false);
+                    setGhostVisits((v) => !v);
+                    patchView({ playing: false, mode: "single" });
+                  }}
+                >
+                  Ghost sky
+                </button>
+                <button
+                  type="button"
                   className={splitVisits ? "active" : ""}
                   disabled={passes.length < 2}
                   onClick={() => {
                     setBlinkPasses(false);
+                    setGhostVisits(false);
                     setSplitVisits((v) => !v);
                     patchView({ playing: false, mode: "single" });
                   }}
                 >
-                  Side-by-side visits
+                  Side-by-side
                 </button>
                 <input
                   type="range"
@@ -927,12 +1102,14 @@ export default function App() {
             </>
           )}
 
-          {view.mode === "difference" && display?.kind === "difference" && !("error" in display && display.error) && (
-            <p className="mode-note">
-              Visit {view.diffPassA} minus visit {view.diffPassB}. A bright/dark pair near the
-              center means the star moved.
-            </p>
-          )}
+          {view.mode === "difference" &&
+            display?.kind === "difference" &&
+            !("error" in display && display.error) && (
+              <p className="mode-note">
+                Visit {view.diffPassA} minus visit {view.diffPassB}. A bright/dark pair near the
+                center means the star moved.
+              </p>
+            )}
 
           <ViewerGuide targetName={targetName} mode={guideMode} />
 
@@ -1014,7 +1191,8 @@ export default function App() {
             {uiMode === "compare" && (
               <div className="control-block">
                 <p className="lead">
-                  Blinking Visit {blinkA ?? 1} ↔ Visit {blinkB ?? 3}. Watch the bright star hop north.
+                  Blinking Visit {blinkA ?? 1} ↔ Visit {blinkB ?? 3}. Watch the bright star hop
+                  north.
                 </p>
                 <button
                   type="button"
@@ -1188,9 +1366,7 @@ export default function App() {
                 target={load.data.target}
                 grid={load.data.grid}
                 frame={display.meta}
-                filteredCount={
-                  view.mode === "difference" ? forDifference.length : filtered.length
-                }
+                filteredCount={view.mode === "difference" ? forDifference.length : filtered.length}
                 mode={view.mode}
               />
             ) : (

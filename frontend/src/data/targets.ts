@@ -7,9 +7,12 @@ export interface KnownTarget {
   blurb: string;
   /** Static bundle URL when precomputed (B6). null = service only / not ready */
   bundleUrl: string | null;
-  /** Optional fixed coordinates for search form defaults */
+  /** Optional fixed coordinates for search form defaults / live feed */
   ra?: number;
   dec?: number;
+  /** Proper motion (mas/yr) when known — improves live frame alignment */
+  pm_ra?: number;
+  pm_dec?: number;
 }
 
 export const KNOWN_TARGETS: KnownTarget[] = [
@@ -20,6 +23,8 @@ export const KNOWN_TARGETS: KnownTarget[] = [
     bundleUrl: `${import.meta.env.BASE_URL}samples/barnard-star-d2.json`,
     ra: 269.452077,
     dec: 4.693365,
+    pm_ra: -801.551,
+    pm_dec: 10362.394,
   },
   {
     key: "epsindi",

@@ -486,12 +486,170 @@ select {
   color: #93a4b8;
 }
 
+.ghost-visits {
+  position: relative;
+  margin: 0.5rem auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.ghost-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ghost-early {
+  position: relative;
+  z-index: 1;
+}
+
+.ghost-late {
+  z-index: 2;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.ghost-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: linear-gradient(transparent, rgba(5, 8, 14, 0.85));
+  font-size: 0.75rem;
+  color: #e8eef6;
+}
+
+.ghost-caption-mid {
+  color: #fdba74;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+}
+
+.mission-briefing {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.mission-briefing-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 30%, rgba(15, 118, 110, 0.35), transparent 55%),
+    rgba(7, 11, 18, 0.88);
+}
+
+.mission-briefing-card {
+  position: relative;
+  width: min(36rem, 100%);
+  padding: 2rem 1.75rem;
+  border-radius: 22px;
+  background: #0f1724;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  color: #e8eef6;
+  animation: rise 700ms ease both;
+}
+
+.mission-eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #93a4b8;
+}
+
+.mission-title {
+  margin: 0 0 1rem;
+  font-family: Fraunces, Georgia, serif;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.mission-lead {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: #d7e0ec;
+}
+
+.mission-lead.dim {
+  color: #93a4b8;
+}
+
+.mission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.35rem;
+}
+
+.mission-cta {
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+}
+
+.mission-briefing .ghost {
+  color: #e8eef6;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
 .stage-kicker {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   font-size: 0.72rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #93a4b8;
+}
+
+.source-pill {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.source-pill.live {
+  color: #04120a;
+  background: linear-gradient(120deg, #5dffb0, #2ecf7a);
+  box-shadow: 0 0 12px rgba(46, 207, 122, 0.35);
+  animation: live-pulse 2.4s ease-in-out infinite;
+}
+
+.source-pill.sample {
+  color: #c8d4e4;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(46, 207, 122, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(46, 207, 122, 0.55);
+  }
 }
 
 .stage-title {
@@ -508,8 +666,7 @@ select {
   align-items: center;
   min-height: 280px;
   background:
-    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.04), transparent 55%),
-    #05080e;
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.04), transparent 55%), #05080e;
   border-radius: 14px;
   overflow: hidden;
 }
@@ -614,7 +771,20 @@ select {
 
 .swatch.cross {
   background: #fdba74;
-  clip-path: polygon(40% 0, 60% 0, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0 60%, 0 40%, 40% 40%);
+  clip-path: polygon(
+    40% 0,
+    60% 0,
+    60% 40%,
+    100% 40%,
+    100% 60%,
+    60% 60%,
+    60% 100%,
+    40% 100%,
+    40% 60%,
+    0 60%,
+    0 40%,
+    40% 40%
+  );
   border-radius: 0;
 }
 
@@ -751,15 +921,15 @@ select {
   content: " −";
 }
 
-.details .meta {
-  margin-top: 0.85rem;
-}
-
 .meta {
   margin: 0;
   display: grid;
   gap: 0.45rem;
   font-size: 0.86rem;
+}
+
+.details .meta {
+  margin-top: 0.85rem;
 }
 
 .meta > div {
