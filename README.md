@@ -16,7 +16,9 @@ cd frontend && npm install && npm run dev
 cd backend && uv sync && uv run python -m uvicorn spherex_explorer.api.app:create_app --factory --reload
 ```
 
-Plan: [`docs/architecture.md`](docs/architecture.md). Contract: [`docs/api-contract.md`](docs/api-contract.md). Challenge text: [`docs/challenge.md`](docs/challenge.md). Nic wake-up notes: [`docs/nic-handoff.md`](docs/nic-handoff.md).
+**Agents (Nic + Tommy):** read [`AGENTS.md`](AGENTS.md) and the live board [`docs/AGENT_BRIDGE.md`](docs/AGENT_BRIDGE.md) before working.
+
+Plan: [`docs/architecture.md`](docs/architecture.md). Contract: [`docs/api-contract.md`](docs/api-contract.md). Challenge text: [`docs/challenge.md`](docs/challenge.md). Nic wake-up notes: [`docs/nic-handoff.md`](docs/nic-handoff.md). Win tracker: [`docs/win-progress.md`](docs/win-progress.md).
 
 ## AI usage
 

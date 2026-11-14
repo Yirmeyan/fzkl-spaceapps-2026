@@ -1,0 +1,17 @@
+---
+description: Read Nic↔Tommy bridge; stay independent; human overrides bridge
+alwaysApply: true
+---
+
+# Agent bridge (mandatory)
+
+Every session:
+
+1. **Read** `docs/AGENT_BRIDGE.md` (including the independence charter).
+2. Notice open **Need** / **Response** from the other owner.
+3. **Human first:** if the user’s request conflicts with the bridge, follow the user, then update the bridge.
+4. **Do not merge into one AI.** Nic and Tommy agents stay independent (different goals/philosophy). Bridge needs are requests, not orders — improve or reject weak ideas; never rubber-stamp the other side’s incomplete sketch.
+5. When you finish meaningful work, **update** the bridge briefly (shipped + needs). Keep it short.
+6. Ownership: Nic = `frontend/`, Tommy = `backend/`. Shared contract changes need a visible PR.
+
+Also skim `AGENTS.md` at the repo root.
