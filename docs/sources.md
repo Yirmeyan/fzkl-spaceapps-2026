@@ -7,6 +7,7 @@ Every external resource this project uses, with its license. A pull request that
 | Source | Use in this repository | Terms and credit |
 | --- | --- | --- |
 | [SPHEREx spectral images](https://irsa.ipac.caltech.edu/Missions/spherex.html), level 2, releases DR1 and QR3, from the NASA/IPAC Infrared Science Archive (IRSA) | Pixels, flags and wavelengths of `samples/barnard-star-d2.json`, read from the public bucket `nasa-irsa-spherex` | [IRSA data use terms](https://irsa.ipac.caltech.edu/data_use_terms.html). Acknowledgements requested by [SPHEREx](https://irsa.ipac.caltech.edu/data/SPHEREx/docs/overview_qr.html) and by [IRSA](https://irsa.ipac.caltech.edu/ack.html) |
+| [IRSA Simple Image Access service](https://irsa.ipac.caltech.edu/ibe/sia.html) (SIA version 2), collections `spherex_dr1` and `spherex_qr3` | Called by `GET /api/exposures` to list the exposures of a position. One recorded answer, the index entries of Barnard's Star, is kept in `backend/tests/data/` for the tests | Same IRSA terms and acknowledgements as the images |
 | [SIMBAD](https://simbad.cds.unistra.fr/simbad/), through the [CDS Sesame](https://cds.unistra.fr/cgi-bin/nph-sesame) name resolver | Position and proper motion of Barnard's Star in the sample | Credit: SIMBAD database, CDS, Strasbourg, France |
 | 2MASS Point Source Catalog, queried at IRSA | One-time check of the orientation of the sample. No 2MASS data is stored in the repository | Same IRSA terms |
 
@@ -23,7 +24,7 @@ Versions are locked in `backend/uv.lock`, which also lists the transitive depend
 | [FastAPI](https://github.com/fastapi/fastapi) | HTTP framework | MIT |
 | [pydantic-settings](https://github.com/pydantic/pydantic-settings) | Settings read from environment variables | MIT |
 | [Uvicorn](https://uvicorn.dev/) | ASGI server | BSD-3-Clause |
-| [httpx2](https://github.com/pydantic/httpx2) | HTTP client used by the tests | BSD-3-Clause |
+| [httpx2](https://github.com/pydantic/httpx2) | HTTP client: calls to the archive, and the tests | BSD-3-Clause |
 | [pytest](https://docs.pytest.org/en/latest/) | Tests | MIT |
 | [Ruff](https://docs.astral.sh/ruff) | Lint and format | MIT |
 | [Hatchling](https://github.com/pypa/hatch) | Build backend | MIT |

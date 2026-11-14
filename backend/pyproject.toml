@@ -7,13 +7,13 @@ requires-python = ">=3.12,<3.13"
 license = "AGPL-3.0-only"
 dependencies = [
     "fastapi>=0.115",
+    "httpx2>=2.16",
     "pydantic-settings>=2.6",
     "uvicorn>=0.32",
 ]
 
 [dependency-groups]
 dev = [
-    "httpx2",
     "pytest>=8.3",
     "ruff>=0.8",
 ]
@@ -27,7 +27,8 @@ packages = ["src/spherex_explorer"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+# Tests that call S3 or IRSA are left out unless asked for: python -m pytest -m network
+addopts = "-ra --strict-markers -m 'not network'"
 markers = [
     "network: tests that call S3 or IRSA, run on demand only",
 ]
