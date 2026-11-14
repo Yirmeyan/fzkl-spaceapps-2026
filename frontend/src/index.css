@@ -1002,15 +1002,39 @@ select {
 }
 
 .stage-measure {
+  --wave-hue: 190;
+  position: relative;
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 280px;
   background:
+    radial-gradient(circle at 50% 42%, hsla(var(--wave-hue), 85%, 55%, 0.18), transparent 52%),
     radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.04), transparent 55%), #05080e;
   border-radius: 14px;
   overflow: hidden;
+  transition: background 0.45s ease;
+  box-shadow: inset 0 0 60px hsla(var(--wave-hue), 80%, 45%, 0.12);
+}
+
+.wave-aurora-chip {
+  position: absolute;
+  top: 0.65rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  margin: 0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e8eef6;
+  background: hsla(var(--wave-hue), 70%, 35%, 0.55);
+  border: 1px solid hsla(var(--wave-hue), 80%, 70%, 0.35);
+  pointer-events: none;
+  backdrop-filter: blur(4px);
 }
 
 .stage canvas {

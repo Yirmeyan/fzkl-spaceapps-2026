@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   type FormEvent,
   startTransition,
   useCallback,
@@ -70,6 +71,12 @@ function uiModeFromView(mode: ComposeMode, blink: boolean): UiMode {
   if (mode === "difference") return "difference";
   if (mode === "stack" || mode === "track") return "more";
   return "watch";
+}
+
+/** Map SPHEREx λ (µm) → CSS hue for the stage “infrared aurora”. */
+function wavelengthHue(um: number): number {
+  const t = Math.min(1, Math.max(0, (um - 0.75) / (5.0 - 0.75)));
+  return Math.round(210 - t * 200); // blue → amber → rose across the SPHEREx band
 }
 
 type LoadState =
@@ -966,7 +973,9 @@ export default function App() {
       <section className="picker" aria-label="Choose a star">
         <div className="picker-head">
           <h2>Pick a star</h2>
-          <p>Start with Barnard's Star — it moves the fastest of any nearby star.</p>
+          <p>
+            Start with Barnard's Star — or type any name; live resolve now finds the sky position.
+          </p>
         </div>
         <div className="target-row">
           {KNOWN_TARGETS.map((t) => (
@@ -993,7 +1002,7 @@ export default function App() {
             id="sky-query"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Or type a name / sky coordinates"
+            placeholder="Name (live resolve) or RA, Dec"
             autoComplete="off"
           />
           <button type="submit" className="primary">
@@ -1077,7 +1086,27 @@ export default function App() {
             </div>
           </div>
 
-          <div className="stage-measure" ref={measureRef}>
+          <div
+            className="stage-measure"
+            ref={measureRef}
+            style={
+              display?.meta?.frame.wavelength_um != null
+                ? ({
+                    "--wave-hue": String(wavelengthHue(display.meta.frame.wavelength_um)),
+                  } as CSSProperties)
+                : undefined
+            }
+            data-wave={
+              display?.meta?.frame.wavelength_um != null
+                ? display.meta.frame.wavelength_um.toFixed(2)
+                : undefined
+            }
+          >
+            {display?.meta?.frame.wavelength_um != null && (
+              <p className="wave-aurora-chip" aria-live="polite">
+                Infrared color · {display.meta.frame.wavelength_um.toFixed(2)} µm
+              </p>
+            )}
             {load.status === "loading" && (
               <div className="status-banner">
                 {load.message}

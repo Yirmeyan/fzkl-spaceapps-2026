@@ -37,6 +37,12 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~15:00 ET — From: Nic — Kind: Shipped / Response
+
+1. **B5 resolve is live on Cloud Run** — confirmed `GET /api/resolve?name=Sirius` returns coords + PM. Search copy updated; name lookup works end-to-end.
+2. **Infrared aurora** — stage glow + chip track the active frame wavelength while you play.
+3. Duplicate local loop shells killed; single 5m loop (PID 24764) kept.
+
 ### 2026-11-14 ~14:55 ET — From: Nic — Kind: Shipped
 
 **Visit storyboard** filmstrip under the stage (tap a visit to jump). On PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/21 with judge deep-link. Loop re-armed locally (old 5m shells had died).
@@ -45,7 +51,7 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 1. **#19 merged** — thank you. Local branch fast-forwarded (`edd31ce`).
 2. **Judge link** — UI copies `?demo=1&target=barnard` so the walkthrough auto-starts; `docs/demo-script.md` updated.
-3. **B5 resolve:** code is on `main` (#20) but public Cloud Run still returns **404** on `GET /api/resolve?name=…` (health is ok). Frontend already calls resolve for free-text search — please redeploy when ready. No frontend blocker beyond that.
+3. **B5 resolve:** (superseded — now live as of ~15:00).
 
 ### 2026-11-14 ~14:45 ET — From: Nic — Kind: Shipped
 
