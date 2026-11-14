@@ -12,7 +12,7 @@ Priorities, in the order we protect them: speed, correct handling of SPHEREx spe
 
 - **Browser (TypeScript, React).** Display, animation, contrast, stacking, difference, spectrum. Everything interactive reacts without a round trip to the server.
 - **Python service (FastAPI).** It finds the exposures, reads only the pixels it needs, aligns them on a common north-up grid and measures the flux.
-- **Pixel source.** The full SPHEREx files in the public Amazon S3 bucket, read by byte ranges. The IRSA cutout service is the fallback.
+- **Pixel source.** The full SPHEREx files in the public Amazon S3 bucket, read by byte ranges. A fallback on the IRSA cutout service was planned and then dropped: see [Risks and fallbacks](#risks-and-fallbacks).
 - **Unit of data: the frame.** One aligned exposure with its date, its wavelength and its flux measurement. The spectrum and catalog overlays build on it without restructuring.
 - **Five precomputed targets.** The test targets of the challenge are served as static files, so they load at once even when the service is asleep.
 
@@ -38,7 +38,6 @@ flowchart LR
   end
   sia["IRSA: SIA exposure search"]
   s3[("Amazon S3: public SPHEREx files")]
-  cutout["IRSA: cutouts"]
   sesame["CDS Sesame: name to position"]
   static --> data
   data <-->|HTTP| api
@@ -49,11 +48,10 @@ flowchart LR
   pipeline --> targets
   archive --> sia
   archive ==>|main path| s3
-  archive -.->|fallback| cutout
   targets --> sesame
 ```
 
-The browser talks only to the service and to the static site. Pixels always come from S3, except when the service falls back to IRSA cutouts.
+The browser talks only to the service and to the static site. Pixels always come from S3.
 
 The path of one view, for an arbitrary position:
 
@@ -240,7 +238,7 @@ The MVP has 17 steps. Each one is a short branch, a pull request and a validatio
 | B4 | Yirmeyan | Photometry: aperture flux and uncertainty | Spectrum of an unsaturated star of the field, with no jump from one detector to the next |
 | B5 | Yirmeyan | `resolve` and proper motion propagation | "Barnard's Star" gives the 2026 position, within 0.3 pixel of the measured star |
 | B6 | Yirmeyan | Script that precomputes the five targets | Five files in the contract format, each displayed by the browser |
-| B7 | Yirmeyan | Robustness: IRSA fallback, retries, rate limit, clear error messages | With S3 cut on purpose, the service still answers |
+| B7 | Yirmeyan | Robustness: retries, exposure lists remembered and reused when the archive fails, clear error messages | With the exposure search cut on purpose, a position already asked still answers |
 | F1 | Nicolas | Viewer: frames of the sample, asinh stretch, common limits | Barnard's Star visible, same contrast from one image to the next |
 | F2 | Nicolas | Animation, selection by pass and by band | Barnard's Star jumps by about 2 pixels of the grid, 1 SPHEREx pixel, between two passes |
 | F3 | Nicolas | Entry by coordinates or by name, progressive loading, waiting and error states | WISE 0855 loaded from its coordinates |
@@ -282,8 +280,8 @@ The main risk is the archive itself during the weekend. The plan depends on it f
 
 | Risk | Fallback |
 | --- | --- |
-| IRSA slows down or refuses the exposure search | Spaced retries, cached lists, lists of the five targets shipped in the static files |
-| S3 becomes unreachable or its layout changes | IRSA cutouts truncated at 92 kB: 0.5 to 0.7 s per exposure, measured |
+| IRSA slows down or refuses the exposure search | Spaced retries. The service remembers each list for an hour, and gives a list up to a day old when the archive does not answer. The lists of the five targets are shipped in the static files |
+| S3 becomes unreachable or its layout changes | Not covered by a second source. Decision of November 14: that day S3 answered every one of several thousand reads, while IRSA failed in three ways (bursts of HTTP 502 on the exposure search, cutouts answering 503, catalog queries left unanswered). A fallback on IRSA cutouts would lean on the less reliable of the two. Reads are retried, a file whose layout is not the expected one is refused with an error, and the five targets stay served by the static site |
 | The flags are compressed row by row, and reading them partially turns out harder than planned | Mask taken from empty pixels, and rejection of outliers from one exposure to the next |
 | The service sleeps or fails during the judging, which spans several weeks | The five targets stay served by the static site. A clear message explains the wait for the rest |
 | WISE 0855 stays invisible even when stacked | Say so honestly in the tool. Barnard's Star and Epsilon Indi B carry the motion demonstration |

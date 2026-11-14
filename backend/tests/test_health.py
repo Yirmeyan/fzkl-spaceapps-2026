@@ -61,3 +61,15 @@ def test_other_origin_gets_no_cors_header():
     response = client.get("/api/health", headers={"Origin": "https://other.example"})
 
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_address_of_the_service_says_what_answers_there():
+    response = make_client().get("/")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "service": "SPHEREx explorer",
+        "version": __version__,
+        "documentation": "/api/docs",
+        "status": "/api/health",
+    }

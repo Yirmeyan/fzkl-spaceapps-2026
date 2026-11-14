@@ -10,6 +10,7 @@ import logging
 import math
 import time
 import xml.etree.ElementTree as ET
+from collections import OrderedDict
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 
@@ -31,6 +32,18 @@ _SHORTEST_ATTEMPT_S = 1.0
 _CLIENT_RETRY_AFTER_S = 10
 _REQUIRED_COLUMNS = ("cloud_access", "t_min", "t_max")
 _COLLECTION_PREFIX = "spherex_"
+# Two positions closer than a hundred-thousandth of a degree get the same list.
+_POSITIONS_PER_DEGREE = 1e5
+# When an older list can stand in, the archive is not waited for as long.
+_REFRESH_BUDGET_S = 8.0
+
+
+@dataclass(frozen=True, slots=True)
+class _Remembered:
+    """A list the archive gave, and when."""
+
+    exposures: tuple[Exposure, ...]
+    at: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,6 +159,9 @@ class SiaArchive:
         budget_s: float,
         attempts: int,
         max_exposures: int,
+        fresh_s: float = 3600.0,
+        stale_s: float = 86400.0,
+        remembered: int = 256,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
@@ -158,6 +174,10 @@ class SiaArchive:
         self._budget_s = budget_s
         self._attempts = attempts
         self._max_exposures = max_exposures
+        self._fresh_s = fresh_s
+        self._stale_s = stale_s
+        self._remembered = remembered
+        self._answers: OrderedDict[tuple[int, int], _Remembered] = OrderedDict()
         self._sleep = sleep
         self._clock = clock
         # The same exposure can be published in two data releases: the first one listed wins.
@@ -166,8 +186,41 @@ class SiaArchive:
         }
 
     async def find_exposures(self, ra: float, dec: float) -> list[Exposure]:
-        """Exposures whose footprint lies within the search radius of the position."""
-        payload = await self._fetch(ra, dec)
+        """Exposures whose footprint lies within the search radius of the position.
+
+        A list is reused as it is while it is fresh: new exposures are published every
+        week, not every hour. When the archive does not answer, an older list is better
+        than none, so the last one known for the position is given instead.
+        """
+        key = (round(ra * _POSITIONS_PER_DEGREE), round(dec * _POSITIONS_PER_DEGREE))
+        known = self._answers.get(key)
+        age = None if known is None else self._clock() - known.at
+        if known is not None and age < self._fresh_s:
+            self._answers.move_to_end(key)
+            return list(known.exposures)
+        can_stand_in = known is not None and age < self._stale_s
+        try:
+            budget = min(self._budget_s, _REFRESH_BUDGET_S) if can_stand_in else self._budget_s
+            exposures = await self._search(ra, dec, budget)
+        except UpstreamUnavailable as exc:
+            if not can_stand_in:
+                raise
+            logger.warning(
+                "%s. The list of %.5f %.5f known for %d minutes is given instead",
+                exc,
+                ra,
+                dec,
+                age // 60,
+            )
+            return list(known.exposures)
+        self._answers[key] = _Remembered(tuple(exposures), self._clock())
+        self._answers.move_to_end(key)
+        while len(self._answers) > self._remembered:
+            self._answers.popitem(last=False)
+        return exposures
+
+    async def _search(self, ra: float, dec: float, budget_s: float) -> list[Exposure]:
+        payload = await self._fetch(ra, dec, budget_s)
         result = parse_sia_response(payload, bucket=self._bucket)
         if result.truncated:
             logger.warning(
@@ -178,7 +231,7 @@ class SiaArchive:
             )
         return self._without_duplicates(result.exposures)
 
-    async def _fetch(self, ra: float, dec: float) -> bytes:
+    async def _fetch(self, ra: float, dec: float, budget_s: float) -> bytes:
         """Ask the service, again if it is busy, within the time budget of one request.
 
         The archive usually answers in two seconds and sometimes in twenty, so a long
@@ -193,7 +246,7 @@ class SiaArchive:
         started = self._clock()
         reason = "no time left to ask"
         for attempt in range(1, self._attempts + 1):
-            remaining = self._budget_s - (self._clock() - started)
+            remaining = budget_s - (self._clock() - started)
             if remaining < _SHORTEST_ATTEMPT_S:
                 break
             pause = min(_MAX_PAUSE_S, float(attempt))

@@ -75,6 +75,8 @@ def create_app(
                     budget_s=settings.archive_budget_s,
                     attempts=settings.archive_attempts,
                     max_exposures=settings.max_exposures,
+                    fresh_s=settings.search_fresh_s,
+                    stale_s=settings.search_stale_s,
                 )
             if app.state.frames is None:
                 app.state.frames = Level2Reader(
@@ -123,6 +125,17 @@ def create_app(
         GZipMiddleware, minimum_size=_COMPRESS_FROM_BYTES, compresslevel=_COMPRESSION_LEVEL
     )
     register_error_handlers(app)
+
+    @app.get("/", include_in_schema=False)
+    async def welcome() -> dict[str, str]:
+        """What answers here, for someone who opens the address of the service in a browser."""
+        return {
+            "service": "SPHEREx explorer",
+            "version": __version__,
+            "documentation": "/api/docs",
+            "status": "/api/health",
+        }
+
     app.include_router(health_router, prefix="/api")
     app.include_router(exposures_router, prefix="/api")
     app.include_router(frames_router, prefix="/api")

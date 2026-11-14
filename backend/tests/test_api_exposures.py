@@ -176,3 +176,19 @@ def test_route_fails_cleanly_when_the_application_was_not_started():
 
     assert response.status_code == 500
     assert response.json()["error"]["code"] == "internal_error"
+
+
+@pytest.mark.parametrize(
+    ("params", "message"),
+    [
+        ({}, "ra is required; dec is required"),
+        ({"ra": 400, "dec": 4}, "ra should be less than 360"),
+        ({"ra": "abc", "dec": 4}, "ra should be a valid number"),
+        ({"ra": 10, "dec": 4, "size": 1000}, "size should be less than or equal to 256"),
+    ],
+)
+def test_reason_of_a_refusal_names_the_parameter_in_plain_words(params, message):
+    response = make_client(FakeArchive([])).get("/api/exposures", params=params)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["message"] == message

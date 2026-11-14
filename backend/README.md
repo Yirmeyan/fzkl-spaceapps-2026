@@ -72,6 +72,8 @@ Every setting is an environment variable that starts with `SPX_`. Copy `.env.exa
 | `SPX_ARCHIVE_BUDGET_S` | `45` | Longest time one request spends on the archive, all searches and attempts together. Keep it below the request timeout of the host, 60 seconds on Cloud Run |
 | `SPX_ARCHIVE_ATTEMPTS` | `6` | Attempts before the service answers 503. The pauses between them grow from 1 to 3 seconds, about 12 seconds in all |
 | `SPX_MAX_EXPOSURES` | `5000` | Most exposures asked from the archive for one position |
+| `SPX_SEARCH_FRESH_S` | `3600` | Seconds a list of exposures is reused without asking the archive again |
+| `SPX_SEARCH_STALE_S` | `86400` | Seconds a list can still stand in when the archive does not answer |
 | `SPX_STORAGE_TIMEOUT_S` | `10` | Longest wait for one read of a part of a file, in seconds |
 | `SPX_STORAGE_ATTEMPTS` | `3` | Attempts for one read before the service answers 503 |
 | `SPX_STORAGE_CONCURRENCY` | `32` | Most reads in flight at once, all requests together |
