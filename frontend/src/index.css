@@ -214,6 +214,33 @@ select {
   height: auto;
 }
 
+.frame-caption {
+  width: 100%;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.55rem 0.75rem;
+}
+
+.frame-caption-now {
+  margin: 0 0 0.2rem;
+}
+
+.frame-caption-span {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+}
+
+.mode-note {
+  width: 100%;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
 .viewer-guide {
   width: 100%;
   font-size: 0.88rem;

@@ -35,7 +35,16 @@ export function ViewerGuide({ targetName, pass }: ViewerGuideProps) {
         </li>
         <li>
           Tip: mode <strong>Difference</strong> with passes 1 − 3 makes movers light up even more
-          clearly.
+          clearly. A red field there means “almost nothing changed” (residual ≈ 0), not a different
+          sky color.
+        </li>
+        <li>
+          <strong>All λ</strong> plays every wavelength. <strong>Match this λ</strong> keeps only
+          frames near the current wavelength so blinking is fairer.
+        </li>
+        <li>
+          A <strong>pass</strong> is one SPHEREx visit (~days). Pass 1, 2, 3 are three visits months
+          apart — each can be its own mini-video (click Pass 1 then Play, etc.).
         </li>
       </ul>
     </div>

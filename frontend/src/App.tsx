@@ -25,6 +25,7 @@ import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/deco
 import { KNOWN_TARGETS, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
 import { readViewFromUrl, type ViewState, writeViewToUrl } from "./state/url";
+import { FrameCaption } from "./ui/FrameCaption";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { ViewerGuide } from "./ui/ViewerGuide";
@@ -413,9 +414,10 @@ export default function App() {
                 colorMap={view.colorMap}
                 onFrameIndexChange={onPlayerFrame}
               />
-              <ViewerGuide
-                targetName={load.status === "ready" ? load.data.target.name : undefined}
-                pass={view.pass}
+              <FrameCaption
+                frames={filtered}
+                frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                playing={view.playing}
               />
               <div className="transport">
                 <button type="button" onClick={() => patchView({ playing: !view.playing })}>
@@ -443,19 +445,32 @@ export default function App() {
                   />
                 </label>
               </div>
+              <ViewerGuide
+                targetName={load.status === "ready" ? load.data.target.name : undefined}
+                pass={view.pass}
+              />
             </>
           )}
           {display && view.mode !== "single" && (
-            <FrameCanvas
-              pixels={display.pixels}
-              mask={display.mask}
-              size={display.size}
-              lo={display.lo}
-              hi={display.hi}
-              background={display.background}
-              colorMap={view.colorMap}
-              targetXy={display.targetXy}
-            />
+            <>
+              <FrameCanvas
+                pixels={display.pixels}
+                mask={display.mask}
+                size={display.size}
+                lo={display.lo}
+                hi={display.hi}
+                background={display.background}
+                colorMap={view.colorMap}
+                targetXy={display.targetXy}
+              />
+              {view.mode === "difference" && (
+                <p className="mode-note">
+                  Difference = mean(pass {view.diffPassA}) − mean(pass {view.diffPassB}). Red / dark
+                  ≈ little change; bright blobs ≈ what moved or changed brightness. Pick passes A
+                  and B in the sidebar (not “All”).
+                </p>
+              )}
+            </>
           )}
         </section>
 

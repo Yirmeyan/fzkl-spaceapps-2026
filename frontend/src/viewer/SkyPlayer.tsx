@@ -100,8 +100,7 @@ export function SkyPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, frameIndex, cacheKey]);
 
-  // Playback: setInterval only (no rAF). Do not notify React every tick —
-  // that re-rendered the whole page and kept the GPU busy.
+  // Playback: setInterval only (no rAF). Notify React so the date caption updates.
   useEffect(() => {
     if (!playing || frames.length < 2) return;
 
@@ -109,6 +108,7 @@ export function SkyPlayer({
       const next = (indexRef.current + 1) % frames.length;
       indexRef.current = next;
       blit(next);
+      onChangeRef.current?.(next);
     }, 1000 / Math.max(1, fps));
 
     return () => {
