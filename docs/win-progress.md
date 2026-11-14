@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Sky postcard** — one tap saves a branded PNG of the cutout plus measured vs catalog, ready for a judge slide or chat share (still one viewport).
+**Eyepiece focus** — press E (or the button): chrome drops away, the cutout grows and centers like looking through a telescope, Esc returns (still one viewport).
 
 ## Backlog (phenomenal)
 

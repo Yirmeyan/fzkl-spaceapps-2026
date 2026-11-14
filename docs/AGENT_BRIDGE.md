@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:05 ET — From: Nic — Kind: Shipped
+
+**Eyepiece focus (E):** hide picker/rail/footer; grow the cutout; Esc leaves. Compact centered desk preference. #51 postcard on main.
+
 ### 2026-11-14 18:00 ET — From: Nic — Kind: Shipped
 
 **Sky postcard:** Save postcard downloads a branded PNG (cutout + measured vs catalog). #49 and #50 on main.

@@ -2698,3 +2698,58 @@ select {
   color: #93a4b8;
   text-align: center;
 }
+
+/* Eyepiece: chrome off, sky centered and large (human compact desk preference). */
+.app--eyepiece .picker,
+.app--eyepiece .mode-tabs,
+.app--eyepiece .rail,
+.app--eyepiece .foot,
+.app--eyepiece .tagline,
+.app--eyepiece .auto-demo-banner,
+.app--eyepiece .viewer-guide,
+.app--eyepiece .hop-proof-wrap,
+.app--eyepiece .detector-dial,
+.app--eyepiece .visit-storyboard,
+.app--eyepiece .frame-caption {
+  display: none;
+}
+
+.app--eyepiece .workspace,
+.app--eyepiece .workspace--fit {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.app--eyepiece .stage {
+  width: min(100%, 52rem);
+  margin-inline: auto;
+}
+
+.app--eyepiece .top {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.app--eyepiece .brand {
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: 0.08em;
+}
+
+.app--eyepiece .sky-wash {
+  opacity: 0.55;
+  height: 100%;
+}
+
+.app--eyepiece .stage-measure.is-square {
+  box-shadow:
+    inset 0 0 80px hsla(var(--wave-hue), 80%, 45%, 0.18),
+    0 0 0 1px rgba(253, 186, 116, 0.2);
+}
+
+.app--eyepiece-hint {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #93a4b8;
+}
