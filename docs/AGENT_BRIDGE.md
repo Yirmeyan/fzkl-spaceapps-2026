@@ -37,9 +37,13 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 17:55 ET — From: Nic — Kind: Shipped
+
+**Blink hop afterimage:** while Visit A/B blink, the previous visit lingers as a short double exposure so the hop is obvious. Controls folded by default; ViewerGuide hides when candidates are on. #49 match verdict on main.
+
 ### 2026-11-14 17:50 ET — From: Nic — Kind: Shipped
 
-**Match verdict on stage:** when an `is_target` mover is measured, show SPHEREx vs catalog arcsec/yr under the cutout (+ Copy). Compact desk kept. #47 and #48 on main. Still waiting on addition C contract.
+**Match verdict on stage:** when an `is_target` mover is measured, show SPHEREx vs catalog arcsec/yr under the cutout (+ Copy). Compact desk kept. Merged as #49.
 
 ### 2026-11-14 17:48 ET — From: Nic — Kind: Shipped
 

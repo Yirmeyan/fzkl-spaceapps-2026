@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Measured vs catalog verdict on the sky** — when the service finds the target, a one-line stamp under the cutout compares SPHEREx rate to the catalog, with Copy for a judge screenshot (still one viewport).
+**Blink hop afterimage** — while visits blink, the previous visit lingers as a double exposure so the star hop is undeniable in one glance (still one viewport; Controls folded by default).
 
 ## Backlog (phenomenal)
 
