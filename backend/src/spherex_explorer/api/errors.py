@@ -7,7 +7,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from spherex_explorer.errors import UpstreamUnavailable
+from spherex_explorer.archive import InvalidExposure
+from spherex_explorer.errors import NotFound, UpstreamUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,24 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(status_code=422, content=_body("invalid_request", _describe(exc)))
+
+    @app.exception_handler(InvalidExposure)
+    async def invalid_exposure(request: Request, exc: InvalidExposure) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content=_body(
+                "invalid_request",
+                "The identifier of the exposure does not have the expected shape.",
+            ),
+        )
+
+    @app.exception_handler(NotFound)
+    async def not_found(request: Request, exc: NotFound) -> JSONResponse:
+        # The name of the file stays in the logs: the client only knows identifiers.
+        logger.info("%s on %s %s", exc, request.method, request.url.path)
+        return JSONResponse(
+            status_code=404, content=_body("not_found", "The archive has no such exposure.")
+        )
 
     @app.exception_handler(UpstreamUnavailable)
     async def upstream_unavailable(request: Request, exc: UpstreamUnavailable) -> JSONResponse:

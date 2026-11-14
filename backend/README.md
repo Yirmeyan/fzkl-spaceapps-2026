@@ -27,6 +27,12 @@ Once started, the service answers on http://127.0.0.1:8000/api/health, and its i
 curl "http://127.0.0.1:8000/api/exposures?ra=269.452077&dec=4.693365&pm_ra=-801.551&pm_dec=10362.394"
 ```
 
+And one of them as a frame, on the grid that call returned:
+
+```
+curl --compressed "http://127.0.0.1:8000/api/frames/dr1.2025W34_2B_0090_4D2.l2b-v27-2026-229?ra=269.452077&dec=4.693365&pm_ra=-801.551&pm_dec=10362.394&grid_ra=269.44623&grid_dec=4.768703"
+```
+
 The plain test command leaves out the tests marked `network`, which call IRSA and the file storage. Run them on demand: they depend on the archive being up, so they are not part of the checks.
 
 ## Checks

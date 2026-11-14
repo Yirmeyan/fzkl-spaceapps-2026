@@ -89,6 +89,8 @@ class Layout:
     row_offsets: np.ndarray
     blocksize: int
     bytes_per_pixel: int
+    # Name and mask of each kind of flag, as the header of FLAGS defines them.
+    flag_planes: dict[str, int]
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -176,6 +178,20 @@ def _expect_flags(header: fits.Header, width: int, height: int) -> tuple[str, in
         raise UpstreamError(f"{name} does not hold 32-bit masks")
     blocksize = _compression_setting(header, "BLOCKSIZE", default=32)
     return _DESCRIPTORS[form.group(1)], blocksize, bytes_per_pixel
+
+
+def _flag_planes(header: fits.Header) -> dict[str, int]:
+    """Kinds of flags a file defines: the name in MSKNnnnn, the mask in MSKMnnnn."""
+    planes: dict[str, int] = {}
+    for keyword in header:
+        if not (keyword.startswith("MSKN") and keyword[4:].isdigit()):
+            continue
+        name = header.get(keyword)
+        mask = header.get("MSKM" + keyword[4:])
+        usable = isinstance(name, str) and isinstance(mask, int) and not isinstance(mask, bool)
+        if usable and 0 < mask <= 0xFFFFFFFF:
+            planes[name.strip()] = mask
+    return planes
 
 
 def parse_wavelength_table(raw: bytes) -> WavelengthTable:
@@ -335,6 +351,7 @@ class Level2Reader:
             row_offsets=pairs[:, 1],
             blocksize=blocksize,
             bytes_per_pixel=bytes_per_pixel,
+            flag_planes=_flag_planes(flags),
         )
 
     async def _band(
