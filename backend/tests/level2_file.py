@@ -186,7 +186,9 @@ class FakeStorage:
 
     def _file(self, key: str) -> bytes:
         if key not in self.files:
-            raise NotFound(f"no file {key!r} in the archive")
+            raise NotFound(
+                f"no file {key!r} in the archive", public="The archive has no such exposure."
+            )
         return self.files[key]
 
     async def read(self, key: str, start: int, length: int) -> bytes:

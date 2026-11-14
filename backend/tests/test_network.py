@@ -14,7 +14,7 @@ from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive, Window,
 from spherex_explorer.config import Settings
 from spherex_explorer.frames import Grid
 from spherex_explorer.pipeline import build_frame, list_exposures
-from spherex_explorer.targets import Target
+from spherex_explorer.targets import SesameResolver, Target
 
 pytestmark = pytest.mark.network
 
@@ -146,3 +146,21 @@ def test_frame_of_a_real_exposure_is_the_one_of_the_sample_of_the_contract(sampl
     relative = np.abs(frame.image - image)[both] / np.maximum(np.abs(image[both]), 1e-6)
     assert np.median(relative) < 0.002
     assert np.percentile(relative, 99) < 0.03
+
+
+def test_barnards_star_is_resolved_to_the_target_of_the_sample():
+    settings = Settings(_env_file=None)
+
+    async def run():
+        async with httpx2.AsyncClient() as client:
+            resolver = SesameResolver(
+                client, urls=settings.resolver_url_list, timeout_s=settings.resolver_timeout_s
+            )
+            return await resolver.resolve("Barnard's Star")
+
+    target = asyncio.run(run())
+
+    assert (target.ra, target.dec) == pytest.approx((BARNARD["ra"], BARNARD["dec"]), abs=1e-5)
+    assert target.epoch == BARNARD["epoch"]
+    assert target.pm_ra == pytest.approx(BARNARD["pm_ra"], abs=0.5)
+    assert target.pm_dec == pytest.approx(BARNARD["pm_dec"], abs=0.5)

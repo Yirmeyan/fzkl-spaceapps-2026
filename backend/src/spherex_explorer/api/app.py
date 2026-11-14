@@ -14,9 +14,12 @@ from spherex_explorer.api.errors import register_error_handlers
 from spherex_explorer.api.exposures import router as exposures_router
 from spherex_explorer.api.frames import router as frames_router
 from spherex_explorer.api.health import router as health_router
+from spherex_explorer.api.resolve import NameResolver
+from spherex_explorer.api.resolve import router as resolve_router
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive
 from spherex_explorer.config import Settings, get_settings
 from spherex_explorer.pipeline import ExposureArchive, FrameSource
+from spherex_explorer.targets import SesameResolver
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +34,11 @@ def create_app(
     settings: Settings | None = None,
     archive: ExposureArchive | None = None,
     frames: FrameSource | None = None,
+    resolver: NameResolver | None = None,
 ) -> FastAPI:
     """Build the application.
 
-    Tests pass their own settings, their own archive and their own source of frames.
+    Tests pass their own settings and their own doubles of the outside services.
     The server reads the environment and opens its connections when it starts.
     """
     settings = settings or get_settings()
@@ -45,10 +49,10 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        if app.state.archive is not None and app.state.frames is not None:
+        given = (app.state.archive, app.state.frames, app.state.resolver)
+        if None not in given:
             yield
             return
-        given = (app.state.archive, app.state.frames)
         # One client for the life of the process: its connections are reused across
         # requests. A view asks for many parts of files at once, hence the wide pool.
         limits = httpx2.Limits(
@@ -82,10 +86,16 @@ def create_app(
                         concurrency=settings.storage_concurrency,
                     )
                 )
+            if app.state.resolver is None:
+                app.state.resolver = SesameResolver(
+                    client,
+                    urls=settings.resolver_url_list,
+                    timeout_s=settings.resolver_timeout_s,
+                )
             try:
                 yield
             finally:
-                app.state.archive, app.state.frames = given
+                app.state.archive, app.state.frames, app.state.resolver = given
 
     app = FastAPI(
         title="SPHEREx explorer service",
@@ -98,6 +108,7 @@ def create_app(
     app.state.settings = settings
     app.state.archive = archive
     app.state.frames = frames
+    app.state.resolver = resolver
 
     # The browser application is served from another origin than this service.
     app.add_middleware(
@@ -115,6 +126,7 @@ def create_app(
     app.include_router(health_router, prefix="/api")
     app.include_router(exposures_router, prefix="/api")
     app.include_router(frames_router, prefix="/api")
+    app.include_router(resolve_router, prefix="/api")
 
     logger.info(
         "Service %s ready in %s, origins allowed: %s",

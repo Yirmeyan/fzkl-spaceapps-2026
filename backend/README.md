@@ -21,7 +21,11 @@ Run them from the `backend/` folder.
 
 The run and test commands go through `python -m` on purpose: on Windows, an application control policy can block the small launchers that tools install.
 
-Once started, the service answers on http://127.0.0.1:8000/api/health, and its interactive documentation is on http://127.0.0.1:8000/api/docs. To list the exposures of Barnard's Star:
+Once started, the service answers on http://127.0.0.1:8000/api/health, and its interactive documentation is on http://127.0.0.1:8000/api/docs. To find Barnard's Star by its name, then list its exposures:
+
+```
+curl "http://127.0.0.1:8000/api/resolve?name=Barnard%27s%20Star"
+```
 
 ```
 curl "http://127.0.0.1:8000/api/exposures?ra=269.452077&dec=4.693365&pm_ra=-801.551&pm_dec=10362.394"
@@ -70,3 +74,5 @@ Every setting is an environment variable that starts with `SPX_`. Copy `.env.exa
 | `SPX_STORAGE_TIMEOUT_S` | `10` | Longest wait for one read of a part of a file, in seconds |
 | `SPX_STORAGE_ATTEMPTS` | `3` | Attempts for one read before the service answers 503 |
 | `SPX_STORAGE_CONCURRENCY` | `32` | Most reads in flight at once, all requests together |
+| `SPX_RESOLVER_URLS` | The mirror of the CDS at Harvard, then the CDS | Addresses of the Sesame name resolver, tried in this order, separated by commas |
+| `SPX_RESOLVER_TIMEOUT_S` | `10` | Longest wait for one answer of the name resolver, in seconds |
