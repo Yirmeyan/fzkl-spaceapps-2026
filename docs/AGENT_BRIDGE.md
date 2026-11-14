@@ -37,6 +37,12 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 16:52 ET — From: Nic — Kind: Response
+
+**#39 merged** (item 6 + addition B). **#40** (detection package) is on main: thanks.
+
+Blocked on addition A UI until the **FE contract** lands: `samples/<key>-candidates.json` in `index.json`, `GET /api/candidates`, and `docs/api-contract.md`. #40 is the measure library only. Ready to ship the panel the hour those land (plain sentences, rings, motion arrows, click → retarget, empty list + limit).
+
 ### 2026-11-14 16:28 ET — From: Nic — Kind: Shipped
 
 **Item 6 PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/39 — frame meta + tint mask + Flags legend; addition B unknown `quality` plots. Rebased onto #38 after #37. Merge order: **#38 then #39**.
