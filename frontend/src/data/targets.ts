@@ -10,7 +10,10 @@ export interface KnownTarget {
    * Kept so Barnard still works if the index is missing.
    */
   bundleUrl: string | null;
-  /** Fixed coordinates — presets never wait on resolve (Tommy B6). */
+  /**
+   * Optional fixed coordinates. Prefer index.json `target` (Tommy Need 15:14):
+   * WISE 0855 in an old catalogue epoch is wrong by ~2 arcmin without PM.
+   */
   ra?: number;
   dec?: number;
   pm_ra?: number;
@@ -23,8 +26,9 @@ export const KNOWN_TARGETS: KnownTarget[] = [
   {
     key: "barnard",
     label: "Barnard's Star",
-    blurb: "The mover — watch it hop between SPHEREx visits.",
+    blurb: "The mover: watch it hop between SPHEREx visits.",
     bundleUrl: `${import.meta.env.BASE_URL}samples/barnard-star-d2.json`,
+    // Index also has these; kept as offline fallback only.
     ra: 269.452077,
     dec: 4.693365,
     pm_ra: -801.551,
@@ -34,30 +38,29 @@ export const KNOWN_TARGETS: KnownTarget[] = [
   {
     key: "epsindi",
     label: "Epsilon Indi B",
-    blurb: "The spectrum — brown-dwarf infrared colors with deep absorption bands.",
+    blurb: "The spectrum: brown-dwarf infrared colors with deep absorption bands.",
     bundleUrl: null,
     inSampleIndex: true,
   },
   {
     key: "wise0855",
     label: "WISE 0855",
-    blurb: "The faint one — near the detection limit; stack a visit to see it.",
+    blurb: "The faint one: near the detection limit. Stack a visit to see it.",
     bundleUrl: null,
-    ra: 133.795129,
-    dec: -7.245147,
+    // Do not hardcode 2010 sky position. Use index.json target (has proper motion).
     inSampleIndex: true,
   },
   {
     key: "rwaur",
     label: "RW Aurigae",
-    blurb: "The variable — brightness changes from visit to visit.",
+    blurb: "The variable: brightness changes from visit to visit.",
     bundleUrl: null,
     inSampleIndex: true,
   },
   {
     key: "rdra",
     label: "R Draconis",
-    blurb: "The saturated one — images only; too bright for a flux number.",
+    blurb: "The saturated one: images only. Too bright for a flux number.",
     bundleUrl: null,
     inSampleIndex: true,
   },
@@ -67,11 +70,11 @@ export function targetByKey(key: string): KnownTarget | undefined {
   return KNOWN_TARGETS.find((t) => t.key === key);
 }
 
-/** One-line stage tip — what this preset is for (Tommy B4). */
+/** One-line stage tip: what this preset is for (Tommy B4). */
 export const TARGET_MISSION_TIP: Record<string, string> = {
-  barnard: "The mover — watch the bright core hop between visits.",
-  epsindi: "The spectrum — open Infrared timeline for water & methane bands.",
-  wise0855: "The faint one — single frames hide it; try More → Average stack on D6.",
-  rwaur: "The variable — compare visits; the spectrum curves cross by pass.",
-  rdra: "The saturated one — images only; too bright for a flux number.",
+  barnard: "The mover: watch the bright core hop between visits.",
+  epsindi: "The spectrum: open Infrared timeline for water and methane bands.",
+  wise0855: "The faint one: single frames hide it. Try More, then Average stack on D6.",
+  rwaur: "The variable: compare visits. The spectrum curves cross by pass.",
+  rdra: "The saturated one: images only. Too bright for a flux number.",
 };

@@ -1,7 +1,10 @@
 import type { DecodedFrame } from "../data/decode";
+import { type SpectrumPoint, spectrumPointsFromFrames } from "./spectrumPoints";
 
 interface ChartsProps {
   frames: DecodedFrame[];
+  /** Optional photometry-only points (index spectrum file / GET /api/spectrum). */
+  spectrumPoints?: SpectrumPoint[];
   activeIndex: number;
   onSelectFrame?: (index: number) => void;
 }
@@ -12,22 +15,27 @@ function passColor(pass: number): string {
   return PASS_COLORS[(pass - 1) % PASS_COLORS.length]!;
 }
 
-/** Classroom-friendly wavelength / visit charts — B4 photometry rules. */
-export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
-  if (frames.length === 0) return null;
+/** Classroom-friendly wavelength / visit charts. B4 photometry rules. */
+export function Charts({
+  frames,
+  spectrumPoints: spectrumPointsProp,
+  activeIndex,
+  onSelectFrame,
+}: ChartsProps) {
+  if (frames.length === 0 && !(spectrumPointsProp && spectrumPointsProp.length > 0)) return null;
 
-  const withFlux = frames.filter((f) => f.frame.photometry.flux_mjy != null);
-  const spectrumPoints = [...frames].sort((a, b) => a.frame.wavelength_um - b.frame.wavelength_um);
+  const points = spectrumPointsProp ?? spectrumPointsFromFrames(frames);
+  const withFlux = points.filter((p) => p.flux_mjy != null);
+  const waveStrip = [...frames].sort((a, b) => a.frame.wavelength_um - b.frame.wavelength_um);
   const active = frames[activeIndex];
-  const activeWave = active?.frame.wavelength_um;
+  const activeWave = active?.frame.wavelength_um ?? null;
   const activeDet = active?.exposure.detector ?? null;
+  const activeId = active?.frame.id;
 
-  // Light curve: one detector only (Tommy B4) — wavelength changes across detectors.
+  // Light curve: one detector only (Tommy B4). Wavelength changes across detectors.
   const lightPool =
-    activeDet != null
-      ? withFlux.filter((f) => f.exposure.detector === activeDet)
-      : withFlux;
-  const lightPoints = [...lightPool].sort((a, b) => a.frame.time_mjd - b.frame.time_mjd);
+    activeDet != null ? withFlux.filter((p) => p.detector === activeDet) : withFlux;
+  const lightPoints = [...lightPool].sort((a, b) => a.time_mjd - b.time_mjd);
 
   const saturatedEverywhere = withFlux.length === 0;
 
@@ -39,27 +47,27 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
           Brightness vs infrared color (µm).
           {activeWave != null ? ` Watching ${activeWave.toFixed(2)} µm.` : ""}
           {saturatedEverywhere
-            ? " This target saturates SPHEREx here — no flux number; the movie still works."
+            ? " This target saturates SPHEREx here. No flux number; the movie still works."
             : ` ${withFlux.length} points · one color per visit · hollow = flagged (still good).`}
         </p>
         {saturatedEverywhere ? (
           <p className="chart-saturated">
             Too bright for a spectrum on these frames. Try Epsilon Indi B for a full infrared
-            spectrum, or detectors 5–6 on Barnard’s Star.
+            spectrum, or detectors 5-6 on Barnard's Star.
           </p>
         ) : (
           <FluxSvg
             points={withFlux
               .slice()
-              .sort((a, b) => a.frame.wavelength_um - b.frame.wavelength_um)
-              .map((f) => ({
-                x: f.frame.wavelength_um,
-                y: f.frame.photometry.flux_mjy as number,
-                err: f.frame.photometry.error_mjy,
-                pass: f.exposure.pass,
-                active: f === active,
-                flagged: f.frame.photometry.quality === "flagged",
-                id: f.frame.id,
+              .sort((a, b) => a.wavelength_um - b.wavelength_um)
+              .map((p) => ({
+                x: p.wavelength_um,
+                y: p.flux_mjy as number,
+                err: p.error_mjy,
+                pass: p.pass,
+                active: p.id === activeId,
+                flagged: p.quality === "flagged",
+                id: p.id,
               }))}
             xLabel="µm"
             yLabel="mJy"
@@ -70,8 +78,8 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
           />
         )}
         <DotStrip
-          frames={spectrumPoints}
-          activeId={active?.frame.id}
+          frames={waveStrip}
+          activeId={activeId}
           mode="wave"
           onPick={(id) => {
             const idx = frames.findIndex((f) => f.frame.id === id);
@@ -84,18 +92,18 @@ export function Charts({ frames, activeIndex, onSelectFrame }: ChartsProps) {
         <h3>Light curve</h3>
         <p className="chart-empty">
           Brightness over time inside one camera
-          {activeDet != null ? ` (detector ${activeDet})` : ""} — never mixed across detectors.
+          {activeDet != null ? ` (detector ${activeDet})` : ""}. Never mixed across detectors.
         </p>
         {lightPoints.length > 0 ? (
           <FluxSvg
-            points={lightPoints.map((f) => ({
-              x: f.frame.time_mjd,
-              y: f.frame.photometry.flux_mjy as number,
-              err: f.frame.photometry.error_mjy,
-              pass: f.exposure.pass,
-              active: f === active,
-              flagged: f.frame.photometry.quality === "flagged",
-              id: f.frame.id,
+            points={lightPoints.map((p) => ({
+              x: p.time_mjd,
+              y: p.flux_mjy as number,
+              err: p.error_mjy,
+              pass: p.pass,
+              active: p.id === activeId,
+              flagged: p.quality === "flagged",
+              id: p.id,
             }))}
             xLabel="MJD"
             yLabel="mJy"

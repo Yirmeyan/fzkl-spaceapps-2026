@@ -3,7 +3,7 @@ interface ViewerGuideProps {
   mode: "watch" | "blink" | "difference" | "stack" | "track" | "blend" | "split";
 }
 
-/** One short tip for the active mode — not a wall of jargon. */
+/** One short tip for the active mode. not a wall of jargon. */
 export function ViewerGuide({ targetName, mode }: ViewerGuideProps) {
   const tip =
     mode === "difference"
@@ -13,7 +13,7 @@ export function ViewerGuide({ targetName, mode }: ViewerGuideProps) {
         : mode === "blend"
           ? "Early and late visits are overlaid. The moving star shimmers; background stars stay put."
           : mode === "split"
-            ? "Early visit on the left, late on the right — compare the hop side by side."
+            ? "Early visit on the left, late on the right. Compare the hop side by side."
             : mode === "stack"
               ? "Many frames averaged into one sharper still. Motion is blurred on purpose."
               : mode === "track"

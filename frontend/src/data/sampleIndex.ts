@@ -1,6 +1,6 @@
 import type { Grid, Target } from "./contract";
 
-/** Contract: docs/api-contract.md — One file per detector, and an index */
+/** Contract: docs/api-contract.md. One file per detector, and an index */
 
 export interface SampleDetectorEntry {
   detector: number;

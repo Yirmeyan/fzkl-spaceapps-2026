@@ -23,7 +23,7 @@ export function HealthBadge() {
         const next =
           err instanceof ApiError
             ? `Service unreachable (${err.code})`
-            : "Service offline — static samples still work";
+            : "Service offline. Static samples still work.";
         setStatus((s) => (s === "down" ? s : "down"));
         setDetail((d) => (d === next ? d : next));
       }

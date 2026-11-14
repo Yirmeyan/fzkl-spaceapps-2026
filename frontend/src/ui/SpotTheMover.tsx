@@ -17,7 +17,7 @@ interface SpotTheMoverProps {
 }
 
 /**
- * Click where you think the mover ends up — then reveal catalogue trail.
+ * Click where you think the mover ends up. then reveal catalogue trail.
  */
 export function SpotTheMover({
   size,
@@ -72,7 +72,7 @@ export function SpotTheMover({
           </h3>
           <p className="spot-mover-hint">
             {revealed
-              ? "Reveal on — orange is your tap, cyan beads are the real path."
+              ? "Reveal on. orange is your tap, cyan beads are the real path."
               : `Tap where Visit ${end.pass} puts the star (starts near Visit ${start.pass}).`}
           </p>
         </div>
@@ -119,7 +119,7 @@ export function SpotTheMover({
 
       {revealed && grade && missArcsec != null && (
         <p className={`spot-mover-result ${grade.tone}`}>
-          <strong>{grade.label}</strong> — {missArcsec.toFixed(1)}″ from the Visit {end.pass}{" "}
+          <strong>{grade.label}</strong>. {missArcsec.toFixed(1)}″ from the Visit {end.pass}{" "}
           position ({early.label} → {late.label}).
         </p>
       )}

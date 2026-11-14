@@ -3,7 +3,7 @@ import { wavelengthHue } from "../spectrum/waveHue";
 
 export interface DetectorBand {
   detector: number;
-  /** Shortest–longest µm in the loaded frames for this detector */
+  /** Shortest-longest µm in the loaded frames for this detector */
   waveMin: number;
   waveMax: number;
   frames: number;
@@ -16,7 +16,7 @@ interface DetectorDialProps {
 }
 
 /**
- * Stage-facing SPHEREx detector dial — one band per camera.
+ * Stage-facing SPHEREx detector dial. one band per camera.
  * Makes the six-wavelength story visible without opening Technical details.
  */
 export function DetectorDial({ bands, active, onPick }: DetectorDialProps) {
@@ -47,7 +47,7 @@ export function DetectorDial({ bands, active, onPick }: DetectorDialProps) {
               role="listitem"
               className={isOn ? "detector-dial-band active" : "detector-dial-band"}
               style={{ "--band-hue": String(hue) } as CSSProperties}
-              title={`Detector ${b.detector}: ${b.waveMin.toFixed(2)}–${b.waveMax.toFixed(2)} µm · ${b.frames} frames`}
+              title={`Detector ${b.detector}: ${b.waveMin.toFixed(2)} to ${b.waveMax.toFixed(2)} µm · ${b.frames} frames`}
               aria-pressed={isOn}
               onClick={() => onPick(b.detector)}
             >
@@ -58,7 +58,7 @@ export function DetectorDial({ bands, active, onPick }: DetectorDialProps) {
           );
         })}
       </div>
-      <p className="detector-dial-hint">Six infrared eyes — tap one camera.</p>
+      <p className="detector-dial-hint">Six infrared eyes. Tap one camera.</p>
     </section>
   );
 }

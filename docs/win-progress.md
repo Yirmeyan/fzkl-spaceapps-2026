@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Cameras back on stage** — compact D1–D6 dial under the hop proof again (SPHEREx’s six infrared eyes), not buried in Adjust.
+**Ship to main path** — Tommy Need: index target/PM for presets, no em dashes, SpectrumPoint-ready charts, PR compare ready.
 
 ## Backlog (phenomenal)
 

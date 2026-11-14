@@ -177,7 +177,7 @@ export default function App() {
     const el = measureRef.current;
     if (!el) return;
     const update = () => {
-      // Fill the left stage column — original strength was a big square, not a postage stamp.
+      // Fill the left stage column. original strength was a big square, not a postage stamp.
       const colW = el.clientWidth;
       const maxByWidth = Math.floor(colW - 16);
       const maxByHeight = Math.floor(window.innerHeight * 0.78);
@@ -196,7 +196,7 @@ export default function App() {
 
   const loadFromService = useCallback(
     async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
-      setLoad({ status: "loading", message: "SPHEREx archive — listing exposures…" });
+      setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
       const { target: t, grid, exposures } = await fetchExposures(target, {}, signal);
       if (signal.aborted) return;
       if (exposures.length === 0) {
@@ -250,7 +250,7 @@ export default function App() {
         if (di === 0) {
           setLoad({
             status: "loading",
-            message: `SPHEREx archive — detector ${det}…`,
+            message: `SPHEREx archive. detector ${det}…`,
             loaded: 0,
             total: grandTotal,
           });
@@ -280,7 +280,7 @@ export default function App() {
                     ...prev,
                     loaded: loadedTotal,
                     total: grandTotal,
-                    message: `Archive — D${det} ${batchLoaded}/${queue.length} · ${loadedTotal}/${grandTotal}`,
+                    message: `Archive. D${det} ${batchLoaded}/${queue.length} · ${loadedTotal}/${grandTotal}`,
                   }
                 : prev,
             );
@@ -333,34 +333,44 @@ export default function App() {
         setLoad({ status: "error", message: `Unknown target “${key}”.` });
         return;
       }
-      const canLive = known.ra != null && known.dec != null;
-      if (preferLive && canLive) {
+
+      // Tommy Need: target/grid come from index.json (correct epoch + PM), not stale targets.ts.
+      let indexEntry: ReturnType<typeof sampleTargetByUiKey>;
+      try {
+        const index = await fetchSampleIndex(signal);
+        indexEntry = sampleTargetByUiKey(index, key);
+      } catch {
+        indexEntry = undefined;
+      }
+      const indexTarget = indexEntry?.target;
+      const liveTarget: Target | null = indexTarget
+        ? { ...indexTarget }
+        : known.ra != null && known.dec != null
+          ? {
+              name: known.label,
+              ra: known.ra,
+              dec: known.dec,
+              epoch: 2000,
+              pm_ra: known.pm_ra ?? null,
+              pm_dec: known.pm_dec ?? null,
+            }
+          : null;
+
+      if (preferLive && liveTarget) {
         setLoad({ status: "loading", message: `Loading ${known.label} from SPHEREx archive…` });
-        await loadFromService(
-          {
-            name: known.label,
-            ra: known.ra!,
-            dec: known.dec!,
-            epoch: 2000,
-            pm_ra: known.pm_ra ?? null,
-            pm_dec: known.pm_dec ?? null,
-          },
-          signal,
-          key,
-        );
+        await loadFromService(liveTarget, signal, key);
         return;
       }
 
       // B6: samples/index.json → preferred detector first, then others in background.
       try {
-        const index = await fetchSampleIndex(signal);
-        const entry = sampleTargetByUiKey(index, key);
+        const entry = indexEntry;
         if (entry && entry.detectors.length > 0) {
           const order = orderedDetectors(key, entry);
           const first = order[0]!;
           setLoad({
             status: "loading",
-            message: `Loading ${known.label} — detector ${first.detector}…`,
+            message: `Loading ${known.label}. detector ${first.detector}…`,
           });
           const firstBundle = await fetchBundle(detectorBundleUrl(first.file), signal);
           if (signal.aborted) return;
@@ -416,20 +426,9 @@ export default function App() {
       }
 
       if (!known.bundleUrl) {
-        if (canLive) {
+        if (liveTarget) {
           setLoad({ status: "loading", message: `Loading ${known.label} from SPHEREx archive…` });
-          await loadFromService(
-            {
-              name: known.label,
-              ra: known.ra!,
-              dec: known.dec!,
-              epoch: 2000,
-              pm_ra: known.pm_ra ?? null,
-              pm_dec: known.pm_dec ?? null,
-            },
-            signal,
-            key,
-          );
+          await loadFromService(liveTarget, signal, key);
           return;
         }
         setLoad({
@@ -621,7 +620,7 @@ export default function App() {
   const uiMode = uiModeFromView(view.mode, blinkPasses);
   const overlayActive = ghostVisits || splitVisits || spotMover;
 
-  /** Blend / side-by-side / spot / blink must never stack — leftover flags cause broken stage visuals. */
+  /** Blend / side-by-side / spot / blink must never stack. leftover flags cause broken stage visuals. */
   function clearPresentationOverlays() {
     setBlinkPasses(false);
     setGhostVisits(false);
@@ -634,7 +633,7 @@ export default function App() {
     clearPresentationOverlays();
     setSearchInput(label);
     if (key === "wise0855") {
-      // Faint — only visible when stacking detector 6.
+      // Faint. only visible when stacking detector 6.
       patchView({
         targetKey: key,
         query: label,
@@ -649,7 +648,7 @@ export default function App() {
       return;
     }
     if (key === "epsindi" || key === "rwaur") {
-      // Spectrum / variable — show the infrared timeline.
+      // Spectrum / variable. show the infrared timeline.
       patchView({
         targetKey: key,
         query: label,
@@ -711,11 +710,11 @@ export default function App() {
       });
       return;
     }
-    // More views — start on average stack with no visit lock leftovers.
+    // More views. start on average stack with no visit lock leftovers.
     patchView({ mode: "stack", playing: false, frameIndex: 0, pass: null });
   }
 
-  // Keyboard shortcuts — ignore while typing in fields.
+  // Keyboard shortcuts. ignore while typing in fields.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const t = e.target as HTMLElement | null;
@@ -1044,19 +1043,19 @@ export default function App() {
         pixels: early.pixels,
         mask: early.mask,
         label: `Visit ${a}`,
-        sub: `${early.dateLabel} — jump to this visit`,
+        sub: `${early.dateLabel}. jump to this visit`,
       },
       late: {
         pixels: late.pixels,
         mask: late.mask,
         label: `Visit ${b}`,
-        sub: `${late.dateLabel} — jump to this visit`,
+        sub: `${late.dateLabel}. jump to this visit`,
       },
       diff: {
         pixels: diff.pixels,
         mask: diff.mask,
         label: "Diff",
-        sub: `Visit ${a} − Visit ${b} — bright/dark = motion`,
+        sub: `Visit ${a} − Visit ${b}. bright/dark = motion`,
       },
       earlyXy: earlyBead ? ([earlyBead.x, earlyBead.y] as [number, number]) : null,
       lateXy: lateBead ? ([lateBead.x, lateBead.y] as [number, number]) : null,
@@ -1186,7 +1185,7 @@ export default function App() {
           <p className="eyebrow">NASA Space Apps 2026 · FZKL</p>
           <h1 className="brand">SPHEREx Explorer</h1>
           <p className="tagline">
-            Watch a real star drift across the infrared sky — clear enough for anyone, no astronomy
+            Watch a real star drift across the infrared sky. clear enough for anyone, no astronomy
             degree required.
           </p>
         </div>
@@ -1232,7 +1231,7 @@ export default function App() {
           <h2>Pick a star</h2>
           {load.status !== "ready" && (
             <p>
-              Start with Barnard's Star — or type any name; live resolve finds the sky position.
+              Start with Barnard's Star. or type any name; live resolve finds the sky position.
             </p>
           )}
         </div>
@@ -1279,7 +1278,7 @@ export default function App() {
       <nav className="mode-tabs" aria-label="What do you want to do?">
         {(
           [
-            ["watch", "Watch", "Play infrared frames — each frame is a slightly different color"],
+            ["watch", "Watch", "Play infrared frames. each frame is a slightly different color"],
             ["compare", "Blink", "Flip early ↔ late visits so the hop is obvious"],
             ["difference", "Move", "Subtract two visits: bright/dark pair = motion"],
             ["more", "More", "Average stack, tracking, and filters"],
@@ -1326,15 +1325,17 @@ export default function App() {
                 // Hide when the offline sample already covers this target (same visits today).
                 // Show for archive-only targets (e.g. WISE 0855) or to refresh an archive load.
                 const showArchive =
-                  known?.ra != null &&
-                  (!known.bundleUrl || (load.status === "ready" && load.source === "live"));
+                  known != null &&
+                  (known.inSampleIndex
+                    ? load.status === "ready" && load.source === "live"
+                    : known.ra != null);
                 if (!showArchive) return null;
                 return (
                   <button
                     type="button"
                     className="ghost"
                     disabled={load.status === "loading"}
-                    title="Load cutouts from the SPHEREx survey archive (past visits). Same data as the sample when both cover these visits — useful for targets without a sample file."
+                    title="Load cutouts from the SPHEREx survey archive (past visits). Same data as the sample when both cover these visits."
                     onClick={() => {
                       const ac = new AbortController();
                       void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
@@ -1701,9 +1702,9 @@ export default function App() {
                   <>
                     <p className="lead">
                       {ghostVisits
-                        ? "Blend visits is on — early and late visits are overlaid."
+                        ? "Blend visits is on. early and late visits are overlaid."
                         : splitVisits
-                          ? "Side-by-side is on — early and late visits are shown together."
+                          ? "Side-by-side is on. early and late visits are shown together."
                           : "Challenge overlay is on."}{" "}
                       Visit and color filters do not apply until you leave this view.
                     </p>
@@ -1922,7 +1923,7 @@ export default function App() {
               open={timelineOpen}
               onToggle={(e) => setTimelineOpen((e.target as HTMLDetailsElement).open)}
             >
-              <summary title="Spectrum and light curve — open for Epsilon Indi B / RW Aur">
+              <summary title="Spectrum and light curve. open for Epsilon Indi B / RW Aur">
                 Infrared timeline
               </summary>
               <Charts
@@ -2021,7 +2022,7 @@ function AdvancedDetails({
       <div>
         <dt>Background / noise</dt>
         <dd>
-          {f.background?.toFixed(3) ?? "—"} / {f.noise?.toFixed(3) ?? "—"} MJy/sr
+          {f.background?.toFixed(3) ?? ". "} / {f.noise?.toFixed(3) ?? ". "} MJy/sr
         </dd>
       </div>
       <div>

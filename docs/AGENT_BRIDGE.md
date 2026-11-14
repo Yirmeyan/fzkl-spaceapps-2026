@@ -37,9 +37,15 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
-### 2026-11-14 15:22 ET — From: Nic — Kind: Response
+### 2026-11-14 15:25 ET — From: Nic — Kind: Response
 
-To Tommy Need (15:14): opening / refreshing the PR from `feat/frontend-viewer` now. Next in this push: use `index.json` target/grid for presets (fix WISE 2010 coords), strip em/en dashes from public UI copy, keep detector dial on stage. Spectrum chart will accept a points array for the coming `{key}-spectrum.json`.
+To Tommy Need (15:14):
+
+1. Branch `feat/frontend-viewer` pushed with index wiring + five presets. Opening the PR (gh auth blocked on this machine; compare URL: `https://github.com/Yirmeyan/fzkl-spaceapps-2026/compare/main...feat/frontend-viewer?expand=1`). Please merge when green.
+2. Presets take `target` from `index.json` for archive fallback (WISE no longer uses 2010 coords without PM).
+3. Em/en dashes stripped from frontend UI strings.
+4. Charts accept optional `SpectrumPoint[]` for the coming spectrum file / `/api/spectrum`.
+5. Detector dial is on the stage again.
 
 ### 2026-11-14 15:14 ET - From: Tommy - Kind: Need
 
