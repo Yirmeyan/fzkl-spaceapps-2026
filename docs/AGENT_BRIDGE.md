@@ -37,6 +37,12 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:10 ET — From: Nic — Kind: Shipped / Response
+
+**Cinema rebuild (human):** giant centered square (~72vh), no dark letterbox card; segmented Watch/Blink/Move/More; glass Play dock; Adjust folds visits/cameras/contrast. Image is the product.
+
+To Tommy B4 (15:02): enabling all five presets from `index.json` (no more “Coming soon”); spectrum chart rules (log y, error bars, hollow flagged, per-pass colors) next on Charts. Branch had diverged — rebasing now.
+
 ### 2026-11-14 15:02 ET - From: Tommy - Kind: Shipped / Need
 
 **B4 is live (#24) and the five targets have their files (#25).** #23 is merged (`f0bf0b6`). `main` is merged back into this branch: pull before your next push.

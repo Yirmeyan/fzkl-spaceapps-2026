@@ -176,12 +176,11 @@ export default function App() {
     const el = measureRef.current;
     if (!el) return;
     const update = () => {
-      // Frames are always square. Cap by column width and viewport height so the
-      // stage never letterboxes a cutout inside a wide black band.
+      // Giant centered square — dominate the viewport (cinema shell).
       const colW = el.clientWidth;
-      const maxByWidth = Math.floor(colW - 8);
-      const maxByHeight = Math.floor(window.innerHeight * 0.46);
-      const px = Math.max(200, Math.min(520, maxByWidth, maxByHeight));
+      const maxByWidth = Math.floor(colW - 4);
+      const maxByHeight = Math.floor(window.innerHeight * 0.72);
+      const px = Math.max(280, Math.min(720, maxByWidth, maxByHeight));
       setDisplayPx(px);
     };
     update();
@@ -1123,8 +1122,10 @@ export default function App() {
                 ? "track"
                 : "watch";
 
+  const cinema = load.status === "ready";
+
   return (
-    <div className="app">
+    <div className={cinema ? "app app--cinema" : "app"}>
       <div className="sky-wash" aria-hidden="true" />
 
       {showBriefing && load.status === "ready" && (
@@ -1200,19 +1201,11 @@ export default function App() {
                 setBlinkPasses(false);
                 patchView({ targetKey: t.key, mode: "single", pass: null });
               }}
-              disabled={!t.bundleUrl && (t.ra == null || t.dec == null)}
-              title={
-                t.bundleUrl
-                  ? t.blurb
-                  : t.ra != null
-                    ? `${t.blurb} Loads from the live SPHEREx API.`
-                    : "Waiting on a sample bundle or coordinates."
-              }
+              disabled={!t.inSampleIndex && !t.bundleUrl && (t.ra == null || t.dec == null)}
+              title={t.blurb}
             >
               <span className="target-name">{t.label}</span>
-              <span className="target-blurb">
-                {t.bundleUrl ? t.blurb : t.ra != null ? "Archive load available" : "Coming soon"}
-              </span>
+              <span className="target-blurb">{t.blurb}</span>
             </button>
           ))}
         </div>
@@ -1241,22 +1234,10 @@ export default function App() {
       <nav className="mode-tabs" aria-label="What do you want to do?">
         {(
           [
-            [
-              "watch",
-              "1 · Watch the movie",
-              "Play infrared frames of this star — each frame is a slightly different color",
-            ],
-            [
-              "compare",
-              "2 · Blink visits",
-              "Flip between early and late SPHEREx visits so the star’s hop is obvious",
-            ],
-            [
-              "difference",
-              "3 · Show the move",
-              "Subtract two visits: a bright/dark pair means the star moved",
-            ],
-            ["more", "More views", "Averaged stack, tracking, and technical filters"],
+            ["watch", "Watch", "Play infrared frames — each frame is a slightly different color"],
+            ["compare", "Blink", "Flip early ↔ late visits so the hop is obvious"],
+            ["difference", "Move", "Subtract two visits: bright/dark pair = motion"],
+            ["more", "More", "Average stack, tracking, and filters"],
           ] as [UiMode, string, string][]
         ).map(([id, label, tip]) => (
           <button
@@ -1271,12 +1252,12 @@ export default function App() {
         ))}
       </nav>
 
-      <main className="workspace">
+      <main className={`workspace${cinema ? " workspace--cinema" : ""}`}>
         <section className="stage" ref={stageRef}>
           <div className="stage-bar">
             <div>
-              <p className="stage-kicker">
-                Now viewing
+              <h2 className="stage-title">
+                {targetName}
                 {load.status === "ready" && (
                   <span
                     className={`source-pill ${load.source === "live" ? "archive" : "sample"}`}
@@ -1289,13 +1270,9 @@ export default function App() {
                     {load.source === "live" ? "ARCHIVE" : "SAMPLE"}
                   </span>
                 )}
-              </p>
-              <h2 className="stage-title">{targetName}</h2>
+              </h2>
             </div>
             <div className="stage-actions">
-              <p className="kbd-hint" title="Keyboard shortcuts">
-                J · G · S · B · D · F
-              </p>
               {(() => {
                 const known = targetByKey(view.targetKey);
                 // Hide when the offline sample already covers this target (same visits today).
@@ -1543,21 +1520,9 @@ export default function App() {
                 title="Copy a link that opens Show the move for this star"
                 onClick={() => copyHopLink()}
               >
-                {hopLinkCopied ? "Hop link copied" : "Copy hop link"}
+                {hopLinkCopied ? "Copied" : "Share hop"}
               </button>
             </div>
-          )}
-
-          {detectorBands.length > 1 && (
-            <DetectorDial
-              bands={detectorBands}
-              active={view.detector}
-              onPick={(detector) => {
-                // Detector filter applies to every mode; do not clear overlays —
-                // blend/diff stay valid, just recolored by camera.
-                patchView({ detector, frameIndex: 0, playing: false });
-              }}
-            />
           )}
 
           {display && view.mode === "single" && display.kind === "single" && !blinkPasses && (
@@ -1579,13 +1544,13 @@ export default function App() {
                     patchView({ playing: !view.playing, mode: "single" });
                   }}
                 >
-                  {view.playing ? "Pause" : "Play movie"}
+                  {view.playing ? "Pause" : "Play"}
                 </button>
                 <button
                   type="button"
                   className={ghostVisits ? "active" : ""}
                   disabled={passes.length < 2}
-                  title="Overlay early and late visits so the moving star shimmers (G). Clears blink / side-by-side."
+                  title="Overlay early and late visits (G)"
                   onClick={() => {
                     const next = !ghostVisits;
                     clearPresentationOverlays();
@@ -1593,13 +1558,13 @@ export default function App() {
                     patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
                   }}
                 >
-                  Blend visits
+                  Blend
                 </button>
                 <button
                   type="button"
                   className={splitVisits ? "active" : ""}
                   disabled={passes.length < 2}
-                  title="Show early and late visits next to each other (S). Clears blink / blend."
+                  title="Early and late side by side (S)"
                   onClick={() => {
                     const next = !splitVisits;
                     clearPresentationOverlays();
@@ -1607,7 +1572,7 @@ export default function App() {
                     patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
                   }}
                 >
-                  Side-by-side
+                  Split
                 </button>
                 {!overlayActive && (
                   <input
@@ -1636,22 +1601,10 @@ export default function App() {
               </p>
             )}
 
-          <ViewerGuide targetName={targetName} mode={guideMode} />
-
-          <div className="legend-row" aria-hidden="true">
-            <span>
-              <i className="swatch heat" /> Brighter infrared
-            </span>
-            <span>
-              <i className="swatch cross" /> Catalogue position (guide)
-            </span>
-            <span>
-              <i className="swatch bead" /> Catalogue path Visit 1 → 2 → 3
-            </span>
-          </div>
+          {!cinema && <ViewerGuide targetName={targetName} mode={guideMode} />}
         </section>
 
-        <aside className="rail">
+        <aside className={`rail${cinema ? " rail--cinema" : ""}`}>
           {load.status === "ready" && (
             <MotionInsight
               grid={load.data.grid}
@@ -1660,11 +1613,13 @@ export default function App() {
             />
           )}
 
+          <details className="rail-card details adjust-fold" open={!cinema}>
+            <summary title="Visits, colors, cameras, contrast — only when you need them">
+              Adjust
+            </summary>
+
           {load.status === "ready" && storyboard && (
-            <details className="rail-card details storyboard-fold">
-              <summary title="Full visit filmstrip — optional; the hop proof under the square is enough for most viewers">
-                All visits filmstrip
-              </summary>
+            <div className="storyboard-fold-inner">
               <VisitStoryboard
                 size={storyboard.size}
                 lo={storyboard.limits.lo}
@@ -1678,14 +1633,21 @@ export default function App() {
                   patchView({ mode: "single", pass, frameIndex: 0, playing: false });
                 }}
               />
-            </details>
+            </div>
           )}
 
-          <div className="rail-card">
-            <h3>Controls for this step</h3>
-            <p className="rail-hint">
-              Hover any button for a tip. Only the controls for the selected step are active.
-            </p>
+          {detectorBands.length > 1 && (
+            <DetectorDial
+              bands={detectorBands}
+              active={view.detector}
+              onPick={(detector) => {
+                patchView({ detector, frameIndex: 0, playing: false });
+              }}
+            />
+          )}
+
+          <div className="control-panel">
+            <p className="rail-hint">Only the controls for the selected step apply.</p>
 
             {uiMode === "watch" && (
               <div className="control-block">
@@ -1906,6 +1868,7 @@ export default function App() {
             </div>
 
           </div>
+          </details>
 
           {load.status === "ready" && view.mode === "single" && (
             <details className="rail-card details">

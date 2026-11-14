@@ -44,7 +44,7 @@ export function HopProofStrip({
   active,
   onPick,
 }: HopProofStripProps) {
-  const cellPx = 96;
+  const cellPx = 72;
   const cells: { id: HopProofPick; cell: Cell; xy: [number, number] | null; showTrail: boolean }[] =
     [
       { id: "early", cell: early, xy: earlyXy, showTrail: true },
@@ -54,7 +54,7 @@ export function HopProofStrip({
 
   return (
     <section className="hop-proof" aria-label="Proof that the star moved">
-      <p className="hop-proof-kicker">Proof of the hop</p>
+      <p className="hop-proof-kicker">Hop</p>
       <div className="hop-proof-strip">
         {cells.map(({ id, cell, xy, showTrail }, i) => (
           <div key={id} className="hop-proof-step">
@@ -83,7 +83,7 @@ export function HopProofStrip({
           </div>
         ))}
       </div>
-      <p className="hop-proof-hint">Tap a tile — Early / Diff / Late jump the stage.</p>
+      <p className="hop-proof-hint">Tap to jump</p>
     </section>
   );
 }

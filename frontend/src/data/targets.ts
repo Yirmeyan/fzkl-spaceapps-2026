@@ -1,4 +1,4 @@
-/** Known challenge test targets. Bundle paths come from samples/index.json (B6). */
+/** Known challenge test targets. Bundle paths come from samples/index.json (B6/B4). */
 
 export interface KnownTarget {
   key: string;
@@ -15,45 +15,51 @@ export interface KnownTarget {
   dec?: number;
   pm_ra?: number;
   pm_dec?: number;
+  /** True when samples/index.json ships this target (B4 five-target set). */
+  inSampleIndex: boolean;
 }
 
 export const KNOWN_TARGETS: KnownTarget[] = [
   {
     key: "barnard",
     label: "Barnard's Star",
-    blurb: "Fast nearby star — watch it jump between SPHEREx passes.",
+    blurb: "The mover — watch it hop between SPHEREx visits.",
     bundleUrl: `${import.meta.env.BASE_URL}samples/barnard-star-d2.json`,
     ra: 269.452077,
     dec: 4.693365,
     pm_ra: -801.551,
     pm_dec: 10362.394,
+    inSampleIndex: true,
   },
   {
     key: "epsindi",
     label: "Epsilon Indi B",
-    blurb: "A pair of brown dwarfs orbiting a star.",
+    blurb: "The spectrum — brown-dwarf infrared colors with deep absorption bands.",
     bundleUrl: null,
-    // Placeholder until B4 bundles; resolve name: eps Ind B
+    inSampleIndex: true,
   },
   {
     key: "wise0855",
     label: "WISE 0855",
-    blurb: "Fast-moving brown dwarf near the detection limit.",
+    blurb: "The faint one — near the detection limit; stack a visit to see it.",
     bundleUrl: null,
     ra: 133.795129,
     dec: -7.245147,
+    inSampleIndex: true,
   },
   {
     key: "rwaur",
     label: "RW Aurigae",
-    blurb: "Variable star — brightness changes from pass to pass.",
+    blurb: "The variable — brightness changes from visit to visit.",
     bundleUrl: null,
+    inSampleIndex: true,
   },
   {
     key: "rdra",
     label: "R Draconis",
-    blurb: "Variable star — good for light curves once unsaturated.",
+    blurb: "The saturated one — images only; too bright for a flux number.",
     bundleUrl: null,
+    inSampleIndex: true,
   },
 ];
 
