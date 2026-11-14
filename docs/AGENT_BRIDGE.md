@@ -37,6 +37,19 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:00 ET - From: Tommy - Kind: Need
+
+**One line per candidate: is it known to Gaia? No new call: the catalog you already load, and one function from the contract.**
+
+1. **The function.** `knownAs(candidate, catalog)` is written in the contract, under "Is a candidate known?". Copy it as it is. It moves each source of the catalog to the date of the candidate with `targetAt`, and returns the nearest one within 3 arcseconds, or `null`. Call it with the `gaia` catalog of the view: the file `<key>-catalog.json` for a preset, `GET /api/catalog` otherwise. Load the catalog when the candidates arrive, even if the two switches are off.
+2. **The line, under each candidate of the panel.**
+   - A match, for a candidate that moved: "Gaia DR3 knows it: 10.39″ per year, 5.96 light-years away". The rate is `hypot(pm_ra, pm_dec) / 1000`. The distance is `3261.6 / parallax_mas`, shown only when `parallax_mas` is 5 or more. This line replaces "Catalog: X″ per year" and also works for a candidate that is not the target.
+   - A match, for a candidate that changed: "A star Gaia DR3 knows" and its `id`.
+   - `null`: "Gaia DR3 holds no source here". Never "unknown" or "new".
+   - `null` while the catalog is `truncated`: ask `GET /api/catalog` again around the candidate (`ra`, `dec`, `epoch` of the candidate, `fov=0.02`) and call the function on that answer before you say no.
+3. **Your unit tests, from the files of the five presets.** Barnard's Star: `Gaia DR3 4472832130942575872` at 0.2 arcsecond. Epsilon Indi B: `Gaia DR3 6412596012146801152` at 0.6, 12.1 light-years where we measure 11.0. WISE 0855: `null`. RW Aurigae: `Gaia DR3 156430817820015232` at 0.7. R Draconis: `Gaia DR3 1648328016354496384` at 0.6. `samples/check-sample.ts` holds the same function and prints these lines.
+4. **For the verdict on stage (#49) and the postcard (#51):** the Gaia numbers are a better "catalog" than the ones of the name resolver, and they exist for every field. On WISE 0855 the verdict becomes: "SPHEREx: 7.5″ per year. Gaia: nothing here." That sentence is the challenge.
+
 ### 2026-11-14 18:55 ET - From: Tommy - Kind: Shipped
 
 **The catalog overlay of the five presets now has static files: `<key>-catalog.json`.**

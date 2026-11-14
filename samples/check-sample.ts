@@ -586,8 +586,64 @@ function checkIndex(index: any, folder: string): void {
     if (entry.spectrum) checkListedSpectrum(entry, folder, measured);
     if (entry.candidates) checkListedCandidates(entry, folder, total);
     if (entry.catalog) checkListedCatalog(entry, folder);
+    if (entry.candidates && entry.catalog) checkKnown(entry, folder);
     context = "";
     console.log(`${entry.name}: ${total} frames in ${(entry.detectors ?? []).length} files, ${entry.passes} passes`);
+  }
+}
+
+// Is a candidate known? The source of a catalog that is at the place of the candidate,
+// once moved to the date of the candidate with its own motion. This is the function of
+// the contract: half a SPHEREx pixel is close enough to be the same object.
+function knownAs(candidate: any, catalog: any, withinArcsec = 3): { source: any; separation: number } | null {
+  const date = 51544.5 + (candidate.epoch - 2000) * 365.25;
+  let best: { source: any; separation: number } | null = null;
+  for (const source of catalog.sources ?? []) {
+    const moving = { ra: source.ra, dec: source.dec, epoch: catalog.epoch, pm_ra: source.pm_ra, pm_dec: source.pm_dec };
+    const [ra, dec] = targetAt(moving, date);
+    const east = (((ra - candidate.ra + 540) % 360) - 180) * Math.cos(candidate.dec * DEG) * 3600;
+    const north = (dec - candidate.dec) * 3600;
+    const separation = Math.hypot(east, north);
+    if (separation <= withinArcsec && (best === null || separation < best.separation)) best = { source, separation };
+  }
+  return best;
+}
+
+// The candidates of a target against its catalog file: two files built apart, one from
+// the SPHEREx frames and one from Gaia, that must tell the same sky. A candidate that
+// moved and that Gaia holds must move as Gaia says.
+function checkKnown(entry: any, folder: string): void {
+  let candidates: any;
+  let catalogs: any;
+  try {
+    candidates = JSON.parse(readFileSync(join(folder, entry.candidates.file), "utf8"));
+    catalogs = JSON.parse(readFileSync(join(folder, entry.catalog.file), "utf8"));
+  } catch {
+    return;
+  }
+  context = `${entry.candidates.file} against ${entry.catalog.file}: `;
+  const gaia = (catalogs.catalogs ?? []).find((catalog: any) => catalog.key === "gaia");
+  if (!gaia) return;
+  for (const candidate of candidates.candidates ?? []) {
+    const known = knownAs(candidate, gaia);
+    if (known === null) {
+      console.log(`  ${candidate.kind}: no source of Gaia DR3 within 3 arcseconds${gaia.truncated ? ", among the brightest" : ""}`);
+      continue;
+    }
+    const { source, separation } = known;
+    let said = `  ${candidate.kind}: ${source.id} at ${separation.toFixed(1)} arcsecond`;
+    if (source.pm_ra !== null && source.pm_dec !== null) {
+      const rate = Math.hypot(source.pm_ra, source.pm_dec) / 1000;
+      said += `, ${rate.toFixed(2)} arcsec per year for Gaia`;
+      const motion = candidate.motion;
+      if (candidate.kind === "moved" && motion) {
+        said += `, ${motion.rate_arcsec_per_year} +- ${motion.rate_error_arcsec_per_year} measured`;
+        const east = motion.pm_ra / 1000 - source.pm_ra / 1000;
+        const north = motion.pm_dec / 1000 - source.pm_dec / 1000;
+        check(Math.hypot(east, north) <= 3 * motion.rate_error_arcsec_per_year + 0.1, `the motion measured and the motion of ${source.id} disagree`);
+      }
+    }
+    console.log(said);
   }
 }
 
