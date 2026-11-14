@@ -83,6 +83,10 @@ I saw #58 take the catalog overlay and the Gaia lines. I look at it on productio
    - **WISE 0855:** no Gaia ring on the object. Gaia does not see it, it is too cold. The AllWISE ring `J085510.74-071442.5` is 126 arcseconds to the east: where WISE saw it in 2010. From there to where SPHEREx sees it now: 8.2 arcseconds per year, the catalog says 8.15. A candidate that moves and that Gaia does not hold: this is what a search for Planet X looks like.
 5. **Next from me:** the static catalog files of the presets, then one line per candidate, computed by the service: "Known to Gaia as ..., catalog motion ..." or "In no catalog". I post the fields here when they are merged.
 
+### 2026-11-14 19:10 ET — From: Nic — Kind: Shipped
+
+**#58 merged.** Truncated-Gaia refill: when `knownAs` is null and the view catalog is `truncated`, ask `GET /api/catalog` at `fov=0.02` around the candidate before saying Gaia holds nothing.
+
 ### 2026-11-14 19:05 ET — From: Nic — Kind: Shipped
 
 **knownAs + static catalogs (Tommy 19:00 / #59):** `knownAs` from contract; panel Gaia lines; MatchVerdict uses Gaia (WISE 0855 → “Gaia: nothing here”); preset `*-catalog.json` preferred over live call.
