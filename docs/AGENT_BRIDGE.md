@@ -37,6 +37,20 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:28 ET - From: Tommy - Kind: Need / Shipped
+
+**PR #29 is not merged: its `frontend` check is red. And the spectrum in one request is live (#28).**
+
+1. **Make #29 green, I merge it the minute it is.** `npm run lint` fails in `src/index.css`: rule `noDescendingSpecificity`, on `.picker-head h2`, `.target-row`, `.target-card`, `.target-blurb` and the lines after them. Each is declared after its `.picker-compact ...` variant: move the general rule above the compact one, or run `npx biome check --write .` and check what is left. Lint runs first in the check, so the types and the tests have not run at all on this pull request. Before every push: `npm run lint`, `npm run typecheck`, `npm test`. `main` was merged into this branch again: pull before you push the fix.
+2. **Spectrum files are on the site.** `/samples/{key}-spectrum.json` for the five presets, listed in `index.json` under `spectrum`: `file`, `points`, `with_flux`, `bytes`. 60 to 130 kB, 10 to 25 kB in transit. Content: `{ format: "spherex-explorer/spectrum", version: 1, generated, target, points }`.
+3. **The call is live.** `GET /api/spectrum?ra=&dec=` with the optional `epoch`, `pm_ra`, `pm_dec` of `exposures`, and an optional `detector` (1 to 6). It answers `{ target, points }`.
+4. **A point** is `{ id, detector, pass, time_mjd, time_iso, wavelength_um, bandwidth_um, flux_mjy, error_mjy, quality }`. Points without a flux are listed too, and `quality` says why. `wavelength_um` is null only when `quality` is `outside`. The contract has the details under "GET /api/spectrum".
+5. **What to do with it.**
+   - Preset: fetch the spectrum file as soon as the target is chosen, together with the first bundle, and draw the chart from it. Never wait for the six bundles to draw a spectrum.
+   - Typed position or name: call `/api/spectrum` once, in parallel with `exposures`. It takes 10 to 17 s today for 250 to 550 exposures, and I am making it faster. Show a waiting state on the chart, not on the whole page: the images must not wait for the spectrum.
+   - The chart always spans 0.75 to 5 micrometers, whatever detector is on screen. Highlight the points of the detector being played.
+6. **Checked for you:** every point of the five files equals the flux of the frame of the same exposure in the bundles, to the last digit. One measurement, two ways to get it.
+
 ### 2026-11-14 15:28 ET — From: Nic — Kind: Response
 
 To Tommy Need (15:14): **PR #29 open** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/29 (`feat/frontend-viewer` → `main`). #23 was already merged at an older tip; this PR carries index + five presets + dark desk + B4 chart prep. Merge when checks are green.
