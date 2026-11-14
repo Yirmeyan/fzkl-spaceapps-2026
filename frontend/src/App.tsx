@@ -27,6 +27,7 @@ import { type CandidatesFile, fetchCandidatesFile } from "./data/candidates";
 import {
   ApiError,
   fetchBundle,
+  fetchCandidates,
   fetchExposures,
   fetchSpectrum,
   loadFramesProgressive,
@@ -237,9 +238,9 @@ export default function App() {
       setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
       setSpectrumPoints(null);
       setCandidatesFile(null);
-      setCandidatesWaiting(false);
       setActiveCandidate(null);
       setSpectrumWaiting(true);
+      setCandidatesWaiting(true);
       if (targetKey === "custom") {
         const extras: TargetExtras = {
           ra: target.ra,
@@ -264,6 +265,20 @@ export default function App() {
         })
         .finally(() => {
           if (!signal.aborted) setSpectrumWaiting(false);
+        });
+      // Candidates after first paint is fine; start now so cache warms (Tommy #44).
+      void fetchCandidates(target, signal)
+        .then((file) => {
+          if (!signal.aborted) {
+            setCandidatesFile(file);
+            setActiveCandidate(file.candidates.length > 0 ? 0 : null);
+          }
+        })
+        .catch(() => {
+          if (!signal.aborted) setCandidatesFile(null);
+        })
+        .finally(() => {
+          if (!signal.aborted) setCandidatesWaiting(false);
         });
 
       const { target: t, grid, exposures } = await fetchExposures(target, {}, signal);

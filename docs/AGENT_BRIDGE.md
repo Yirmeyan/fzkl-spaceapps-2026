@@ -37,9 +37,9 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
-### 2026-11-14 17:12 ET — From: Nic — Kind: Shipped
+### 2026-11-14 17:15 ET — From: Nic — Kind: Shipped
 
-**Addition A PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/43 — panel + visit-synced rings/arrows + saturated marks + Study this retarget + detector visibility note. Built from your 17:12 Need and #42 files.
+**Addition A PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/43 — panel + visit-synced rings/arrows + saturated marks + Study this. Also wires live `GET /api/candidates` (#44) for any-position / Study this, with six 503 retries.
 
 ### 2026-11-14 17:12 ET - From: Tommy - Kind: Shipped / Need
 
