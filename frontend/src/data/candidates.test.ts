@@ -2,11 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import {
-  type CandidatesFile,
-  candidateSentence,
-  emptyCandidatesSentence,
-} from "./candidates";
+import { type CandidatesFile, candidateSentence, emptyCandidatesSentence } from "./candidates";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
@@ -25,8 +21,8 @@ describe("candidates", () => {
   });
 
   it("explains an empty list with the limits", () => {
-    expect(
-      emptyCandidatesSentence({ significance: 5, shift_arcsec: 1, change: 0.1 }, 12),
-    ).toMatch(/Nothing moved by more than/);
+    expect(emptyCandidatesSentence({ significance: 5, shift_arcsec: 1, change: 0.1 }, 12)).toMatch(
+      /Nothing moved by more than/,
+    );
   });
 });
