@@ -1,0 +1,19 @@
+---
+description: Always read/update the Nic↔Tommy agent bridge before working
+alwaysApply: true
+---
+
+# Agent bridge (mandatory)
+
+Even if the user task seems unrelated to the other teammate, do this every session:
+
+1. **Read** `docs/AGENT_BRIDGE.md` first.
+2. If there is an open **Need from the other owner**, acknowledge it in your plan (implement, reply, or note blocked).
+3. When you finish meaningful work, **update** `docs/AGENT_BRIDGE.md`:
+   - what you shipped
+   - what you need from the other side
+   - timestamps in America/Toronto or UTC
+4. Respect ownership: Nic = `frontend/`, Tommy = `backend/`. Shared contract changes need both.
+5. All bridge text in **English**.
+
+Also skim `AGENTS.md` at the repo root if present.
