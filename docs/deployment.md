@@ -34,9 +34,9 @@ What depends on the environment is a repository variable on GitHub (Settings, Se
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full name of the identity provider that trusts this repository |
 | `GCP_DEPLOY_SERVICE_ACCOUNT` | Service account the workflow acts as |
 | `GCP_RUNTIME_SERVICE_ACCOUNT` | Service account the service runs as |
-| `SPX_ALLOWED_ORIGINS` | Origins allowed to call the service from a browser, separated by commas, without spaces or quotes. Example: `http://localhost:5173,https://example.org` |
+| `SPX_ALLOWED_ORIGINS` | Web pages allowed to call the service from a browser. `*` for every origin, or origins separated by commas, without spaces or quotes: `http://localhost:5173,https://example.org` |
 
-When the site gets its address, add it to `SPX_ALLOWED_ORIGINS` and start the workflow again.
+The value is `*`: the service is public, read-only, and uses no cookie or account, so any page may read it, including every preview address of the site. What bounds its use is the instance limit of Cloud Run, not this list. To close it again, set the variable to a list of origins and start the workflow again.
 
 ## One-time setup of the Google Cloud project
 

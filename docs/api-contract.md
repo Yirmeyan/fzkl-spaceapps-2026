@@ -323,7 +323,7 @@ Base64 of `size * size` bytes, in the same order as the image. A byte is 0 when 
 | Bit | SPHEREx flag | Our reading of the name |
 | --- | --- | --- |
 | 1 | `TRANSIENT` | Brief event during the exposure, such as a cosmic ray |
-| 2 | `OVERFLOW` | Saturated pixel |
+| 2 | `OVERFLOW` | Pixel that nears saturation and keeps its value, or saturated pixel, which is NaN |
 | 4 | `SUR_ERROR` | The fit that estimates the flux of the pixel failed or is doubtful |
 | 8 | `PERSIST` | Afterglow of a bright source seen in an earlier exposure |
 | 16 | `OUTLIER` | Value far from what is expected |
@@ -351,12 +351,21 @@ The flux of the target, measured by the service on the original pixels, at the p
 | `quality` | Value present | Meaning |
 | --- | --- | --- |
 | `ok` | Yes | Nothing to report |
-| `flagged` | Yes | At least one pixel of the measurement carries a flag. Show the point with a warning |
+| `flagged` | Yes | At least one pixel of the measurement carries a flag, often a pixel that nears saturation. Show the point with a warning |
 | `masked` | No | A pixel of the measurement has no data |
-| `saturated` | No | The object is too bright for SPHEREx in this exposure |
+| `saturated` | No | The heart of the object is saturated: SPHEREx has no value there in this exposure |
 | `outside` | No | The target is off the detector or too close to its edge |
 
-Barnard's Star saturates in the six detectors, so its files hold no flux value. Files with real values come with step B4, which checks the method on an unsaturated star.
+How the flux is measured:
+
+- **A circle and a ring.** The light inside a circle of 2.5 SPHEREx pixels in radius (15.4 arcseconds) around the target, minus the sky, which is the median of a ring from 5 to 8 pixels.
+- **A correction for the light outside the circle.** The circle catches 97.6 to 98.5 percent of the light of a point source, depending on the detector. The flux is divided by that share, taken from the PSF model each SPHEREx file carries. This puts it on the scale of a fit of that PSF, the method of the SPHEREx spectrophotometry tool of the archive.
+- **An honest uncertainty.** `error_mjy` adds two terms: the noise given by the variance plane of the file, and the scatter measured between exposures of steady stars, 2 percent of the flux. The second term is 5 percent when a pixel of the circle nears saturation.
+- **Near saturation is not saturation.** A pixel flagged `OVERFLOW` that still has a value is used, as the SPHEREx spectrophotometry tool of the archive does, and the point is `flagged`. When the heart of the object has no value left, the quality is `saturated` and there is no flux.
+- **One number per frame, at the wavelength of the frame.** It is a flux density. Plot `flux_mjy` against `wavelength_um` for a spectrum, and against `time_mjd` inside one detector for a light curve.
+- **A crowded field biases it.** Every source inside the circle is counted, and bright sources in the ring raise the sky.
+
+What to expect on the test targets: Barnard's Star is saturated in almost every frame. RW Aurigae nears saturation, so most of its points are `flagged`.
 
 ## The bundle
 
@@ -459,7 +468,7 @@ Stable, safe to build on: the calls, the names of the parameters and of the fiel
 
 Provisional, the values can change but not the shape:
 
-- The photometry method. Today: a circular aperture of 2.5 SPHEREx pixels in radius (15.4 arcseconds), a sky ring from 5 to 8 pixels, the uncertainty from the variance plane of the file, no aperture correction. The service applies it since step B3. It is checked on an unsaturated star and finalized at step B4.
+- The constants of the photometry: the share of the light inside the circle for each detector, and the two scatter terms of the uncertainty. The method is final since step B4.
 - The list of flags that turn a pixel into NaN.
 - The estimate of `background`. The SPHEREx files carry a model of the zodiacal light that may replace the median.
 - The limits of `fov` and `size`, the cache durations and the number of parallel requests.
@@ -490,5 +499,15 @@ On the sample, generated from the public SPHEREx files on November 14, 2026:
 | Formulas | `target_xy` recomputed with the TypeScript functions above matches the file within 0.005 pixel on the 62 frames |
 | Dates | The frame dates are within 0.06 second of the archive index |
 | Precision | 16 bits against 32 bits: at most 0.7% of the noise on sky pixels |
+
+The flux, checked at step B4 on stars of known brightness:
+
+| Check | Result |
+| --- | --- |
+| Scale | 8 steady stars of K magnitude 9.3 to 11.2, in three fields, 1,967 clean exposures. Compared with 2MASS (J, H, Ks) and AllWISE (W1, W2) in 38 pairs of star and band: the median of measured over catalog is 0.998, against 0.982 before the correction. 33 pairs of 38 are within 5 percent, all within 9 |
+| Band by band | J 0.98, H 1.01, Ks 1.02, W1 1.00, W2 1.00 |
+| Scatter between exposures | 1 to 3 percent for a steady star, where the variance of the file alone predicts 0.3 to 1 percent. Hence the 2 percent term of `error_mjy` |
+| Near saturation | A star of about 1 Jy whose pixels all carry `OVERFLOW`: 2 to 5 percent above 2MASS, with 4 to 5 percent of scatter between exposures. Hence the 5 percent term |
+| PSF model | The same in files of 2025 and 2026 and in both data releases, for the three detectors compared. Its share inside the circle varies by less than 0.01 across a detector |
 
 `node samples/check-sample.ts samples/barnard-star-d2.json --bright-star` replays the checks that need no network. `node samples/check-sample.ts samples/index.json` checks every file of the index.

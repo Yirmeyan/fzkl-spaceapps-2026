@@ -10,6 +10,8 @@ _LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 _COLLECTION_NAME = re.compile(r"[a-z0-9_]+")
 # The bucket and its region become part of an address: nothing else than these characters.
 _STORAGE_NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
+# Stands for every origin in the list of origins a browser may call the service from.
+_EVERY_ORIGIN = "*"
 
 
 def _split(value: str) -> list[str]:
@@ -24,7 +26,7 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     log_level: str = "INFO"
-    allowed_origins: str = "http://localhost:5173"
+    allowed_origins: str = "*"
 
     # Exposure search of the IRSA archive.
     sia_url: str = "https://irsa.ipac.caltech.edu/SIA"
@@ -69,9 +71,15 @@ class Settings(BaseSettings):
     @field_validator("allowed_origins")
     @classmethod
     def _check_origins(cls, value: str) -> str:
-        for origin in _split(value):
+        origins = _split(value)
+        if origins == [_EVERY_ORIGIN]:
+            return _EVERY_ORIGIN
+        for origin in origins:
             if not origin.startswith(("http://", "https://")):
-                raise ValueError(f"origin must start with http:// or https://, got {origin!r}")
+                raise ValueError(
+                    f"origins are {_EVERY_ORIGIN!r} alone or start with http:// or https://, "
+                    f"got {origin!r}"
+                )
         return value
 
     @field_validator("sia_url")
@@ -130,7 +138,7 @@ class Settings(BaseSettings):
 
     @property
     def allowed_origin_list(self) -> list[str]:
-        """Origins allowed to call the API from a browser."""
+        """Origins allowed to call the API from a browser. ["*"] means every origin."""
         return _split(self.allowed_origins)
 
 

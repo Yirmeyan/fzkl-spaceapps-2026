@@ -18,6 +18,15 @@ def test_origin_without_scheme_is_rejected():
         Settings(_env_file=None, allowed_origins="example.org")
 
 
+def test_every_origin_is_allowed_by_default():
+    assert Settings(_env_file=None).allowed_origin_list == ["*"]
+
+
+def test_star_cannot_be_mixed_with_a_list_of_origins():
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, allowed_origins="*,https://a.example")
+
+
 def test_unknown_log_level_is_rejected():
     with pytest.raises(ValidationError):
         Settings(_env_file=None, log_level="LOUD")

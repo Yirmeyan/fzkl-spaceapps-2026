@@ -47,6 +47,14 @@ def test_allowed_origin_gets_cors_header():
     assert response.headers["access-control-allow-origin"] == "https://site.example"
 
 
+def test_every_origin_is_allowed_by_default():
+    response = make_client().get("/api/health", headers={"Origin": "https://anyone.example"})
+
+    assert response.headers["access-control-allow-origin"] == "*"
+    # No cookie and no account: a page of another origin reads public data, nothing else.
+    assert "access-control-allow-credentials" not in response.headers
+
+
 def test_other_origin_gets_no_cors_header():
     client = make_client(allowed_origins="https://site.example")
 

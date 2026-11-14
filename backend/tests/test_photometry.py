@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from level2_file import PIXEL_AREA_SR, star
-from spherex_explorer.photometry import measure
+from spherex_explorer.photometry import measure, share_inside_circle
 from spherex_explorer.photometry.aperture import APERTURE_RADIUS
 
 SHAPE = (41, 41)
@@ -27,7 +27,43 @@ def test_flux_of_a_star_is_the_light_inside_the_circle_minus_the_sky():
 
     assert result.quality == "ok"
     assert result.flux_mjy == pytest.approx(INSIDE * TOTAL_MJY, rel=0.02)
-    assert 0 < result.error_mjy < 0.01 * result.flux_mjy
+
+
+def test_flux_is_divided_by_the_share_of_the_light_the_circle_catches():
+    whole = measure(*scene(), PIXEL_AREA_SR)
+    corrected = measure(*scene(), PIXEL_AREA_SR, share_inside=0.98)
+
+    assert corrected.flux_mjy == pytest.approx(whole.flux_mjy / 0.98)
+    assert corrected.error_mjy == pytest.approx(whole.error_mjy / 0.98)
+
+
+@pytest.mark.parametrize("detector", [1, 2, 3, 4, 5, 6])
+def test_circle_catches_about_98_percent_of_a_point_source_in_every_detector(detector):
+    assert 0.97 < share_inside_circle(detector) < 0.99
+
+
+def test_share_of_a_detector_that_does_not_exist_is_refused():
+    with pytest.raises(ValueError, match="detector 7"):
+        share_inside_circle(7)
+
+
+def test_uncertainty_of_a_bright_star_is_the_scatter_between_exposures():
+    result = measure(*scene(), PIXEL_AREA_SR)
+
+    # The noise of the file is far below 1 percent here: what is left is the 2 percent
+    # by which exposures of a steady star differ.
+    assert result.error_mjy == pytest.approx(0.02 * result.flux_mjy, rel=0.05)
+
+
+def test_uncertainty_of_a_faint_star_is_the_noise_of_the_file():
+    image, variance, mask, no_value, saturated, x, y = scene()
+    image = SKY + np.random.default_rng(7).normal(0, 0.02, SHAPE) + star(SHAPE, x, y, 0.05, SIGMA)
+    image = image.astype("f4")
+
+    result = measure(image, variance, mask, no_value, saturated, x, y, PIXEL_AREA_SR)
+
+    noise = 0.02 * np.sqrt(np.pi * APERTURE_RADIUS**2) * PIXEL_AREA_SR * 1e9
+    assert result.error_mjy == pytest.approx(noise, rel=0.15)
 
 
 def test_flux_does_not_depend_on_where_the_star_falls_inside_a_pixel():
@@ -56,6 +92,28 @@ def test_saturated_pixel_in_the_circle_gives_no_value():
     result = measure(image, variance, mask, no_value, saturated, x, y, PIXEL_AREA_SR)
 
     assert (result.flux_mjy, result.error_mjy, result.quality) == (None, None, "saturated")
+
+
+def test_pixel_that_nears_saturation_keeps_the_value_with_a_warning_and_a_wider_uncertainty():
+    image, variance, mask, no_value, saturated, x, y = scene()
+    saturated[20, 20] = True
+    mask[20, 20] = 2
+
+    result = measure(image, variance, mask, no_value, saturated, x, y, PIXEL_AREA_SR)
+
+    assert result.quality == "flagged"
+    assert result.flux_mjy == pytest.approx(INSIDE * TOTAL_MJY, rel=0.02)
+    assert result.error_mjy == pytest.approx(0.05 * result.flux_mjy, rel=0.05)
+
+
+def test_overflowing_pixel_declared_unusable_counts_as_saturated():
+    image, variance, mask, no_value, saturated, x, y = scene()
+    saturated[20, 20] = True
+    no_value[20, 20] = True
+
+    result = measure(image, variance, mask, no_value, saturated, x, y, PIXEL_AREA_SR)
+
+    assert (result.flux_mjy, result.quality) == (None, "saturated")
 
 
 @pytest.mark.parametrize("damage", ["hole", "unusable", "no variance"])

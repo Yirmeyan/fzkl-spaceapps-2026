@@ -68,5 +68,5 @@ def has_no_value(flags: np.ndarray, plan: FlagPlan) -> np.ndarray:
 
 
 def is_saturated(flags: np.ndarray, plan: FlagPlan) -> np.ndarray:
-    """Pixels the file marks as saturated."""
+    """Pixels the file flags as overflowing: near saturation with a value, saturated without."""
     return ((flags.astype(np.int64) & _EVERY_BIT) & plan.saturated) != 0
