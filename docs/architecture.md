@@ -142,7 +142,7 @@ The contract is three calls and one unit of data, the frame. It is written in fu
 | Call | Response | Measured time | Cache |
 | --- | --- | --- | --- |
 | `GET /api/resolve?name=` | Position and proper motion of a named object | 1.5 s | 1 day |
-| `GET /api/exposures?ra=&dec=` | The grid of the view and the exposures that cover the position: identifier, date, detector, pass, data release | 1.6 s | 1 hour |
+| `GET /api/exposures?ra=&dec=` | The grid of the view and the exposures that cover the position: identifier, date, detector, pass, data release | 1.5 s, 3 s for a moving target | 1 hour |
 | `GET /api/frames/{id}?ra=&dec=` | One frame | 0.4 s | 1 day while the pipeline changes, much longer once it is frozen |
 | `GET /api/health` | Service status | Immediate | None |
 

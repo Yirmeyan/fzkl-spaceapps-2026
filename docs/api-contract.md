@@ -5,7 +5,7 @@ The agreement between the Python service (`backend/`) and the browser (`frontend
 - **Version:** 1, written at step S1 of the [architecture plan](architecture.md).
 - **Changes:** through a pull request approved by the other teammate.
 - **Compatibility:** fields can be added at any time, so a client ignores the fields it does not know. Renaming or removing a field changes `version`.
-- **Status:** the service answers `GET /api/health` today. The other calls arrive with steps B1 to B5 and will follow this document.
+- **Status:** the service answers `GET /api/health` and `GET /api/exposures` today. The other calls arrive with steps B2 to B5 and will follow this document.
 
 ## The idea in one minute
 
@@ -21,10 +21,10 @@ The five test targets skip questions 2 and 3: a static file, the [bundle](#the-b
 | --- | --- | --- |
 | `GET /api/health` | Service status | Immediate |
 | `GET /api/resolve?name=` | A target | 1.5 s |
-| `GET /api/exposures?ra=&dec=` | A target, a grid and a list of exposures | 1.6 s |
+| `GET /api/exposures?ra=&dec=` | A target, a grid and a list of exposures | 1.5 s, 3 s for a moving target |
 | `GET /api/frames/{id}?ra=&dec=` | One frame | 0.4 s |
 
-The times are those of the underlying requests, measured from a laptop before the service existed.
+The time of `exposures` is measured on the service. The others are those of the underlying requests, measured from a laptop before the service existed.
 
 ## Conventions
 
@@ -196,9 +196,12 @@ Lists the SPHEREx exposures that cover the target, and sets the grid of the view
 | `time_mjd`, `time_iso` | number, string | Middle of the exposure, from the archive index. The frame carries the value read in the file, less than a second away |
 
 - The list is sorted by time, then by detector.
+- It holds every exposure whose image comes within 0.01 degree (36 arcseconds) of the target. A few of them miss the target itself: their frame says `outside`.
+- A target with a proper motion is searched where it was when SPHEREx observed it. That takes two searches of the archive instead of one, and the answer does not depend on the day of the request.
 - A place SPHEREx never observed gives an empty list. It is not an error.
 - The center of the grid is the position of the target at the middle of the period covered by the list. For an object with no proper motion, it is the position that was asked.
 - For Barnard's Star, the list holds 364 exposures in 3 passes, 59 to 62 per detector.
+- The archive usually answers in 2 seconds and sometimes in 20. It also fails in bursts of a few seconds, and the service then tries again, which can add up to 12 seconds. The service waits up to 45 seconds in total, then answers 503 with a `Retry-After` header.
 
 Passes are what reveals a moving object: it is at the same place within a pass and at another place in the next one.
 
@@ -415,6 +418,7 @@ Provisional, the values can change but not the shape:
 - The list of flags that turn a pixel into NaN.
 - The estimate of `background`. The SPHEREx files carry a model of the zodiacal light that may replace the median.
 - The limits of `fov` and `size`, the cache durations and the number of parallel requests.
+- The search radius of `exposures`, and its limit of 5000 exposures per answer. Nothing tells the client today that a list was cut. The deepest fields, near the ecliptic poles, are the only places that could reach it.
 
 Planned after the MVP: `GET /api/catalog`, the Gaia sources of the view moved to a given date.
 
