@@ -421,7 +421,7 @@ How the flux is measured:
 - **One number per frame, at the wavelength of the frame.** It is a flux density. Plot `flux_mjy` against `wavelength_um` for a spectrum, and against `time_mjd` inside one detector for a light curve.
 - **A crowded field biases it.** Every source inside the circle is counted, and bright sources in the ring raise the sky.
 
-What to expect on the five test targets is in [`samples/README.md`](../samples/README.md#the-five-targets). In short: Epsilon Indi B has clean points, RW Aurigae nears saturation so most of its points are `flagged`, WISE 0855 is at the noise level in a single frame, Barnard's Star only has points beyond 3.8 micrometers, and R Draconis is saturated everywhere.
+What to expect on the five test targets is in [`samples/README.md`](../samples/README.md#the-five-targets). In short: Epsilon Indi B has clean points, RW Aurigae nears saturation so most of its points are `flagged`, WISE 0855 is at the noise level in a single frame, Barnard's Star only has points beyond 3.8 micrometers, and R Draconis is saturated everywhere. What R Draconis did between its visits is read on its halo instead: see [Candidates](#a-star-too-bright-is-followed-through-its-halo).
 
 ## The bundle
 
@@ -533,6 +533,7 @@ The five test targets have the answer in a static file, `<key>-candidates.json`,
   "candidates": [
     {
       "kind": "moved",
+      "method": "source",
       "confidence": "high",
       "significance": 77.7,
       "is_target": true,
@@ -580,13 +581,14 @@ One candidate:
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `kind` | string | `moved` or `changed`. Other kinds can be added: ignore the ones you do not know |
+| `method` | string | What was measured: `source`, the object itself, or `halo`, the light around a star too bright to be measured. See [a star too bright](#a-star-too-bright-is-followed-through-its-halo). Other methods can be added |
 | `confidence` | string | `high` or `medium`. See below |
 | `significance` | number | How many times its uncertainty the motion, or the clearest change, is |
 | `is_target` | boolean | The candidate is where the catalog puts the target at the date of each visit |
 | `ra`, `dec`, `xy` | numbers | Mean place over the visits, on the sky and on the grid of the file |
 | `epoch` | number | Date of that place, as a Julian year: the middle of the sightings |
 | `detectors` | integers | Detectors the measurement rests on |
-| `track[]` | objects | Where the source was in each visit: `pass`, date, `ra`, `dec`, `xy`, `error_arcsec` along each axis, `detectors` |
+| `track[]` | objects | Where the source was in each visit: `pass`, date, `ra`, `dec`, `xy`, `error_arcsec` along each axis, `detectors`. With the method `halo` it is the saturated heart at every visit, and `error_arcsec` is its radius |
 | `motion` | object or null | The fitted motion. Present for `moved` only |
 | `changes[]` | objects | The clearest change of each detector that shows one, the clearest first. Empty unless the brightness changed |
 
@@ -626,13 +628,24 @@ To show a candidate, draw `track` on the image: `xy` is on the default grid, and
 
 `confidence` is `high` when the significance is 10 or more and, for a motion, when the source was followed over three visits or more. Otherwise it is `medium`.
 
+### A star too bright is followed through its halo
+
+A star that saturates has no value left at its heart, and the spectrum call gives it no flux. Its light still spreads far around it, and that halo is as bright as the star is: when the star fades by half, so does its halo. SPHEREx flags these pixels `HALO` and keeps their value.
+
+- **Two rings.** The brightness of the halo is the median of a ring around the heart, minus the median of a ring far from the star, which removes the sky. The first ring starts 17 arcseconds outside the saturated heart and never closer than 37 arcseconds to the star. A second ring starts where the first one ends. Medians ignore the neighbors of the star and its spikes, which turn with the telescope.
+- **Same rule as any change.** Two visits are compared at equal wavelengths, in each detector the star saturates, and a change must show in two detectors at 5 sigma and 10 percent.
+- **What a halo does by itself.** The halo of a steady star is not perfectly steady. On fifteen saturated stars that are not known to change much, 205 comparisons of two visits, its usual wander is 4 percent in detectors 4 to 6 and 10 percent in detectors 1 to 3. The uncertainty of a change holds 5 and 15 percent for it, the scatter of the frames, and what the two rings disagree by. Now and then one detector alone jumps by much more, up to 50 percent in the giant Psi Ursae Majoris: the rule of the two detectors is there for that.
+- **What is read, and what is not.** The ratio is that of the star between two visits. It is not a flux: `changes` has no unit. A change the second ring cannot confirm is dropped, and so is a star whose rings leave the image by more than a third.
+- **One star, one candidate.** A star that saturates some detectors only is followed as a source in the others. When that already makes it a candidate, its halo is not reported a second time.
+
 ### What is not claimed
 
 - A shift under 1 arcsecond, a sixth of a SPHEREx pixel, or a change under 10 percent.
 - A star that nears saturation and moves slowly. Its position is only trusted to 0.8 arcsecond, so it has to move by several arcseconds: Ross 128, at 1.4 arcsecond per year, is missed.
-- Anything within reach of a saturated star, in the glare of a star thousands of times brighter, or closer than 20 arcseconds to the edge of the view.
+- Anything else within reach of a saturated star, in the glare of a star thousands of times brighter, or closer than 20 arcseconds to the edge of the view.
 - A source with a neighbor closer than 22 arcseconds and at least a third as bright, in the detectors that show both.
-- A star saturated in all its detectors: it is listed in `saturated`, as R Draconis is.
+- The motion or the flux of a star in the detectors it saturates. Only a change of its halo is, and in practice a change of a quarter or more: the halo of a steady star wanders by itself.
+- The halo of a star so bright that its saturated heart reaches more than 50 arcseconds from its center, or of a saturated star near the edge of the view. Such a star is listed in `saturated` and nothing more is said.
 - An object that crosses more than the field between two visits. A planet of the solar system would: its parallax is hundreds of times that of a star. Such an object shows in one visit only, which this version does not report.
 
 A candidate is a measurement that stands out, not a discovery. Say "candidate" on screen.
@@ -722,7 +735,7 @@ The flux, checked at step B4 on stars of known brightness:
 | Near saturation | A star of about 1 Jy whose pixels all carry `OVERFLOW`: 2 to 5 percent above 2MASS, with 4 to 5 percent of scatter between exposures. Hence the 5 percent term |
 | PSF model | The same in files of 2025 and 2026 and in both data releases, for the three detectors compared. Its share inside the circle varies by less than 0.01 across a detector |
 
-The candidates, checked on November 14, 2026 on the frames of 58 fields. The detection is never told where to look. Rates are in arcseconds per year, parallaxes in arcseconds, and the catalog values are those of SIMBAD.
+The candidates, checked on November 14, 2026 on the frames of 74 fields: 58 for the sources, and 16 more for the halo of saturated stars. The detection is never told where to look. Rates are in arcseconds per year, parallaxes in arcseconds, and the catalog values are those of SIMBAD.
 
 | Field | Result | Measured | Catalog |
 | --- | --- | --- | --- |
@@ -730,7 +743,7 @@ The candidates, checked on November 14, 2026 on the frames of 58 fields. The det
 | Epsilon Indi B | `moved`, high | 4.63 ± 0.06, parallax 0.30 ± 0.04 | 4.68, 0.271 |
 | WISE 0855 | `moved`, medium, detectors 5 and 6 | 7.5 ± 0.9 | 8.15 |
 | RW Aurigae | `changed`, high | Half as bright from 3.8 to 5 micrometers, 1.3 to 1.4 times brighter under 1.6 | A T Tauri star known for its deep fadings |
-| R Draconis | Listed as saturated in the six detectors | | |
+| R Draconis | `changed`, medium, read on its halo: it saturates the six detectors | Halo at 0.45 of its brightness from 4.4 to 5 micrometers between June 2025 and June 2026, at 0.56 from 2.4 to 3.8 | A Mira variable of 246 days in the AAVSO index: just past its maximum at the first visit, near its minimum at the last |
 | Teegarden's Star | `moved`, high | 4.92 ± 0.14, parallax 0.25 ± 0.05 | 5.12, 0.261 |
 | Luhman 16 | `moved`, high | 2.84 ± 0.09, parallax 0.47 ± 0.04 | 2.79, 0.502 |
 | SCR J1845-6357 | `moved`, high | 2.58 ± 0.10, parallax 0.25 ± 0.04 | 2.65, 0.250 |
@@ -751,10 +764,15 @@ The candidates, checked on November 14, 2026 on the frames of 58 fields. The det
 | A place of the Milky Way taken at random (280.0, 0.0) | One `changed`, high, in five detectors | 0.2 arcsecond from IRAS 18372-0002 | A long-period variable: 354 days in the AAVSO index, and one of the variables of Gaia DR3 |
 | Toward the center of the Milky Way (270.0, -25.0) | Three `changed`, high, in three or four detectors each | One is 0.6 arcsecond from a long-period variable of Gaia DR3 | The two others are in none of the three catalogs asked: unconfirmed |
 | Two other places of the Milky Way | No candidate | | |
+| S Coronae Borealis, R Bootis, R Canum Venaticorum, T Herculis, U Ursae Minoris | `changed`, read on their halo: they saturate the six detectors | Between two visits, 1.4 to 2.8 times brighter or fainter from 2.4 to 5 micrometers, and up to 11 times under 1.1 | Mira variables of the AAVSO index. Each change goes the way the period and the date of maximum of the index predict |
+| R Ursae Majoris, R Trianguli, V Coronae Borealis | Not claimed. Their halo changes by a quarter to a half, under the rule | | Mira variables of the AAVSO index |
+| Eta, Xi, Iota and Epsilon Draconis, Epsilon Virginis, Kappa Ophiuchi, Mu Leonis, Psi Ursae Majoris | No candidate. They saturate the six detectors | | Giants of type G7 to K2, steady to a few hundredths of a magnitude where the AAVSO index gives a range |
 
 - **16 of the 17 stars that move by more than 1 arcsecond were found,** each with a rate within two sigma of its catalog. The seven parallaxes measured are within one sigma of theirs. They are a twelfth to a thirtieth of a SPHEREx pixel.
 - **How these numbers were reached matters as much as the numbers.** The method was built on the first 18 fields. It was then run on 19 fresh ones: it found five of six moving stars, and raised two false alarms of medium confidence. Three rules came out of it: a position needs a source seen at 4 sigma, a path that cannot be checked needs twice the evidence, and a bad fit is one that chance does not explain.
 - **One round was blind.** 21 more fields were chosen before the run and run once. The three stars that move by more than 1 arcsecond were found, the two slower ones were left alone, and 15 quiet fields of 16 gave nothing. The sixteenth gave one false alarm, of high confidence: a source cut by the edge of the view. Positions that close to the edge are now refused.
 - With that last rule, the 58 fields give the table above and no false alarm among 1,394 sources. That count is not blind: the rule came from the blind round.
+- **The halo of saturated stars had its own blind round.** The method was set on the saturated stars of the 58 fields: R Draconis, and seven stars that are not known to change much. Then 16 stars that saturate the six detectors were chosen before the run and run once: the last three rows of the table. Five of the eight variables were flagged, and none of the eight giants. The three variables left out do change, the way their period predicts for two of them, but pass the rule in one detector at most. Nothing was changed after that round.
+- **A halo and a direct measurement agree.** IRAS 18372-0002, the variable of the Milky Way field above, saturates detector 4 alone. Between its second and third visits its halo there fades to 0.69 ± 0.12 of its brightness. Measured directly in detectors 5 and 6, the star fades to 0.75 and to 0.63.
 
 `node samples/check-sample.ts samples/barnard-star-d2.json --bright-star` replays the checks that need no network. `node samples/check-sample.ts samples/index.json` checks every file of the index.

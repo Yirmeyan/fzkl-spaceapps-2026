@@ -3,7 +3,16 @@
 import numpy as np
 import pytest
 
-from made_up_field import NOISE, OVERFLOW, SIZE, field_frames, seasons, star, steady_stars
+from made_up_field import (
+    NOISE,
+    OVERFLOW,
+    SIZE,
+    add_bright_star,
+    field_frames,
+    seasons,
+    star,
+    steady_stars,
+)
 from spherex_explorer.detection import (
     CHANGED,
     HIGH,
@@ -13,6 +22,7 @@ from spherex_explorer.detection import (
     find_candidates,
     measure_field,
 )
+from spherex_explorer.detection.candidates import _clear_changes
 from spherex_explorer.detection.field import _as_sure_as
 from spherex_explorer.detection.sources import (
     MARGIN,
@@ -335,6 +345,92 @@ def test_a_saturated_star_is_reported_and_nothing_is_measured_around_it():
     assert {sighting.detectors for sighting in bright.sightings} == {(5,)}
     # The neighbor ten pixels away changes, and is lost in the light of the star.
     assert find_candidates(field) == ()
+
+
+def bright_field(detector, visit, wavelength):
+    return [*steady_stars(), (48.0, 48.0, 5000.0)]
+
+
+def fading(visit: int) -> float:
+    return 10.0 * (0.5 if visit == 3 else 1.0)
+
+
+def test_a_saturated_star_whose_halo_fades_is_a_candidate():
+    frames = field_frames(bright_field, detectors=(4, 5))
+    add_bright_star(frames, 48.0, 48.0, fading, saturating=(4, 5))
+
+    field = measure_field(frames)
+    candidates = find_candidates(field)
+
+    assert [(found.kind, found.confidence, found.halo) for found in candidates] == [
+        (CHANGED, HIGH, True)
+    ]
+    found = candidates[0]
+    assert {change.detector for change in found.changes} == {4, 5}
+    assert all(change.to_pass == 3 for change in found.changes)
+    assert found.changes[0].ratio == pytest.approx(0.5, abs=0.03)
+    # Of the star itself only the heart is known: no motion, and a place to its radius.
+    heart = field.saturated[0]
+    assert found.source.motion is None
+    assert [(seen.x, seen.y, seen.error) for seen in found.source.sightings] == [
+        (heart.x, heart.y, heart.radius)
+    ] * 3
+
+
+def test_a_saturated_star_with_a_steady_halo_is_not_a_candidate():
+    frames = field_frames(bright_field, detectors=(4, 5))
+    add_bright_star(frames, 48.0, 48.0, lambda visit: 10.0, saturating=(4, 5))
+
+    field = measure_field(frames)
+
+    changes = field.saturated[0].changes
+    assert len(changes) == 6
+    assert all(change.ratio == pytest.approx(1.0, abs=0.03) for change in changes)
+    assert max(change.significance for change in changes) < 1
+    assert find_candidates(field) == ()
+
+
+@pytest.mark.parametrize(("detectors", "claimed"), [((4, 5), True), ((2, 3), False)])
+def test_a_halo_must_change_more_where_halos_are_less_steady(detectors, claimed):
+    frames = field_frames(bright_field, detectors=detectors)
+    add_bright_star(
+        frames, 48.0, 48.0, lambda visit: 10.0 * (0.6 if visit == 3 else 1.0), saturating=detectors
+    )
+
+    assert bool(find_candidates(measure_field(frames))) is claimed
+
+
+def test_a_change_that_one_ring_alone_shows_is_not_believed():
+    # Light reflected inside the instrument, close to the star, during one visit: the
+    # first ring brightens, the second one does not.
+    frames = field_frames(bright_field, detectors=(4, 5))
+    add_bright_star(frames, 48.0, 48.0, lambda visit: 10.0, saturating=(4, 5))
+    rows, columns = np.mgrid[0:SIZE, 0:SIZE]
+    close = np.hypot(columns - 48.0, rows - 48.0) < 20
+    for frame in frames:
+        if frame.pass_number == 3:
+            frame.image[close] += 0.1
+
+    field = measure_field(frames)
+
+    assert max(change.ratio for change in field.saturated[0].changes) > 1.5
+    assert find_candidates(field) == ()
+
+
+def test_a_star_followed_where_it_does_not_saturate_is_one_candidate():
+    def scene(detector, visit, wavelength):
+        return [*steady_stars(), (48.0, 48.0, 5000.0 * (0.5 if visit == 3 else 1.0))]
+
+    frames = field_frames(scene, detectors=(2, 3, 4, 5))
+    add_bright_star(frames, 48.0, 48.0, fading, saturating=(4, 5))
+
+    field = measure_field(frames)
+    candidates = find_candidates(field)
+
+    # The halo alone would make it a candidate: the star itself already is one.
+    assert {change.detector for change in _clear_changes(field.saturated[0])} == {4, 5}
+    assert [(found.kind, found.halo) for found in candidates] == [(CHANGED, False)]
+    assert {change.detector for change in candidates[0].changes} == {2, 3}
 
 
 def test_a_star_near_saturation_has_a_less_certain_position():

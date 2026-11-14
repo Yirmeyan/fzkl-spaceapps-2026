@@ -8,7 +8,13 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from spherex_explorer.detection.field import Change, Field, FieldSource
+from spherex_explorer.detection.field import (
+    Change,
+    Field,
+    FieldSource,
+    SaturatedStar,
+    Sighting,
+)
 
 MOVED = "moved"
 CHANGED = "changed"
@@ -36,6 +42,10 @@ _VISITS_TO_BE_FIRM = 3
 # A source that both moved by less than this and changed is reported as changed: the
 # center of light of a close pair shifts when one of the two fades.
 _SHIFT_OF_A_PAIR = 3.0 / 2.8125
+# A star that saturates some detectors only is followed as a source in the others. A
+# candidate this close to its heart, in pixels beyond the radius of the heart, is the
+# same star: its halo is not reported a second time.
+_BESIDE_THE_HEART = 3.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,7 +53,8 @@ class Candidate:
     """A source that stands out, why, and how surely.
 
     `changes` holds, for a source whose light changed, the clearest change of each
-    detector that shows one, the clearest first.
+    detector that shows one, the clearest first. `halo` tells that the source is a
+    saturated star, followed through the light around its heart.
     """
 
     kind: str
@@ -51,9 +62,10 @@ class Candidate:
     significance: float
     source: FieldSource
     changes: tuple[Change, ...]
+    halo: bool = False
 
 
-def _clear_changes(source: FieldSource) -> tuple[Change, ...]:
+def _clear_changes(source: FieldSource | SaturatedStar) -> tuple[Change, ...]:
     """The clearest change of each detector, when clear enough to be claimed."""
     best: dict[int, Change] = {}
     for change in source.changes:
@@ -66,8 +78,34 @@ def _clear_changes(source: FieldSource) -> tuple[Change, ...]:
     return tuple(sorted(best.values(), key=lambda change: -change.significance))
 
 
+def _claimed_already(star: SaturatedStar, candidates: list[Candidate]) -> bool:
+    """Is one of the candidates this saturated star, followed where it does not saturate?"""
+    reach = star.radius + _BESIDE_THE_HEART
+    return any(
+        np.hypot(candidate.source.x - star.x, candidate.source.y - star.y) <= reach
+        for candidate in candidates
+    )
+
+
+def _as_source(star: SaturatedStar, field: Field) -> FieldSource:
+    """A saturated star as a source seen at every visit.
+
+    Of such a star only the place of the heart is known, to its radius: that radius
+    stands for the uncertainty of each position, and no motion is measured.
+    """
+    seen = tuple(
+        Sighting(visit.pass_number, visit.time_mjd, star.x, star.y, star.radius, star.detectors)
+        for visit in field.visits
+    )
+    return FieldSource(star.x, star.y, 0.0, seen, None, star.changes)
+
+
 def find_candidates(field: Field) -> tuple[Candidate, ...]:
-    """The sources of a field that moved or changed, the surest first."""
+    """The sources of a field that moved or changed, the surest first.
+
+    A saturated star has no source to follow in the detectors it saturates. It is a
+    candidate when its halo changed, under the rule every change is held to.
+    """
     candidates = []
     for source in field.sources:
         motion = source.motion
@@ -85,4 +123,13 @@ def find_candidates(field: Field) -> tuple[Candidate, ...]:
             followed = checked and len(source.sightings) >= _VISITS_TO_BE_FIRM
             confidence = HIGH if followed and motion.significance >= _FIRM else MEDIUM
             candidates.append(Candidate(MOVED, confidence, motion.significance, source, changes))
+    for star in field.saturated:
+        changes = _clear_changes(star)
+        if len(changes) < _DETECTORS_NEEDED or _claimed_already(star, candidates):
+            continue
+        significance = changes[0].significance
+        confidence = HIGH if significance >= _FIRM else MEDIUM
+        candidates.append(
+            Candidate(CHANGED, confidence, significance, _as_source(star, field), changes, True)
+        )
     return tuple(sorted(candidates, key=lambda candidate: -candidate.significance))

@@ -34,7 +34,7 @@ What to expect when you draw them:
 - **Epsilon Indi B** is a pair of brown dwarfs that drifts by 0.6 pixel in x and 0.4 in y per pass. It is faint enough to be measured cleanly, and its spectrum is the most telling of the five: bright near 1.3, 1.6, 2.1 and 4.0 micrometers, up to 60 mJy, with deep bands in between where the water and the methane of its atmosphere absorb the light.
 - **WISE 0855** is the coldest and the fastest: 1.5 pixel per pass toward the west. No single frame shows it. It is only bright enough near 4.5 to 5 micrometers, in detector 6, about 0.5 mJy for a noise of 0.24 per frame: stack the frames of a pass to see it. Below 4 micrometers, the flux in its circle is that of a faint star of the background, not of the object.
 - **RW Aurigae** is a young variable star that does not move, and its light changes between passes. From 4.4 to 5 micrometers its flux drops from 3.2 to 2.1, then to 1.5 Jy, while it rises from 0.16 to 0.24 Jy below 1.1 micrometer. Its pixels near saturation, so most of its points are `flagged`: their value is good to about 5 percent.
-- **R Draconis** is a variable giant, far too bright for SPHEREx: its heart is saturated in every detector and `quality` is `saturated` in 532 frames of 548. What changes between its passes shows in the images, not in a flux.
+- **R Draconis** is a variable giant, far too bright for SPHEREx: its heart is saturated in every detector and `quality` is `saturated` in 532 frames of 548. What changes between its passes shows in the images, not in a flux: the halo around its heart is half as bright in June 2026 as in June 2025, and the candidates file says so.
 - The background changes with the frame and the wavelength. Subtract `background` before comparing frames.
 - Some frames are partly empty: the edge of the detector crosses the view. In a few of them every pixel that has a value also carries a flag, and `background` is `null`.
 
@@ -46,9 +46,9 @@ What the candidates files say, with no position given to the detection:
 | Epsilon Indi B | `moved`, high, in the six detectors | 4.63 ± 0.06 arcseconds per year toward 122 degrees. Parallax 0.30 ± 0.04 arcsecond: 11.0 light-years, between 9.8 and 12.6 | 4.68 toward 122. 0.271: 12.0 light-years |
 | WISE 0855 | `moved`, medium, in detectors 5 and 6 | 7.5 ± 0.9 arcseconds per year toward 284 degrees | 8.15 toward 275 |
 | RW Aurigae | `changed`, high | Half as bright from 3.8 to 5 micrometers between the first and the last visit, 1.3 to 1.4 times brighter under 1.6 | A T Tauri star known for its deep fadings |
-| R Draconis | None. Listed as saturated in the six detectors | | |
+| R Draconis | `changed`, medium, read on its halo: the star saturates the six detectors | The halo fades to 0.45 of its brightness from 4.4 to 5 micrometers between the first and the last visit, and to 0.56 from 2.4 to 3.8 | A Mira variable of 246 days: close to its maximum at the first visit, close to its minimum at the last (AAVSO index) |
 
-No other source of the five fields is a candidate: 92 sources followed, 4 candidates, all of them the targets. The same code was run on 53 other fields: see [how it was checked](../docs/api-contract.md#how-it-was-checked).
+No other source of the five fields is a candidate: 92 sources and one saturated star followed, 5 candidates, all of them the targets. The same code was run on 53 other fields: see [how it was checked](../docs/api-contract.md#how-it-was-checked).
 
 ## Checking the files
 

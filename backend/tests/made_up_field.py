@@ -1,4 +1,4 @@
-"""Made-up fields: frames of stars that stay, move, swing or fade, to test the detection."""
+"""Made-up fields: frames of stars that stay, move, swing, fade or saturate."""
 
 import numpy as np
 
@@ -7,6 +7,7 @@ from spherex_explorer.detection import FieldFrame
 SIZE = 96
 OVERFLOW = 2
 STAR_WIDTH = 1.6
+HALO_WIDTH = 4.0
 NOISE = 0.02
 # Six steady stars, bright enough to line the visits up on each other.
 STEADY = [(20.3, 22.6), (70.8, 18.2), (25.4, 72.9), (76.1, 74.5), (15.7, 47.3), (80.2, 46.4)]
@@ -17,6 +18,26 @@ def star(x: float, y: float, light: float = 1.0, size: int = SIZE) -> np.ndarray
     rows, columns = np.mgrid[0:size, 0:size]
     shape = np.exp(-((columns - x) ** 2 + (rows - y) ** 2) / (2 * STAR_WIDTH**2))
     return light * shape / (2 * np.pi * STAR_WIDTH**2)
+
+
+def halo(x: float, y: float, light: float = 1.0, size: int = SIZE) -> np.ndarray:
+    """The wide halo of a very bright star: far from it, it falls as the cube of the distance."""
+    rows, columns = np.mgrid[0:size, 0:size]
+    return light / (1.0 + ((columns - x) ** 2 + (rows - y) ** 2) / HALO_WIDTH**2) ** 1.5
+
+
+def add_bright_star(frames, x: float, y: float, light, saturating) -> None:
+    """Give the frames the halo of a very bright star, and blind its heart where it saturates.
+
+    `light(visit)` is the brightness of the halo during a visit, and `saturating` the
+    detectors the star is too bright for.
+    """
+    column, row = round(x), round(y)
+    for frame in frames:
+        frame.image[:] += halo(x, y, light(frame.pass_number)).astype(np.float32)
+        if frame.detector in saturating:
+            frame.image[row - 3 : row + 4, column - 3 : column + 4] = np.nan
+            frame.mask[row - 4 : row + 5, column - 4 : column + 5] |= OVERFLOW
 
 
 def field_frames(

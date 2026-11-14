@@ -10,10 +10,11 @@ at random, several times, and the two halves are asked the same question.
 """
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
+from spherex_explorer.detection.halo import halo_light, ring_starts, steady_within
 from spherex_explorer.detection.sources import (
     DETECTION_THRESHOLD,
     brightness,
@@ -204,12 +205,17 @@ class FieldSource:
 
 @dataclass(frozen=True, slots=True)
 class SaturatedStar:
-    """A star too bright to be measured in some detectors, and how far its heart extends."""
+    """A star too bright to be measured in some detectors, and how far its heart extends.
+
+    `changes` tells how the brightness of its halo changed between the visits, in the
+    detectors that saturate: the only thing left to measure of such a star.
+    """
 
     x: float
     y: float
     radius: float
     detectors: tuple[int, ...]
+    changes: tuple[Change, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -815,6 +821,61 @@ def _changes(
 Wobble = Callable[[np.ndarray], tuple[np.ndarray, np.ndarray]]
 
 
+def _halo_changes(star: SaturatedStar, piles: dict[tuple[int, int], _Pile]) -> tuple[Change, ...]:
+    """How the halo of a saturated star changed between the visits of each detector.
+
+    The visits are compared at the same wavelengths, as for any source, and in two rings.
+    The change is that of the first ring. Its uncertainty holds the scatter of the frames,
+    how far the halo of a steady star wanders by itself, and what the two rings disagree
+    by. A change the second ring cannot confirm is not kept.
+    """
+    starts = ring_starts(star.radius)
+    light = {
+        key: [halo_light(pile.values, star.x, star.y, start) for start in starts]
+        for key, pile in piles.items()
+        if key[0] in star.detectors
+    }
+    changes = []
+    keys = sorted(light)
+    for index, (detector, first_pass) in enumerate(keys):
+        for other, second_pass in keys[index + 1 :]:
+            if other != detector:
+                continue
+            first, second = piles[(detector, first_pass)], piles[(detector, second_pass)]
+            pairs = _pairs(first, second)
+            rings = [
+                _ratio((before, np.zeros_like(before)), (after, np.zeros_like(after)), pairs)
+                for before, after in zip(
+                    light[(detector, first_pass)], light[(detector, second_pass)], strict=True
+                )
+            ]
+            if rings[0] is None or rings[1] is None:
+                continue
+            ratio, ratio_error, used = rings[0]
+            further = rings[1][0]
+            relative = float(
+                np.sqrt(
+                    (ratio_error / ratio) ** 2
+                    + steady_within(detector) ** 2
+                    + np.log(further / ratio) ** 2
+                )
+            )
+            waves = [float(first.wavelength_um[i]) for i, _ in pairs]
+            changes.append(
+                Change(
+                    detector=detector,
+                    from_pass=first_pass,
+                    to_pass=second_pass,
+                    ratio=ratio,
+                    error=ratio * relative,
+                    significance=float(abs(np.log(ratio)) / relative),
+                    wavelength_um=(min(waves), max(waves)),
+                    pairs=used,
+                )
+            )
+    return tuple(changes)
+
+
 def measure_field(frames: Sequence[FieldFrame], wobble: Wobble | None = None) -> Field:
     """Measure every source of a field in every visit.
 
@@ -895,4 +956,7 @@ def measure_field(frames: Sequence[FieldFrame], wobble: Wobble | None = None) ->
         for s, path in enumerate(paths)
         if path.sightings
     ]
-    return Field(visits=tuple(visits), sources=tuple(sources), saturated=_saturated_stars(hearts))
+    saturated = tuple(
+        replace(star, changes=_halo_changes(star, piles)) for star in _saturated_stars(hearts)
+    )
+    return Field(visits=tuple(visits), sources=tuple(sources), saturated=saturated)
