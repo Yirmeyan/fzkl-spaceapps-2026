@@ -36,7 +36,7 @@ These are the five test targets of the challenge. Any other place works the same
 | Coordinates in the URL, to embed the tool elsewhere | Done. The address of the page holds the target, a preset, a name or coordinates, and the view: detector, visit, mode |
 | Adjustable field of view | The service accepts any width from 0.02 to 0.5 degree. The interface shows 0.1 degree |
 | Metadata such as the contamination flags | Done. Each image shows its date, its wavelength, its detector, its visit and the quality of its measurement, and a switch tints the flagged pixels. See [the frame](docs/api-contract.md#the-frame) |
-| Overlay catalogs of other telescopes | Not done. It is the first item after this weekend |
+| Overlay catalogs of other telescopes | Done in the service: [`GET /api/catalog`](docs/api-contract.md#get-apicatalog) lists the sources of Gaia DR3 and of AllWISE inside a view, with their motion, so that a marker follows a fast star from frame to frame. The switch that draws them over the image is being added to the interface |
 
 ## What makes SPHEREx hard, and what we did about it
 
@@ -64,7 +64,7 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Can it follow a star too bright to be measured? | Through the halo of light around it. R Draconis saturates the six detectors, and its halo says it faded by half between June 2025 and June 2026: a Mira variable going from its maximum to its minimum. Checked blind on 16 saturated stars chosen before the run: five of eight known long-period variables were flagged, each change in the direction the AAVSO index predicts, and none of eight steady giants |
 | How often is it wrong? | The one blind round, 21 fields chosen before the run, gave one false alarm in 16 quiet fields: a source cut by the edge of the view. Such positions are now refused. Every rule, and what it cost to find it, is in [the contract](docs/api-contract.md#how-it-was-checked) |
 
-The service has 465 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
+The service has 510 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
 
 ## How it works
 
@@ -73,12 +73,13 @@ Browser (TypeScript, React)            Service (Python, FastAPI, Cloud Run)     
   movie, blink, difference    <---->     exposures of a position            <---->   IRSA image search
   spectrum chart                         images aligned on one grid         <---->   SPHEREx files on Amazon S3
   the view in the page address           flux of the target in each one     <---->   SIMBAD, for names
+                                         what other telescopes know there   <---->   VizieR, for Gaia and AllWISE
         ^
         |  static files of the five test targets (Cloudflare Pages)
 ```
 
 - **The browser** does everything interactive without a round trip: animation, contrast, blink, blend, difference, charts.
-- **The service** answers six calls: `health`, `resolve`, `exposures`, `frames`, `spectrum` and `candidates`. It keeps no user data, and what it remembers for an hour, lists of exposures and measured fields, only saves time.
+- **The service** answers seven calls: `health`, `resolve`, `exposures`, `frames`, `spectrum`, `candidates` and `catalog`. It keeps no user data, and what it remembers for an hour, lists of exposures and measured fields, only saves time.
 - **One grid per view.** Every image of a view is resampled on the same piece of sky, north up, so that pixel (x, y) is the same place in all of them. This is what lets the browser blink and subtract.
 - **Speed.** The 62 images of one detector arrive in about 3 seconds. A spectrum over 250 to 550 exposures takes 6 to 11 seconds. The five test targets show at once.
 

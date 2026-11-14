@@ -5,7 +5,7 @@ The agreement between the Python service (`backend/`) and the browser (`frontend
 - **Version:** 1, written at step S1 of the [architecture plan](architecture.md).
 - **Changes:** through a pull request approved by the other teammate.
 - **Compatibility:** fields can be added at any time, so a client ignores the fields it does not know. Renaming or removing a field changes `version`.
-- **Status:** the service answers the six calls of this document.
+- **Status:** the service answers the seven calls of this document.
 
 ## The idea in one minute
 
@@ -21,6 +21,8 @@ A fourth question needs no image: **what is the spectrum of this object?** `GET 
 
 So does a fifth: **what moved or changed around it?** `GET /api/candidates` follows every source of the view from one visit of SPHEREx to the next and returns the ones that stand out. See [Candidates](#candidates).
 
+A sixth one looks elsewhere: **what do other telescopes already know there?** `GET /api/catalog` lists the sources of Gaia DR3 and of AllWISE inside a view, to draw on top of the image.
+
 | Call | Returns | Expected time |
 | --- | --- | --- |
 | `GET /api/health` | Service status | Immediate |
@@ -29,6 +31,7 @@ So does a fifth: **what moved or changed around it?** `GET /api/candidates` foll
 | `GET /api/frames/{id}?ra=&dec=` | One frame | 0.6 s |
 | `GET /api/spectrum?ra=&dec=` | A target and one flux per exposure | 6 to 11 s for 250 to 550 exposures |
 | `GET /api/candidates?ra=&dec=` | The sources of the view that moved or changed | See [the call](#get-apicandidates): it reads every frame of the view |
+| `GET /api/catalog?ra=&dec=` | The sources of Gaia DR3 and of AllWISE inside a view | 1 to 4 s the first time, immediate for a day after |
 
 The times of `exposures` and `frames` are measured on the service, the second one from a laptop: 0.6 s for a first frame, 2.4 to 3.9 s for the 62 frames of a detector asked together. The time of `resolve` is that of the underlying request.
 
@@ -286,6 +289,65 @@ The answer is the object described in [Candidates](#candidates), without the thr
 - A place SPHEREx never observed gives no visit and no candidate. It is not an error.
 - An exposure whose file cannot be read is left out. The call only fails, with a 503, when most of the files cannot be read.
 - The parameters must be exactly those of the view: a target written with other digits is another field to measure.
+
+### `GET /api/catalog`
+
+Lists what two catalogs of other telescopes hold inside a view, so that the interface can draw them over the image: a star SPHEREx shows and Gaia knows, or a source that is in no catalog.
+
+| Parameter | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `ra`, `dec` | Yes | | Center of the view, degrees: the `ra` and `dec` of the grid on screen, not those of the target |
+| `fov` | No | 0.1 | Width of the view, degrees, 0.02 to 0.5: the `fov_deg` of the grid |
+| `epoch` | No | Today | Date the view is looked at, as a Julian year. A source counts as inside the view where its motion puts it at that date |
+
+```json
+{
+  "view": {"ra": 269.4463, "dec": 4.7682, "fov_deg": 0.1},
+  "epoch": 2026.0,
+  "catalogs": [
+    {
+      "key": "gaia",
+      "name": "Gaia DR3",
+      "epoch": 2016.0,
+      "band": "G",
+      "limit": 300,
+      "truncated": false,
+      "sources": [
+        {"id": "Gaia DR3 4472832130942575872", "ra": 269.448503, "dec": 4.73942, "pm_ra": -801.551, "pm_dec": 10362.394, "parallax_mas": 546.976, "mags": {"G": 8.19}}
+      ]
+    },
+    {
+      "key": "allwise",
+      "name": "AllWISE",
+      "epoch": 2010.56,
+      "band": "W2",
+      "limit": 300,
+      "truncated": false,
+      "sources": [
+        {"id": "J175747.94+044323.8", "ra": 269.44977, "dec": 4.72328, "pm_ra": null, "pm_dec": null, "parallax_mas": null, "mags": {"W2": 3.66, "W1": 4.36}}
+      ]
+    }
+  ]
+}
+```
+
+Both sources above are Barnard's Star: where Gaia saw it in 2016, and where WISE saw it in 2010, 58 arcseconds further south.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `view`, `epoch` | object, number | What was asked: the square of sky, and the date |
+| `catalogs[]` | objects | One entry per catalog, always in this order: `gaia`, then `allwise` |
+| `key`, `name` | strings | `key` is for the program, `name` for the screen |
+| `epoch` | number | Date of the positions of the catalog, as a Julian year. AllWISE gives where a source was in the middle of its survey: 2010.56, within a few months |
+| `band` | string | The band the sources are sorted by, the brightest first: `G` for Gaia, in visible light, and `W2` for AllWISE, at 4.6 micrometers, inside the range of SPHEREx and where a cold object is brightest |
+| `limit`, `truncated` | integer, boolean | At most `limit` sources are asked of a catalog, the brightest. `truncated` tells that it holds more: the faintest are missing. It happens in the Milky Way |
+| `sources[]` | objects | `id` as the catalog writes it, `ra` and `dec` in degrees at the `epoch` of the catalog, `pm_ra` and `pm_dec` in milliarcseconds per year as for a target, `parallax_mas`, and `mags`, a magnitude per band the catalog gives. Each of the last four can be `null`, or absent from `mags` |
+
+- **A source is a target.** With the `epoch` of its catalog it has the fields of a `Target`: `skyToPixel(grid, ...targetAt({...source, epoch: catalog.epoch}, frame.time_mjd))` places it on a frame. For nearly every star the motion does not show. For Barnard's Star it is the whole point: the marker of Gaia follows the star, and the marker of AllWISE stays where the star was in 2010.
+- **AllWISE gives no motion.** Its sources are drawn where they were seen. A fast object is then away from its marker, by 15 years of its motion.
+- **Pass `epoch`.** The middle of the dates of the frames on screen is right. It only decides which fast stars count as inside the view.
+- **The two catalogs are asked together, and the call fails as a whole.** A 503 means that the catalog service did not answer. Nothing else on the page depends on it: leave the overlay off and say so.
+- The catalogs are read at VizieR, the catalog service of the CDS, through its mirror at Harvard first. A site of VizieR fails for a minute now and then: the service asks each site twice before it answers 503, and remembers an answer for a day.
 
 ## The frame
 
@@ -664,7 +726,7 @@ An error is an HTTP status and this body:
 | --- | --- | --- | --- |
 | 404 | `not_found` | The name is unknown, or the archive has no such exposure | Tell the user, do not retry |
 | 422 | `invalid_request` | A parameter or an identifier is missing or invalid. The message names it: `ra is required; dec should be less than or equal to 90` | Fix the request. It is a bug of the caller |
-| 503 | `upstream_unavailable` | IRSA, the SPHEREx storage or the CDS did not answer, or the field of `candidates` is still being measured | Wait for the number of seconds of the `Retry-After` header and retry, three times at most. For `candidates`, six times |
+| 503 | `upstream_unavailable` | IRSA, the SPHEREx storage or the CDS, for names and catalogs, did not answer, or the field of `candidates` is still being measured | Wait for the number of seconds of the `Retry-After` header and retry, three times at most. For `candidates`, six times |
 | 500 | `internal_error` | A bug of the service. Details stay in its logs | Tell the user, do not retry |
 | Other | `http_error` | An error raised by the framework, for example an unknown route | Treat as a bug |
 
@@ -683,6 +745,7 @@ One frame that fails does not fail the view: show the others.
 | `exposures` | 1 hour, because new exposures are published |
 | `spectrum` | 1 hour, for the same reason |
 | `candidates` | 1 hour, for the same reason |
+| `catalog` | 1 day |
 | `frames` | 1 day while the pipeline still changes, much longer once it is frozen |
 
 ## Stable and provisional
@@ -699,7 +762,7 @@ Provisional, the values can change but not the shape:
 - The limits of `fov` and `size`, the cache durations and the number of parallel requests.
 - The search radius of `exposures`, and its limit of 5000 exposures per answer. Nothing tells the client today that a list was cut. The deepest fields, near the ecliptic poles, are the only places that could reach it.
 
-Planned after the MVP: `GET /api/catalog`, the Gaia sources of the view moved to a given date.
+`GET /api/catalog` is new too. Its fields are stable. Its `limit` and the list of catalogs can change: read `catalogs` as a list, and ignore a `key` you do not know.
 
 ## Choices made at step S1
 
@@ -774,5 +837,17 @@ The candidates, checked on November 14, 2026 on the frames of 74 fields: 58 for 
 - With that last rule, the 58 fields give the table above and no false alarm among 1,394 sources. That count is not blind: the rule came from the blind round.
 - **The halo of saturated stars had its own blind round.** The method was set on the saturated stars of the 58 fields: R Draconis, and seven stars that are not known to change much. Then 16 stars that saturate the six detectors were chosen before the run and run once: the last three rows of the table. Five of the eight variables were flagged, and none of the eight giants. The three variables left out do change, the way their period predicts for two of them, but pass the rule in one detector at most. Nothing was changed after that round.
 - **A halo and a direct measurement agree.** IRAS 18372-0002, the variable of the Milky Way field above, saturates detector 4 alone. Between its second and third visits its halo there fades to 0.69 ± 0.12 of its brightness. Measured directly in detectors 5 and 6, the star fades to 0.75 and to 0.63.
+
+The catalogs, checked on November 14, 2026 against the candidates of the five test targets. Each source of Gaia DR3 is moved from 2016 to the date of the candidate with its own motion:
+
+| Target | The nearest source of Gaia DR3, at the date of the candidate | The nearest source of AllWISE, where it was in 2010 |
+| --- | --- | --- |
+| Barnard's Star | 0.2 arcsecond away: the star itself, 106 arcseconds from where Gaia saw it | 17 arcseconds: a faint neighbor. The star is 2.7 arcminutes south, where it was then |
+| Epsilon Indi B | 0.6 arcsecond: the brown dwarf, of magnitude 18 for Gaia | 11 arcseconds: another source. The pair has moved by 72 arcseconds since |
+| WISE 0855 | 6.3 arcseconds: a star of the background. Gaia does not hold the object itself | The same star of the background. The object is J085510.74-071442.5, 126 arcseconds away to the east: 2.5 magnitudes brighter at 4.6 micrometers than at 3.4, the color of a cold object |
+| RW Aurigae | 0.7 and 0.9 arcsecond: the two stars of the pair | 0.6 arcsecond |
+| R Draconis | 0.6 arcsecond | 0.5 arcsecond |
+
+Where Gaia holds the object, the place measured on the SPHEREx frames and the place Gaia predicts agree within a tenth of a SPHEREx pixel. And from where WISE saw WISE 0855 in 2010 to where the candidates file puts it in 2025, the object covered 126 arcseconds in 15.3 years: 8.2 arcseconds per year toward 275 degrees, for 8.15 toward 275 in the catalog.
 
 `node samples/check-sample.ts samples/barnard-star-d2.json --bright-star` replays the checks that need no network. `node samples/check-sample.ts samples/index.json` checks every file of the index.

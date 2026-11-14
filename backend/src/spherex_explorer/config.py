@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     )
     resolver_timeout_s: float = Field(default=10.0, gt=0, le=60)
 
+    # Catalog service of the CDS, VizieR: the same two sites, in the same order.
+    catalog_urls: str = "https://vizier.cfa.harvard.edu,https://vizier.cds.unistra.fr"
+    catalog_timeout_s: float = Field(default=8.0, gt=0, le=60)
+    # Sources kept per catalog and per view, the brightest first.
+    catalog_limit: int = Field(default=300, ge=1, le=2000)
+
     @field_validator("log_level")
     @classmethod
     def _normalize_log_level(cls, value: str) -> str:
@@ -129,6 +135,22 @@ class Settings(BaseSettings):
     def resolver_url_list(self) -> list[str]:
         """Addresses of the name resolver, in the order they are tried."""
         return _split(self.resolver_urls)
+
+    @field_validator("catalog_urls")
+    @classmethod
+    def _check_catalog_urls(cls, value: str) -> str:
+        urls = _split(value)
+        if not urls:
+            raise ValueError("at least one catalog address is needed")
+        for url in urls:
+            if not url.startswith(("http://", "https://")) or "?" in url:
+                raise ValueError(f"not a catalog address: {url!r}")
+        return value
+
+    @property
+    def catalog_url_list(self) -> list[str]:
+        """Addresses of the catalog service, in the order they are tried."""
+        return _split(self.catalog_urls)
 
     @property
     def storage_url(self) -> str:

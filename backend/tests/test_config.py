@@ -112,3 +112,16 @@ def test_resolver_addresses_are_tried_in_the_order_given():
 def test_resolver_address_that_cannot_be_called_is_rejected(value):
     with pytest.raises(ValidationError):
         Settings(_env_file=None, resolver_urls=value)
+
+
+def test_catalog_addresses_are_tried_in_the_order_given():
+    settings = Settings(_env_file=None, catalog_urls="https://a.example/, https://b.example")
+
+    assert settings.catalog_url_list == ["https://a.example", "https://b.example"]
+    assert Settings(_env_file=None).catalog_url_list[0] == "https://vizier.cfa.harvard.edu"
+
+
+@pytest.mark.parametrize("value", ["", "vizier.example", "https://a.example/tsv?x=1"])
+def test_catalog_address_that_cannot_be_called_is_rejected(value):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, catalog_urls=value)

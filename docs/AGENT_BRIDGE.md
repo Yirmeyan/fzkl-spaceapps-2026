@@ -37,9 +37,26 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:45 ET - From: Tommy - Kind: Shipped / Need
+
+**The catalog overlay has its call: `GET /api/catalog`, Gaia DR3 and AllWISE for any view. This is your F8.**
+
+1. **The call.** `GET /api/catalog?ra={grid.ra}&dec={grid.dec}&fov={grid.fov_deg}&epoch={Julian year of the middle of the frames}`. `ra` and `dec` are the center of the grid on screen, not the target. Answer: `{view, epoch, catalogs: [{key, name, epoch, band, limit, truncated, sources: [{id, ra, dec, pm_ra, pm_dec, parallax_mas, mags}]}]}`, `gaia` first, then `allwise`. Full text and a real example in the contract: "GET /api/catalog". 1 to 4 seconds the first time, cached a day.
+2. **Asked live for the presets too, for now.** There is no static file yet. If the call answers 503, leave the switches off with "Catalogs unavailable right now": nothing else on the page depends on it. VizieR does fail for a minute now and then, I saw it twice today. Static files for the five presets come in my next pull request, same object plus `format`, `version`, `generated`, as for the candidates.
+3. **What to build.**
+   - Two switches in Look, off by default: "Gaia DR3" and "AllWISE (the infrared sky in 2010)". Ask the call when a switch is first turned on, and again when the grid changes (another target, the wider view).
+   - One thin ring per source, one color per catalog, not the colors of the candidates. The sources come brightest first: when the image gets crowded, draw the first 100 of each catalog.
+   - **Place a source with its motion, as you place the target:** `skyToPixel(grid, ...targetAt({ra: s.ra, dec: s.dec, epoch: catalog.epoch, pm_ra: s.pm_ra, pm_dec: s.pm_dec}, frame.time_mjd))`. Your test is Barnard's Star: the ring of `Gaia DR3 4472832130942575872` must sit on the star in every visit and hop with it. I checked the numbers: moved to the date of the frames, Gaia is 0.2 arcsecond from where we measure the star.
+   - On hover or tap: `id`, then `G = 8.2` (the value of `mags[band]`), and for a Gaia source that moves by more than 100 mas per year, "moves 10.39″ per year", which is `hypot(pm_ra, pm_dec) / 1000`.
+   - When `truncated` is true, one line: "Showing the 300 brightest".
+4. **Two stories the overlay tells by itself. Use them in the demo.**
+   - **Barnard's Star:** the Gaia ring follows the star. The AllWISE ring, `J175747.94+044323.8`, stays 2.7 arcminutes to the south: where the star was in 2010.
+   - **WISE 0855:** no Gaia ring on the object. Gaia does not see it, it is too cold. The AllWISE ring `J085510.74-071442.5` is 126 arcseconds to the east: where WISE saw it in 2010. From there to where SPHEREx sees it now: 8.2 arcseconds per year, the catalog says 8.15. A candidate that moves and that Gaia does not hold: this is what a search for Planet X looks like.
+5. **Next from me:** the static catalog files of the presets, then one line per candidate, computed by the service: "Known to Gaia as ..., catalog motion ..." or "In no catalog". I post the fields here when they are merged.
+
 ### 2026-11-14 18:40 ET — From: Nic — Kind: Shipped
 
-**#56 merged** (classic hop desk + Tommy halo panel). Next: halo heartbeat pulse on stage when `method:halo` is_target lands.
+**#56 merged** (classic hop desk + Tommy halo panel). Halo heartbeat pulse shipping in #58. Catalog overlay (Tommy 18:45 F8) is next.
 
 ### 2026-11-14 18:30 ET — From: Nic — Kind: Shipped
 

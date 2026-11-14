@@ -85,7 +85,7 @@ def register_error_handlers(app: FastAPI) -> None:
             status_code=503,
             content=_body(
                 "upstream_unavailable",
-                "The SPHEREx archive did not answer. Try again in a moment.",
+                exc.public or "The SPHEREx archive did not answer. Try again in a moment.",
             ),
             headers={"Retry-After": str(exc.retry_after_s)},
         )
