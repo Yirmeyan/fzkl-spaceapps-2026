@@ -173,6 +173,13 @@ export default function App() {
   const [activeCandidate, setActiveCandidate] = useState<number | null>(null);
   /** Brief stage whisper when the service first finds a target mover. */
   const [discoveryFlash, setDiscoveryFlash] = useState<string | null>(null);
+  const [discoveryIsHalo, setDiscoveryIsHalo] = useState(false);
+  /** Expanding ring on stage when the target was read through its saturated halo. */
+  const [haloPulse, setHaloPulse] = useState<{
+    xFrac: number;
+    yFrac: number;
+    rPx: number;
+  } | null>(null);
   const discoverySeenRef = useRef<string | null>(null);
   const [skyTarget, setSkyTarget] = useState<TargetExtras | null>(() => readSkyFromUrl());
   const skyTargetRef = useRef(skyTarget);
@@ -963,6 +970,8 @@ export default function App() {
   useEffect(() => {
     if (!candidatesFile) {
       discoverySeenRef.current = null;
+      setHaloPulse(null);
+      setDiscoveryIsHalo(false);
       return;
     }
     const hit = candidatesFile.candidates.find(
@@ -976,10 +985,33 @@ export default function App() {
     const key = `${hit.ra.toFixed(5)},${hit.dec.toFixed(5)},${hit.kind},${line}`;
     if (discoverySeenRef.current === key) return;
     discoverySeenRef.current = key;
+    const isHalo = hit.method === "halo";
+    setDiscoveryIsHalo(isHalo);
     setDiscoveryFlash(line);
-    const t = window.setTimeout(() => setDiscoveryFlash(null), 3000);
-    return () => window.clearTimeout(t);
-  }, [candidatesFile]);
+
+    let pulseTimer: number | undefined;
+    if (isHalo) {
+      const grid = candidatesFile.grid;
+      const heart = hit.track[0];
+      const rArc = heart?.error_arcsec ?? 20;
+      const rGrid = (rArc / 3600 / grid.fov_deg) * grid.size;
+      setHaloPulse({
+        xFrac: hit.xy[0] / grid.size,
+        yFrac: hit.xy[1] / grid.size,
+        rPx: Math.max(28, rGrid * (displayPx / grid.size)),
+      });
+      pulseTimer = window.setTimeout(() => setHaloPulse(null), 2800);
+    }
+
+    const t = window.setTimeout(() => {
+      setDiscoveryFlash(null);
+      setDiscoveryIsHalo(false);
+    }, 3000);
+    return () => {
+      window.clearTimeout(t);
+      if (pulseTimer != null) window.clearTimeout(pulseTimer);
+    };
+  }, [candidatesFile, displayPx]);
 
   // Capture the previous visit for a short afterimage so the hop is visible as a double exposure.
   useEffect(() => {
@@ -1912,9 +1944,27 @@ export default function App() {
                 Infrared color · {display.meta.frame.wavelength_um.toFixed(2)} µm
               </p>
             )}
+            {haloPulse && (
+              <div
+                className="halo-pulse"
+                aria-hidden="true"
+                style={
+                  {
+                    left: `${haloPulse.xFrac * 100}%`,
+                    top: `${haloPulse.yFrac * 100}%`,
+                    "--halo-r": `${haloPulse.rPx}px`,
+                  } as CSSProperties
+                }
+              >
+                <span className="halo-pulse-ring" />
+                <span className="halo-pulse-ring halo-pulse-ring--late" />
+              </div>
+            )}
             {discoveryFlash && (
               <div className="discovery-flash" role="status" aria-live="polite">
-                <p className="discovery-flash-kicker">Service measurement</p>
+                <p className="discovery-flash-kicker">
+                  {discoveryIsHalo ? "Halo measurement" : "Service measurement"}
+                </p>
                 <p className="discovery-flash-line">{discoveryFlash}</p>
               </div>
             )}

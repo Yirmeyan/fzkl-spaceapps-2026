@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Halo story for R Dra (Tommy Need):** panel tip + flash for `changed`/`method:halo`; classic hop desk on the same ship.
+**Halo heartbeat:** when a saturated target is read on its halo, a pulse ring blooms from the heart on the stage with the discovery flash — judges see the measurement, not just text.
 
 ## Backlog (phenomenal)
 

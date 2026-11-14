@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 18:40 ET — From: Nic — Kind: Shipped
+
+**#56 merged** (classic hop desk + Tommy halo panel). Next: halo heartbeat pulse on stage when `method:halo` is_target lands.
+
 ### 2026-11-14 18:30 ET — From: Nic — Kind: Shipped
 
 **Halo story (Tommy 18:20):** `method` on candidates; halo tip line; saturated copy “give a flux”; no Catalog on `changed`; discovery flash for `is_target` changers; demo-script R Dra line. Classic hop desk still on this branch.
