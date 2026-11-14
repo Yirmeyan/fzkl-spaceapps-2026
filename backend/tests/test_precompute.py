@@ -6,12 +6,15 @@ import pytest
 
 from level2_file import MJD, SKY_CENTER, FakeStorage, build_level2_file
 from spherex_explorer.archive import Exposure, Level2Reader, key_from_id
+from spherex_explorer.catalogs import CatalogSource, Cone
 from spherex_explorer.errors import NotFound, UpstreamUnavailable
 from spherex_explorer.precompute import (
     BundleTarget,
     build_target,
     main,
     rebuild_candidates,
+    rebuild_catalogs,
+    write_catalog,
     write_index,
 )
 from spherex_explorer.targets import ResolvedTarget
@@ -323,4 +326,88 @@ def test_command_refuses_candidates_without_bundles_and_two_partial_builds(tmp_p
 
     with pytest.raises(SystemExit):
         main(["--output", str(tmp_path), "--candidates-only", "--spectra-only"])
+    assert "cannot go together" in capsys.readouterr().err
+
+
+class FakeCatalogs:
+    """A catalog service that knows one source, at the center of whatever is asked."""
+
+    limit = 300
+
+    def __init__(self):
+        self.asked: list[str] = []
+
+    async def around(self, catalog, ra, dec, radius_deg):
+        self.asked.append(catalog.key)
+        source = CatalogSource(
+            id=f"{catalog.name} 1", ra=ra, dec=dec, magnitudes=((catalog.band, 12.3),)
+        )
+        return Cone((source,), complete=True)
+
+
+def test_catalog_file_holds_what_other_telescopes_know_in_the_view_of_the_bundles(tmp_path):
+    entry = build(tmp_path)
+
+    listed = asyncio.run(write_catalog(tmp_path, entry, FakeCatalogs()))
+
+    written = tmp_path / "test-star-catalog.json"
+    report = json.loads(written.read_text(encoding="utf-8"))
+    assert list(report) == ["format", "version", "generated", "view", "epoch", "catalogs"]
+    assert (report["format"], report["version"]) == ("spherex-explorer/catalog", 1)
+    grid = entry["grid"]
+    assert report["view"] == {"ra": grid["ra"], "dec": grid["dec"], "fov_deg": 0.05}
+    # The date of the frames: every made-up file carries the same one.
+    assert report["epoch"] == pytest.approx(2000 + (MJD - 51544.5) / 365.25, abs=0.01)
+    assert [catalog["key"] for catalog in report["catalogs"]] == ["gaia", "allwise"]
+    assert report["catalogs"][0]["sources"] == [
+        {
+            "id": "Gaia DR3 1",
+            "ra": grid["ra"],
+            "dec": grid["dec"],
+            "pm_ra": None,
+            "pm_dec": None,
+            "parallax_mas": None,
+            "mags": {"G": 12.3},
+        }
+    ]
+    assert listed == {
+        "file": "test-star-catalog.json",
+        "sources": {"gaia": 1, "allwise": 1},
+        "bytes": written.stat().st_size,
+    }
+
+
+def test_target_without_any_frame_gets_no_catalog_file(tmp_path):
+    entry = build(tmp_path, missing=IDS)
+    service = FakeCatalogs()
+
+    assert asyncio.run(write_catalog(tmp_path, entry, service)) is None
+    assert service.asked == []
+    assert not (tmp_path / "test-star-catalog.json").exists()
+
+
+def test_catalog_files_are_built_again_for_the_targets_asked(tmp_path):
+    write_index(tmp_path, [build(tmp_path)])
+    service = FakeCatalogs()
+
+    asyncio.run(rebuild_catalogs(tmp_path, ["another-target"], service))
+    assert service.asked == []
+    asyncio.run(rebuild_catalogs(tmp_path, [], service))
+
+    assert sorted(service.asked) == ["allwise", "gaia"]
+    index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
+    (only,) = index["targets"]
+    assert only["catalog"]["file"] == "test-star-catalog.json"
+    assert only["catalog"]["bytes"] == (tmp_path / "test-star-catalog.json").stat().st_size
+    assert [detector["detector"] for detector in only["detectors"]] == [2, 5]
+
+
+def test_command_refuses_catalogs_without_bundles_and_with_another_partial_build(tmp_path, capsys):
+    with pytest.raises(SystemExit) as stop:
+        main(["--output", str(tmp_path), "--catalogs-only"])
+    assert stop.value.code == 2
+    assert "build the bundles first" in capsys.readouterr().err
+
+    with pytest.raises(SystemExit):
+        main(["--output", str(tmp_path), "--catalogs-only", "--candidates-only"])
     assert "cannot go together" in capsys.readouterr().err

@@ -121,6 +121,11 @@ const SPECTRUM_FORMAT = "spherex-explorer/spectrum";
 const POINT_KEYS = ["id", "detector", "pass", "time_mjd", "time_iso", "wavelength_um", "bandwidth_um", "flux_mjy", "error_mjy", "quality"];
 const WITHOUT_VALUE = ["masked", "saturated", "outside"];
 const CANDIDATES_FORMAT = "spherex-explorer/candidates";
+const CATALOG_FORMAT = "spherex-explorer/catalog";
+const CATALOG_FILE_KEYS = ["format", "version", "generated", "view", "epoch", "catalogs"];
+const VIEW_KEYS = ["ra", "dec", "fov_deg"];
+const CATALOG_KEYS = ["key", "name", "epoch", "band", "limit", "truncated", "sources"];
+const SOURCE_KEYS = ["id", "ra", "dec", "pm_ra", "pm_dec", "parallax_mas", "mags"];
 const CANDIDATES_KEYS = ["format", "version", "generated", "target", "grid", "frames", "sources", "visits", "limits", "saturated", "candidates"];
 const CANDIDATE_KEYS = ["kind", "method", "confidence", "significance", "is_target", "ra", "dec", "epoch", "xy", "detectors", "track", "motion", "changes"];
 const SIGHTING_KEYS = ["pass", "time_mjd", "time_iso", "ra", "dec", "xy", "error_arcsec", "detectors"];
@@ -484,6 +489,60 @@ function checkCandidates(file: any): CandidatesSummary {
   return { count: candidates.length, moved, changed: candidates.length - moved, frames: file.frames ?? 0, lines };
 }
 
+interface CatalogSummary {
+  counts: Record<string, number>;
+  lines: string[];
+}
+
+// A catalog file: what Gaia DR3 and AllWISE hold inside a view at a date. Each source
+// is moved to that date with its own motion, as the contract tells the browser to do,
+// and must then be inside the square of the view.
+function checkCatalog(file: any): CatalogSummary {
+  const counts: Record<string, number> = {};
+  const lines: string[] = [];
+  check(file.format === CATALOG_FORMAT && file.version === 1, "format or version");
+  check(sameKeys(file, CATALOG_FILE_KEYS), "fields of the file");
+  check(sameKeys(file.view, VIEW_KEYS), "fields of the view");
+  check(file.epoch > 2000 && file.epoch < 2100, "date of the view");
+  const view = file.view ?? {};
+  // Any size does: the grid only tells whether a place is inside the square.
+  const grid: Grid = { ra: view.ra, dec: view.dec, fov_deg: view.fov_deg, size: 128 };
+  const date = 51544.5 + (file.epoch - 2000) * 365.25;
+  const catalogs: any[] = file.catalogs ?? [];
+  check(catalogs.map((catalog) => catalog.key).join() === "gaia,allwise", "the catalogs and their order");
+  for (const catalog of catalogs) {
+    const where = `catalog ${catalog.key}: `;
+    check(sameKeys(catalog, CATALOG_KEYS), where + "fields");
+    check(typeof catalog.name === "string" && catalog.name.length > 0 && typeof catalog.band === "string", where + "name or band");
+    check(catalog.epoch > 1990 && catalog.epoch < file.epoch, where + "date of the positions");
+    const sources: any[] = catalog.sources ?? [];
+    check(Number.isInteger(catalog.limit) && sources.length <= catalog.limit && typeof catalog.truncated === "boolean", where + "limit");
+    check(new Set(sources.map((source) => source.id)).size === sources.length, where + "a source is listed twice");
+    let faintest = -Infinity;
+    for (const source of sources) {
+      const who = `${where}${source.id}: `;
+      check(sameKeys(source, SOURCE_KEYS), who + "fields");
+      check(typeof source.id === "string" && source.id.length > 0, who + "id");
+      check((source.pm_ra === null) === (source.pm_dec === null), who + "a motion needs both of its parts");
+      check(source.parallax_mas === null || typeof source.parallax_mas === "number", who + "parallax");
+      const moving = { ra: source.ra, dec: source.dec, epoch: catalog.epoch, pm_ra: source.pm_ra, pm_dec: source.pm_dec };
+      const [x, y] = skyToPixel(grid, ...targetAt(moving, date));
+      const edge = grid.size - 0.5;
+      check(x >= -0.51 && x <= edge + 0.01 && y >= -0.51 && y <= edge + 0.01, who + "outside the view at the date of the file");
+      const magnitudes = Object.values(source.mags ?? {});
+      check(magnitudes.every((value) => typeof value === "number" && value > -5 && value < 30), who + "magnitudes");
+      const brightness = source.mags?.[catalog.band];
+      if (typeof brightness === "number") {
+        check(brightness >= faintest, who + "sources are not sorted, the brightest first");
+        faintest = brightness;
+      }
+    }
+    counts[catalog.key] = sources.length;
+    lines.push(`${catalog.name}: ${sources.length} sources${catalog.truncated ? ", the brightest of more" : ""}`);
+  }
+  return { counts, lines };
+}
+
 function sameFields(a: any, b: any, keys: string[]): boolean {
   return a != null && b != null && keys.every((key) => a[key] === b[key]);
 }
@@ -526,9 +585,37 @@ function checkIndex(index: any, folder: string): void {
     }
     if (entry.spectrum) checkListedSpectrum(entry, folder, measured);
     if (entry.candidates) checkListedCandidates(entry, folder, total);
+    if (entry.catalog) checkListedCatalog(entry, folder);
     context = "";
     console.log(`${entry.name}: ${total} frames in ${(entry.detectors ?? []).length} files, ${entry.passes} passes`);
   }
+}
+
+// The catalog file of a target against the index: same view, same counts.
+function checkListedCatalog(entry: any, folder: string): void {
+  const listed = entry.catalog;
+  context = `${listed.file}: `;
+  check(listed.file === `${entry.key}-catalog.json`, "name of the file");
+  let text: string;
+  try {
+    text = readFileSync(join(folder, listed.file), "utf8");
+  } catch {
+    check(false, "the file is missing");
+    return;
+  }
+  const file = JSON.parse(text);
+  const summary = checkCatalog(file);
+  check(Buffer.byteLength(text, "utf8") === listed.bytes, "size differs from the index");
+  check(
+    file.view?.ra === entry.grid?.ra && file.view?.dec === entry.grid?.dec && file.view?.fov_deg === entry.grid?.fov_deg,
+    "view differs from the grid of the index",
+  );
+  check(
+    Object.keys(summary.counts).length === Object.keys(listed.sources ?? {}).length &&
+      Object.entries(summary.counts).every(([key, count]) => listed.sources?.[key] === count),
+    "counts differ from the index",
+  );
+  console.log(`${listed.file}: ${summary.lines.join(", ")}`);
 }
 
 // The spectrum file of a target against the index, and against the frames of its bundles:
@@ -601,7 +688,7 @@ const options = process.argv.slice(2).filter((argument) => argument.startsWith("
 const paths = process.argv.slice(2).filter((argument) => !argument.startsWith("--"));
 const unknown = options.filter((option) => option !== "--bright-star");
 if (paths.length !== 1 || unknown.length > 0) {
-  console.error("Usage: node samples/check-sample.ts <bundle.json, spectrum.json, candidates.json or index.json> [--bright-star]");
+  console.error("Usage: node samples/check-sample.ts <bundle.json, spectrum.json, candidates.json, catalog.json or index.json> [--bright-star]");
   process.exit(2);
 }
 
@@ -612,6 +699,8 @@ if (content.format === INDEX_FORMAT) {
   for (const line of checkSpectrum(content).lines) console.log(line);
 } else if (content.format === CANDIDATES_FORMAT) {
   for (const line of checkCandidates(content).lines) console.log(line);
+} else if (content.format === CATALOG_FORMAT) {
+  for (const line of checkCatalog(content).lines) console.log(line);
 } else {
   for (const line of checkBundle(content, options.includes("--bright-star")).lines) console.log(line);
 }
