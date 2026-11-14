@@ -19,11 +19,11 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 import numpy as np
-from astropy.io import fits
 
 from spherex_explorer.archive.exposure import key_from_id
 from spherex_explorer.archive.fits import (
     BLOCK,
+    Header,
     data_length,
     header_length,
     integer,
@@ -78,7 +78,7 @@ class Window:
 class Layout:
     """Where the useful parts of one file are, and the header that describes its image."""
 
-    header: fits.Header
+    header: Header
     width: int
     height: int
     image_start: int
@@ -119,7 +119,7 @@ class WavelengthTable:
     values: np.ndarray
 
 
-def _expect_image(header: fits.Header, name: str) -> tuple[int, int]:
+def _expect_image(header: Header, name: str) -> tuple[int, int]:
     """Check that a unit is a plain image of 32-bit floats, and give its width and height."""
     if text(header, "XTENSION", name) != "IMAGE" or text(header, "EXTNAME", name) != name:
         raise UpstreamError(f"{name} is not where the layout of a level 2 file puts it")
@@ -134,7 +134,7 @@ def _expect_image(header: fits.Header, name: str) -> tuple[int, int]:
     return width, height
 
 
-def _compression_setting(header: fits.Header, setting: str, default: int) -> int:
+def _compression_setting(header: Header, setting: str, default: int) -> int:
     """Value of a ZNAMEn/ZVALn pair of the compression, or its default."""
     index = 1
     while f"ZNAME{index}" in header:
@@ -144,7 +144,7 @@ def _compression_setting(header: fits.Header, setting: str, default: int) -> int
     return default
 
 
-def _expect_flags(header: fits.Header, width: int, height: int) -> tuple[str, int, int]:
+def _expect_flags(header: Header, width: int, height: int) -> tuple[str, int, int]:
     """Check how FLAGS is compressed. Gives the descriptor type, block size and pixel size."""
     name = "FLAGS"
     compressed = (
@@ -180,7 +180,7 @@ def _expect_flags(header: fits.Header, width: int, height: int) -> tuple[str, in
     return _DESCRIPTORS[form.group(1)], blocksize, bytes_per_pixel
 
 
-def _flag_planes(header: fits.Header) -> dict[str, int]:
+def _flag_planes(header: Header) -> dict[str, int]:
     """Kinds of flags a file defines: the name in MSKNnnnn, the mask in MSKMnnnn."""
     planes: dict[str, int] = {}
     for keyword in header:
@@ -313,7 +313,7 @@ class Level2Reader:
 
     async def _header(
         self, key: str, offset: int, raw: bytes, name: str
-    ) -> tuple[fits.Header, int, bytes]:
+    ) -> tuple[Header, int, bytes]:
         """Header that starts at `offset`, from the bytes already read there.
 
         Gives the header, its length, and the bytes that follow it in what was read.
