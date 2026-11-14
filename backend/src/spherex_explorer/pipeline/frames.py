@@ -7,7 +7,13 @@ from typing import Protocol
 
 import numpy as np
 
-from spherex_explorer.archive import Layout, RawWindow, WavelengthTable, Window
+from spherex_explorer.archive import (
+    Layout,
+    RawWindow,
+    WavelengthTable,
+    Window,
+    detector_from_id,
+)
 from spherex_explorer.archive.fits import integer
 from spherex_explorer.errors import UpstreamError
 from spherex_explorer.frames import (
@@ -25,7 +31,7 @@ from spherex_explorer.frames import (
     valid_fraction,
     wavelength_at,
 )
-from spherex_explorer.photometry import Measurement, measure
+from spherex_explorer.photometry import Measurement, measure, share_inside_circle
 from spherex_explorer.photometry.aperture import APERTURE_RADIUS, SKY_OUTER_RADIUS
 from spherex_explorer.targets import Target, position_at
 
@@ -175,6 +181,7 @@ async def build_frame(source: FrameSource, exposure_id: str, target: Target, gri
             target_x - window.x0,
             target_y - window.y0,
             wcs.pixel_area_sr(area_x, area_y),
+            share_inside_circle(detector_from_id(exposure_id)),
         )
 
     wavelength, bandwidth = wavelength_at(table, center_x, center_y)

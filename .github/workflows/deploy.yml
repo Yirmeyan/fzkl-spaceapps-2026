@@ -51,9 +51,9 @@ jobs:
               missing=1
             fi
           done
-          # The list is written to a YAML file below: refuse anything that is not a plain list of origins.
-          if ! printf '%s' "$SPX_ALLOWED_ORIGINS" | grep --quiet --extended-regexp '^https?://[A-Za-z0-9.:-]+(,https?://[A-Za-z0-9.:-]+)*$'; then
-            echo "::error::SPX_ALLOWED_ORIGINS must be origins separated by commas, without spaces or quotes. See docs/deployment.md."
+          # The value is written to a YAML file below: refuse anything that is not a star or a plain list of origins.
+          if ! printf '%s' "$SPX_ALLOWED_ORIGINS" | grep --quiet --extended-regexp '^(\*|https?://[A-Za-z0-9.:-]+(,https?://[A-Za-z0-9.:-]+)*)$'; then
+            echo "::error::SPX_ALLOWED_ORIGINS must be * or origins separated by commas, without spaces or quotes. See docs/deployment.md."
             missing=1
           fi
           exit "$missing"
