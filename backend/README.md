@@ -16,7 +16,7 @@ Run them from the `backend/` folder.
 | Run locally | `uv run python -m uvicorn spherex_explorer.api.app:create_app --factory --reload` |
 | Test | `uv run python -m pytest` |
 | Test against the real archive | `uv run python -m pytest -m network` |
-| Build the files of the test targets | `uv run python -m spherex_explorer.precompute --output ../samples` (add `--spectra-only` for the spectrum files alone) |
+| Build the files of the test targets | `uv run python -m spherex_explorer.precompute --output ../samples` (add `--spectra-only` for the spectrum files alone, `--candidates-only` to measure the candidates again on the files already there) |
 | Lint | `uv run ruff check` |
 | Format | `uv run ruff format` |
 
@@ -42,6 +42,12 @@ And the spectrum of a brown dwarf, Epsilon Indi B, measured in its 467 exposures
 
 ```
 curl --compressed "http://127.0.0.1:8000/api/spectrum?ra=331.044147&dec=-56.782844&pm_ra=3981.977&pm_dec=-2466.832"
+```
+
+And what moved or changed around it, with no hint of where to look. It reads every frame of the view, so count half a minute:
+
+```
+curl --compressed "http://127.0.0.1:8000/api/candidates?ra=331.044147&dec=-56.782844&pm_ra=3981.977&pm_dec=-2466.832"
 ```
 
 The plain test command leaves out the tests marked `network`, which call IRSA and the file storage. Run them on demand: they depend on the archive being up, so they are not part of the checks.

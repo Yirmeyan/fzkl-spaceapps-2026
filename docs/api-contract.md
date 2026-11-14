@@ -5,7 +5,7 @@ The agreement between the Python service (`backend/`) and the browser (`frontend
 - **Version:** 1, written at step S1 of the [architecture plan](architecture.md).
 - **Changes:** through a pull request approved by the other teammate.
 - **Compatibility:** fields can be added at any time, so a client ignores the fields it does not know. Renaming or removing a field changes `version`.
-- **Status:** the service answers the five calls of this document.
+- **Status:** the service answers the six calls of this document.
 
 ## The idea in one minute
 
@@ -19,6 +19,8 @@ The five test targets skip questions 2 and 3: a static file, the [bundle](#the-b
 
 A fourth question needs no image: **what is the spectrum of this object?** `GET /api/spectrum` measures the target in every exposure and returns the fluxes alone. The five test targets have that answer in a static file too.
 
+So does a fifth: **what moved or changed around it?** `GET /api/candidates` follows every source of the view from one visit of SPHEREx to the next and returns the ones that stand out. See [Candidates](#candidates).
+
 | Call | Returns | Expected time |
 | --- | --- | --- |
 | `GET /api/health` | Service status | Immediate |
@@ -26,6 +28,7 @@ A fourth question needs no image: **what is the spectrum of this object?** `GET 
 | `GET /api/exposures?ra=&dec=` | A target, a grid and a list of exposures | 1.5 s, 3 s for a moving target |
 | `GET /api/frames/{id}?ra=&dec=` | One frame | 0.6 s |
 | `GET /api/spectrum?ra=&dec=` | A target and one flux per exposure | 6 to 11 s for 250 to 550 exposures |
+| `GET /api/candidates?ra=&dec=` | The sources of the view that moved or changed | See [the call](#get-apicandidates): it reads every frame of the view |
 
 The times of `exposures` and `frames` are measured on the service, the second one from a laptop: 0.6 s for a first frame, 2.4 to 3.9 s for the 62 frames of a detector asked together. The time of `resolve` is that of the underlying request.
 
@@ -267,6 +270,23 @@ Measures the target in every exposure that covers it and returns the fluxes, wit
 - With `detector`, the six detectors can be asked in parallel and drawn as they arrive. Measured on the service, the whole does not come sooner that way: ask one detector at a time only to show progress. The passes keep the numbers they have over all the detectors.
 - The place of a moving target is computed at the date of each exposure, as for a frame.
 
+### `GET /api/candidates`
+
+Measures the field around the target and returns its [candidates](#candidates): the sources that moved or changed between the visits of SPHEREx.
+
+| Parameter | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `ra`, `dec`, `epoch`, `pm_ra`, `pm_dec` | `ra` and `dec` | As for `exposures` | The target. The field measured is its default view: 0.1 degree on 128 pixels, centered as `exposures` centers it |
+
+The answer is the object described in [Candidates](#candidates), without the three fields that open a file: `target`, `grid`, `frames`, `sources`, `visits`, `limits`, `saturated` and `candidates`.
+
+- **It is the longest call.** Every frame of the view is read, the six detectors together, then measured. Ask for it once the frames of the first detector are on screen, and show the rest of the page meanwhile.
+- **A field is measured once.** The service remembers its report for an hour and answers at once in the meantime. Two requests for the same field at the same time share one measurement.
+- **A 503 here often means "not ready yet".** When the measurement outlasts the time of one request, the answer is a 503 with `Retry-After: 10`, and the measurement goes on. The next request finds it done, or joins it.
+- A place SPHEREx never observed gives no visit and no candidate. It is not an error.
+- An exposure whose file cannot be read is left out. The call only fails, with a 503, when most of the files cannot be read.
+- The parameters must be exactly those of the view: a target written with other digits is another field to measure.
+
 ## The frame
 
 A frame is one exposure, cut out and aligned on the grid, with everything measured on it. The pixels are shortened here:
@@ -494,7 +514,7 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
 
 A fifth question: **what moved or changed in this field?** The service follows every source of the default view from one visit of SPHEREx to the next and keeps the ones that stand out. The visitor no longer has to spot them by eye.
 
-The five test targets have the answer in a static file, `<key>-candidates.json`, of 1 to 2 kB. The same answer for any position, `GET /api/candidates`, is the next step: it will take the parameters of `exposures` and return this object without its first three fields.
+The five test targets have the answer in a static file, `<key>-candidates.json`, of 1 to 2 kB. For any other position, [`GET /api/candidates`](#get-apicandidates) returns the same object without its first three fields.
 
 ```json
 {
@@ -629,7 +649,7 @@ An error is an HTTP status and this body:
 | --- | --- | --- | --- |
 | 404 | `not_found` | The name is unknown, or the archive has no such exposure | Tell the user, do not retry |
 | 422 | `invalid_request` | A parameter or an identifier is missing or invalid. The message names it: `ra is required; dec should be less than or equal to 90` | Fix the request. It is a bug of the caller |
-| 503 | `upstream_unavailable` | IRSA, the SPHEREx storage or the CDS did not answer | Wait for the number of seconds of the `Retry-After` header and retry, three times at most |
+| 503 | `upstream_unavailable` | IRSA, the SPHEREx storage or the CDS did not answer, or the field of `candidates` is still being measured | Wait for the number of seconds of the `Retry-After` header and retry, three times at most. For `candidates`, six times |
 | 500 | `internal_error` | A bug of the service. Details stay in its logs | Tell the user, do not retry |
 | Other | `http_error` | An error raised by the framework, for example an unknown route | Treat as a bug |
 
@@ -647,6 +667,7 @@ One frame that fails does not fail the view: show the others.
 | `resolve` | 1 day |
 | `exposures` | 1 hour, because new exposures are published |
 | `spectrum` | 1 hour, for the same reason |
+| `candidates` | 1 hour, for the same reason |
 | `frames` | 1 day while the pipeline still changes, much longer once it is frozen |
 
 ## Stable and provisional

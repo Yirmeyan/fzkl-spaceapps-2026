@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from spherex_explorer import __version__
+from spherex_explorer.api.candidates import router as candidates_router
 from spherex_explorer.api.errors import register_error_handlers
 from spherex_explorer.api.exposures import router as exposures_router
 from spherex_explorer.api.frames import router as frames_router
@@ -19,7 +20,7 @@ from spherex_explorer.api.resolve import router as resolve_router
 from spherex_explorer.api.spectrum import router as spectrum_router
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive
 from spherex_explorer.config import Settings, get_settings
-from spherex_explorer.pipeline import ExposureArchive, FrameSource
+from spherex_explorer.pipeline import ExposureArchive, FieldMemory, FrameSource
 from spherex_explorer.targets import SesameResolver
 
 logger = logging.getLogger(__name__)
@@ -112,6 +113,8 @@ def create_app(
     app.state.archive = archive
     app.state.frames = frames
     app.state.resolver = resolver
+    # A field stays measured for as long as its list of exposures stays fresh.
+    app.state.fields = FieldMemory(fresh_s=settings.search_fresh_s)
 
     # The browser application is served from another origin than this service.
     app.add_middleware(
@@ -142,6 +145,7 @@ def create_app(
     app.include_router(frames_router, prefix="/api")
     app.include_router(resolve_router, prefix="/api")
     app.include_router(spectrum_router, prefix="/api")
+    app.include_router(candidates_router, prefix="/api")
 
     logger.info(
         "Service %s ready in %s, origins allowed: %s",

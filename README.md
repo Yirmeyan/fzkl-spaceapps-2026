@@ -32,7 +32,7 @@ These are the five test targets of the challenge. Any other place works the same
 | Easy to update with new data releases | Done. Nothing is copied ahead of time for other places: the service asks the archive for the exposures of a position each time, and the releases it searches are one setting |
 | Use the 102 bands, the six detectors, and spectra on the fly | Done. One request measures an object in every exposure that covers it, from 0.75 to 5 micrometers: [`GET /api/spectrum`](docs/api-contract.md#get-apispectrum) |
 | Add or subtract images taken at different dates | Done in the browser: blink, blend and difference between visits, and the stack of the frames of a visit, which brings out an object as faint as WISE 0855 |
-| Find what moves or varies | Beyond what was asked: the service finds it by itself. It follows every source of a field from visit to visit and lists the ones that moved or changed, with their speed, their distance when it can be measured, and a confidence. See [Candidates](docs/api-contract.md#candidates). The files of the five test targets carry the list, and the panel that shows it is being built |
+| Find what moves or varies | Beyond what was asked: the service finds it by itself. It follows every source of a field from visit to visit and lists the ones that moved or changed, with their speed, their distance when it can be measured, and a confidence. See [Candidates](docs/api-contract.md#candidates). It works for any place of the sky, and the panel that shows the list is being built |
 | Coordinates in the URL, to embed the tool elsewhere | Done. The address of the page holds the target, a preset, a name or coordinates, and the view: detector, visit, mode |
 | Adjustable field of view | The service accepts any width from 0.02 to 0.5 degree. The interface shows 0.1 degree |
 | Metadata such as the contamination flags | Done. Each image shows its date, its wavelength, its detector, its visit and the quality of its measurement, and a switch tints the flagged pixels. See [the frame](docs/api-contract.md#the-frame) |
@@ -62,7 +62,7 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Can it tell how far a moving object is? | For five of the eight, the swing with the seasons is measured, a twelfth to a thirtieth of a SPHEREx pixel, and gives the distance: Luhman 16 at 7.0 light-years for 6.5 in the catalog, Teegarden's Star at 12.3 for 12.5 |
 | Does it find a star that varies, unasked? | RW Aurigae, and one more: pointed at a place of the Milky Way taken at random, it flags one star of 39. SIMBAD lists it as a long-period variable, IRAS 18372-0002 |
 
-The service has 436 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
+The service has 451 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
 
 ## How it works
 
@@ -76,7 +76,7 @@ Browser (TypeScript, React)            Service (Python, FastAPI, Cloud Run)     
 ```
 
 - **The browser** does everything interactive without a round trip: animation, contrast, blink, blend, difference, charts.
-- **The service** answers five calls: `health`, `resolve`, `exposures`, `frames` and `spectrum`. It keeps no state and no user data.
+- **The service** answers six calls: `health`, `resolve`, `exposures`, `frames`, `spectrum` and `candidates`. It keeps no user data, and what it remembers for an hour, lists of exposures and measured fields, only saves time.
 - **One grid per view.** Every image of a view is resampled on the same piece of sky, north up, so that pixel (x, y) is the same place in all of them. This is what lets the browser blink and subtract.
 - **Speed.** The 62 images of one detector arrive in about 3 seconds. A spectrum over 250 to 550 exposures takes 6 to 11 seconds. The five test targets show at once.
 
