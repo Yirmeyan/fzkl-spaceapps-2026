@@ -1,6 +1,6 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~14:15 America/Toronto.
+Last recalibration: 2026-11-14 ~14:20 America/Toronto.
 
 ## Mission
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **87%** | Live frames wired + PR #17; still needs merge + polish |
-| Team win / top-tier | **58%** | B3 consumed in UI; B4–B6 + merge still open |
+| Unblocked Nic lane | **89%** | Predict-vs-observe + live feed; PR #17 merge still open |
+| Team win / top-tier | **59%** | B3 in UI; B4–B6 + merge still open |
 
 ## This loop’s wow
 
-**Live SPHEREx feed** — stage button + progressive frames from Cloud Run; LIVE/SAMPLE pill; WISE 0855 via API.
+**Predict vs observe** — catalogue PM ribbon vs measured trail with match % (jury quote).
 
 ## Backlog (phenomenal)
 
@@ -29,7 +29,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | P0 | Ghost overlay visits | **Shipping** |
 | P0b | Mission briefing / immersive first paint | **Shipping** |
 | P1 | A5 — ship to main/prod | **PR #17 open** |
-| P2 | Predict-vs-observe PM ribbon | Todo |
+| P2 | Predict-vs-observe PM ribbon | **Shipping** |
 | P3 | Spot-the-mover challenge | Todo |
 | P4 | Tommy live frames the hour they land | **Wired (Live feed)** |
 
@@ -43,3 +43,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 13:52 | Ghost sky + mission briefing | 78 | 44 |
 | 14:05 | Merge main (B3) + open PR #17 | 84 | 52 |
 | 14:15 | Live feed + LIVE pill (B3 UI) | 87 | 58 |
+| 14:20 | Predict vs observe ribbon | 89 | 59 |

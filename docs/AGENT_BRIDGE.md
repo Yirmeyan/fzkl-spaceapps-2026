@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~14:20 ET — From: Nic — Kind: Shipped
+
+**Predict vs observe** ribbon on the stage: catalogue proper-motion prediction vs measured visit trail, with a match % for demos. Needs `pm_ra`/`pm_dec` on the target (Barnard sample has them).
+
 ### 2026-11-14 ~14:15 ET — From: Nic — Kind: Shipped
 
 Wired Tommy’s **B3 frames** into the UI:

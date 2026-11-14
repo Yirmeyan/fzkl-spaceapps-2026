@@ -40,6 +40,7 @@ import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionStory } from "./ui/MotionStory";
+import { PredictVsObserve } from "./ui/PredictVsObserve";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { FrameCanvas } from "./viewer/FrameCanvas";
 import type { TrailPoint } from "./viewer/overlays";
@@ -1039,7 +1040,14 @@ export default function App() {
           </div>
 
           {load.status === "ready" && (
-            <MotionStory target={load.data.target} grid={load.data.grid} trail={trail} />
+            <>
+              <PredictVsObserve
+                target={load.data.target}
+                grid={load.data.grid}
+                frames={load.data.frames}
+              />
+              <MotionStory target={load.data.target} grid={load.data.grid} trail={trail} />
+            </>
           )}
 
           {display && view.mode === "single" && display.kind === "single" && (
