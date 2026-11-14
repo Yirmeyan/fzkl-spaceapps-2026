@@ -28,8 +28,8 @@ export function ViewerGuide({ targetName, pass }: ViewerGuideProps) {
           edge).
         </li>
         <li>
-          <strong>What to notice:</strong> press Play, or click Pass 1 then Pass 2 then Pass 3 —
-          the bright blob drifts <strong>up (north)</strong> while background stars stay put. That
+          <strong>What to notice:</strong> press Play, or click Pass 1 then Pass 2 then Pass 3 — the
+          bright blob drifts <strong>up (north)</strong> while background stars stay put. That
           motion is the whole point of the challenge.
           {pass != null ? ` (showing pass ${pass} only)` : null}
         </li>

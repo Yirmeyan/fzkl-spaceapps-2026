@@ -62,15 +62,7 @@ export function SkyPlayer({
     }
     cacheKeyRef.current = cacheKey;
     cacheRef.current = frames.map((f) => {
-      const rgba = renderFrameToRgba(
-        f.pixels,
-        f.mask,
-        size,
-        lo,
-        hi,
-        f.frame.background,
-        colorMap,
-      );
+      const rgba = renderFrameToRgba(f.pixels, f.mask, size, lo, hi, f.frame.background, colorMap);
       const copy = new Uint8ClampedArray(rgba.length);
       copy.set(rgba);
       return new ImageData(copy, size, size);

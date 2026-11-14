@@ -1,5 +1,5 @@
-import type { ColorMap } from "../data/contract";
 import type { ComposeMode } from "../compose/stack";
+import type { ColorMap } from "../data/contract";
 
 export interface ViewState {
   targetKey: string;
