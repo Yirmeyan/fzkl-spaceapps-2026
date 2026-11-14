@@ -7,7 +7,13 @@ import pytest
 from level2_file import MJD, SKY_CENTER, FakeStorage, build_level2_file
 from spherex_explorer.archive import Exposure, Level2Reader, key_from_id
 from spherex_explorer.errors import NotFound, UpstreamUnavailable
-from spherex_explorer.precompute import BundleTarget, build_target, main, write_index
+from spherex_explorer.precompute import (
+    BundleTarget,
+    build_target,
+    main,
+    rebuild_candidates,
+    write_index,
+)
 from spherex_explorer.targets import ResolvedTarget
 
 WANTED = BundleTarget("test-star", "Test Star", "TST 1")
@@ -74,6 +80,7 @@ def test_one_file_per_detector_in_the_format_of_the_contract(tmp_path):
     entry = build(tmp_path)
 
     assert sorted(path.name for path in tmp_path.iterdir()) == [
+        "test-star-candidates.json",
         "test-star-d2.json",
         "test-star-d5.json",
         "test-star-spectrum.json",
@@ -249,3 +256,71 @@ def test_spectra_alone_leave_the_bundles_and_complete_the_index(tmp_path):
     (only,) = index["targets"]
     assert [detector["detector"] for detector in only["detectors"]] == [2, 5]
     assert only["spectrum"]["points"] == 4
+
+
+def test_candidates_file_is_measured_on_the_frames_of_the_bundles(tmp_path):
+    entry = build(tmp_path)
+
+    report = json.loads((tmp_path / "test-star-candidates.json").read_text(encoding="utf-8"))
+    assert list(report) == [
+        "format",
+        "version",
+        "generated",
+        "target",
+        "grid",
+        "frames",
+        "sources",
+        "visits",
+        "limits",
+        "saturated",
+        "candidates",
+    ]
+    assert (report["format"], report["version"]) == ("spherex-explorer/candidates", 1)
+    bundle = json.loads((tmp_path / "test-star-d2.json").read_text(encoding="utf-8"))
+    assert report["target"] == bundle["target"]
+    assert report["grid"] == bundle["grid"]
+    assert report["frames"] == 4
+    assert [(visit["pass"], visit["frames"]) for visit in report["visits"]] == [(1, 2), (2, 2)]
+    assert report["candidates"] == []
+    assert entry["candidates"] == {
+        "file": "test-star-candidates.json",
+        "count": 0,
+        "moved": 0,
+        "changed": 0,
+        "bytes": (tmp_path / "test-star-candidates.json").stat().st_size,
+    }
+
+
+def test_target_without_any_frame_gets_no_candidates_file(tmp_path):
+    entry = build(tmp_path, missing=IDS)
+
+    assert "candidates" not in entry
+    assert not (tmp_path / "test-star-candidates.json").exists()
+
+
+def test_candidates_are_built_again_from_the_bundles_without_any_download(tmp_path):
+    write_index(tmp_path, [build(tmp_path)])
+    written = tmp_path / "test-star-candidates.json"
+    before = json.loads(written.read_text(encoding="utf-8"))
+    written.unlink()
+
+    rebuild_candidates(tmp_path, ["another-target"])
+    assert not written.exists()
+    assert main(["--output", str(tmp_path), "--candidates-only"]) == 0
+
+    after = json.loads(written.read_text(encoding="utf-8"))
+    assert {**after, "generated": ""} == {**before, "generated": ""}
+    index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
+    assert index["targets"][0]["candidates"]["bytes"] == written.stat().st_size
+    assert [detector["detector"] for detector in index["targets"][0]["detectors"]] == [2, 5]
+
+
+def test_command_refuses_candidates_without_bundles_and_two_partial_builds(tmp_path, capsys):
+    with pytest.raises(SystemExit) as stop:
+        main(["--output", str(tmp_path), "--candidates-only"])
+    assert stop.value.code == 2
+    assert "build the bundles first" in capsys.readouterr().err
+
+    with pytest.raises(SystemExit):
+        main(["--output", str(tmp_path), "--candidates-only", "--spectra-only"])
+    assert "cannot go together" in capsys.readouterr().err

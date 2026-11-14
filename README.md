@@ -31,10 +31,11 @@ These are the five test targets of the challenge. Any other place works the same
 | The five test targets | Done. They load at once from static files, even when the archive is slow |
 | Easy to update with new data releases | Done. Nothing is copied ahead of time for other places: the service asks the archive for the exposures of a position each time, and the releases it searches are one setting |
 | Use the 102 bands, the six detectors, and spectra on the fly | Done. One request measures an object in every exposure that covers it, from 0.75 to 5 micrometers: [`GET /api/spectrum`](docs/api-contract.md#get-apispectrum) |
-| Add or subtract images taken at different dates | Done in the browser: blink, blend and difference between visits |
+| Add or subtract images taken at different dates | Done in the browser: blink, blend and difference between visits, and the stack of the frames of a visit, which brings out an object as faint as WISE 0855 |
+| Find what moves or varies | Beyond what was asked: the service finds it by itself. It follows every source of a field from visit to visit and lists the ones that moved or changed, with their speed, their distance when it can be measured, and a confidence. See [Candidates](docs/api-contract.md#candidates). The files of the five test targets carry the list, and the panel that shows it is being built |
 | Coordinates in the URL, to embed the tool elsewhere | Done. The address of the page holds the target, a preset, a name or coordinates, and the view: detector, visit, mode |
 | Adjustable field of view | The service accepts any width from 0.02 to 0.5 degree. The interface shows 0.1 degree |
-| Metadata such as the contamination flags | Every image comes with its date, its wavelength, its flags pixel by pixel and the quality of its measurement. See [the frame](docs/api-contract.md#the-frame) |
+| Metadata such as the contamination flags | Done. Each image shows its date, its wavelength, its detector, its visit and the quality of its measurement, and a switch tints the flagged pixels. See [the frame](docs/api-contract.md#the-frame) |
 | Overlay catalogs of other telescopes | Not done. It is the first item after this weekend |
 
 ## What makes SPHEREx hard, and what we did about it
@@ -57,8 +58,11 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Is the flux right? | 8 steady stars compared with 2MASS and AllWISE in 38 pairs of star and band: the median of measured over catalog is 0.998 |
 | Is the uncertainty honest? | Exposures of a steady star differ by 1 to 3 percent, more than the files alone predict. The stated uncertainty includes it |
 | Do two ways of measuring agree? | The 1,044 fluxes of the spectrum files equal those of the image files, exposure for exposure |
+| Does it find what moves, with no position given? | Yes for the eight nearby objects tried: the three test targets that move, and five other stars. Each measured speed is within two sigma of the catalog. Six quiet fields, 176 sources, give no candidate |
+| Can it tell how far a moving object is? | For five of the eight, the swing with the seasons is measured, a twelfth to a thirtieth of a SPHEREx pixel, and gives the distance: Luhman 16 at 7.0 light-years for 6.5 in the catalog, Teegarden's Star at 12.3 for 12.5 |
+| Does it find a star that varies, unasked? | RW Aurigae, and one more: pointed at a place of the Milky Way taken at random, it flags one star of 39. SIMBAD lists it as a long-period variable, IRAS 18372-0002 |
 
-The service has 382 automated tests. Every pull request runs them, and checks the 35 static files against the contract.
+The service has 436 automated tests. Every pull request runs them, and checks the 40 static files against the contract.
 
 ## How it works
 

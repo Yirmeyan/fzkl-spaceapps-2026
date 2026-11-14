@@ -1,4 +1,5 @@
-// Checks a bundle, a spectrum file, or the index and every file it lists, against docs/api-contract.md.
+// Checks a bundle, a spectrum file, a candidates file, or the index and every file it lists,
+// against docs/api-contract.md.
 // The helpers below are the ones printed in the contract, so this script also tests them.
 // Usage (Node 24, no dependency):
 //   node samples/check-sample.ts samples/index.json
@@ -119,6 +120,25 @@ const INDEX_FORMAT = "spherex-explorer/index";
 const SPECTRUM_FORMAT = "spherex-explorer/spectrum";
 const POINT_KEYS = ["id", "detector", "pass", "time_mjd", "time_iso", "wavelength_um", "bandwidth_um", "flux_mjy", "error_mjy", "quality"];
 const WITHOUT_VALUE = ["masked", "saturated", "outside"];
+const CANDIDATES_FORMAT = "spherex-explorer/candidates";
+const CANDIDATES_KEYS = ["format", "version", "generated", "target", "grid", "frames", "sources", "visits", "limits", "saturated", "candidates"];
+const CANDIDATE_KEYS = ["kind", "confidence", "significance", "is_target", "ra", "dec", "epoch", "xy", "detectors", "track", "motion", "changes"];
+const SIGHTING_KEYS = ["pass", "time_mjd", "time_iso", "ra", "dec", "xy", "error_arcsec", "detectors"];
+const MOTION_KEYS = [
+  "shift_arcsec",
+  "days",
+  "rate_arcsec_per_year",
+  "rate_error_arcsec_per_year",
+  "angle_deg",
+  "pm_ra",
+  "pm_dec",
+  "parallax_arcsec",
+  "parallax_error_arcsec",
+  "distance_ly",
+  "distance_ly_range",
+];
+const CHANGE_KEYS = ["detector", "from_pass", "to_pass", "ratio", "error", "significance", "wavelength_um"];
+const LIGHT_YEARS_AT_ONE_ARCSECOND = 3.2616;
 const TARGET_KEYS = ["name", "ra", "dec", "epoch", "pm_ra", "pm_dec"];
 const GRID_KEYS = ["ra", "dec", "fov_deg", "size"];
 
@@ -319,6 +339,138 @@ function checkSpectrum(spectrum: any): SpectrumSummary {
   return { points: points.length, withFlux, byId, lines };
 }
 
+interface CandidatesSummary {
+  count: number;
+  moved: number;
+  changed: number;
+  frames: number;
+  lines: string[];
+}
+
+function sameKeys(value: any, keys: string[]): boolean {
+  return value != null && JSON.stringify(Object.keys(value)) === JSON.stringify(keys);
+}
+
+function isDetectorList(value: any): boolean {
+  return Array.isArray(value) && value.length > 0 && value.every((d: any) => Number.isInteger(d) && d >= 1 && d <= 6);
+}
+
+// A date given twice must be the same date, to the rounding of a second.
+function sameMoment(dated: any): boolean {
+  return Math.abs(mjdToDate(dated.time_mjd).getTime() - Date.parse(dated.time_iso)) <= 600;
+}
+
+// A place given twice, on the sky and on the grid, must be the same place.
+function samePlace(grid: Grid, place: any): boolean {
+  if (!Array.isArray(place?.xy) || typeof place.ra !== "number" || typeof place.dec !== "number") return false;
+  const [x, y] = skyToPixel(grid, place.ra, place.dec);
+  return Math.hypot(x - place.xy[0], y - place.xy[1]) <= 0.02;
+}
+
+function checkCandidates(file: any): CandidatesSummary {
+  const lines: string[] = [];
+  check(file.format === CANDIDATES_FORMAT && file.version === 1, "format or version");
+  check(sameKeys(file, CANDIDATES_KEYS), "fields of the file");
+  check(sameKeys(file.target, TARGET_KEYS), "fields of the target");
+  check(sameKeys(file.grid, GRID_KEYS), "fields of the grid");
+  const grid: Grid = file.grid;
+  const arcsec = (grid.fov_deg / grid.size) * 3600;
+  const visits: any[] = file.visits ?? [];
+  const limits = file.limits ?? {};
+  check(Number.isInteger(file.frames) && file.frames >= 0 && Number.isInteger(file.sources) && file.sources >= 0, "counts of frames and sources");
+  check(
+    visits.every((visit, i) => Number.isInteger(visit.pass) && (i === 0 || visit.pass > visits[i - 1].pass) && visit.frames > 0),
+    "visits are numbered in order and hold frames",
+  );
+  check(visits.reduce((sum, visit) => sum + visit.frames, 0) === file.frames, "frames of the visits add up to the frames measured");
+  check(
+    visits.every((visit) => sameMoment(visit)),
+    "time_iso of a visit differs from its time_mjd",
+  );
+  check(limits.significance >= 5 && limits.shift_arcsec > 0 && limits.change > 0, "limits of the claims");
+  const passes = new Set(visits.map((visit) => visit.pass));
+
+  for (const star of file.saturated ?? []) {
+    check(samePlace(grid, star) && star.radius_arcsec > 0 && isDetectorList(star.detectors), "a saturated star is ill described");
+  }
+
+  let moved = 0;
+  const candidates: any[] = file.candidates ?? [];
+  check(
+    candidates.every((candidate, i) => i === 0 || candidate.significance <= candidates[i - 1].significance),
+    "candidates are not sorted, the surest first",
+  );
+  for (const candidate of candidates) {
+    const where = `candidate at ${candidate.xy}: `;
+    check(sameKeys(candidate, CANDIDATE_KEYS), where + "fields");
+    check(["moved", "changed"].includes(candidate.kind), where + "kind");
+    check(["high", "medium"].includes(candidate.confidence), where + "confidence");
+    check(candidate.significance >= limits.significance, where + "significance under the limit");
+    check(typeof candidate.is_target === "boolean", where + "is_target");
+    check(samePlace(grid, candidate), where + "ra and dec do not match xy");
+    const dates = (candidate.track ?? []).map((sighting: any) => sighting.time_mjd);
+    const middle = 2000 + (dates.reduce((sum: number, date: number) => sum + date, 0) / dates.length - 51544.5) / 365.25;
+    check(Math.abs(candidate.epoch - middle) <= 0.001, where + "epoch is not the middle of the sightings");
+    check(isDetectorList(candidate.detectors), where + "detectors");
+    const track: any[] = candidate.track ?? [];
+    check(track.length >= 1, where + "no track");
+    for (const [i, sighting] of track.entries()) {
+      check(sameKeys(sighting, SIGHTING_KEYS), where + "fields of a sighting");
+      check(passes.has(sighting.pass) && (i === 0 || sighting.pass > track[i - 1].pass), where + "passes of the track");
+      check(samePlace(grid, sighting), where + "a sighting has ra and dec that do not match xy");
+      check(sighting.error_arcsec > 0 && isDetectorList(sighting.detectors), where + "error or detectors of a sighting");
+      check(sameMoment(sighting), where + "time_iso of a sighting differs from its time_mjd");
+    }
+    const changes: any[] = candidate.changes ?? [];
+    for (const change of changes) {
+      check(sameKeys(change, CHANGE_KEYS), where + "fields of a change");
+      check(passes.has(change.from_pass) && passes.has(change.to_pass) && change.from_pass < change.to_pass, where + "passes of a change");
+      check(change.ratio > 0 && change.error > 0 && Math.abs(change.ratio - 1) >= limits.change, where + "ratio of a change");
+      check(change.significance >= limits.significance, where + "a change under the limit");
+      check(change.wavelength_um?.[0] <= change.wavelength_um?.[1], where + "wavelengths of a change");
+    }
+    if (candidate.kind === "moved") {
+      moved++;
+      const motion = candidate.motion;
+      check(sameKeys(motion, MOTION_KEYS), where + "fields of the motion");
+      if (!motion || track.length < 2) {
+        check(false, where + "a moved candidate needs a motion and two sightings");
+        continue;
+      }
+      check(motion.shift_arcsec >= limits.shift_arcsec, where + "shift under the limit");
+      check(Math.abs(Math.hypot(motion.pm_ra, motion.pm_dec) / 1000 - motion.rate_arcsec_per_year) <= 0.01, where + "rate and proper motion disagree");
+      const angle = ((Math.atan2(motion.pm_ra, motion.pm_dec) / DEG) % 360 + 360) % 360;
+      check(Math.abs(((angle - motion.angle_deg + 540) % 360) - 180) <= 0.5, where + "angle and proper motion disagree");
+      check(Math.abs((motion.rate_arcsec_per_year * motion.days) / 365.25 - motion.shift_arcsec) <= 0.05, where + "shift, rate and days disagree");
+      // The motion is told in the words of the sky, the track in pixels: east is toward
+      // smaller x and north toward smaller y. From the first sighting to the last, the
+      // two must point the same way.
+      const first = track[0];
+      const last = track[track.length - 1];
+      const east = -(last.xy[0] - first.xy[0]) * arcsec;
+      const north = -(last.xy[1] - first.xy[1]) * arcsec;
+      const along = (east * motion.pm_ra + north * motion.pm_dec) / Math.hypot(motion.pm_ra, motion.pm_dec);
+      check(along >= 0.7 * Math.hypot(east, north), where + "the motion does not point along the track");
+      check(Math.abs(Math.hypot(east, north) - motion.shift_arcsec) <= Math.max(1.5, 0.3 * motion.shift_arcsec), where + "the track is not as long as the shift");
+      if (motion.parallax_arcsec !== null) {
+        check(motion.parallax_arcsec > 0 && motion.parallax_error_arcsec > 0, where + "parallax");
+        check(Math.abs(motion.distance_ly - LIGHT_YEARS_AT_ONE_ARCSECOND / motion.parallax_arcsec) <= 0.02 * motion.distance_ly + 0.1, where + "distance and parallax disagree");
+        const range = motion.distance_ly_range;
+        check(range === null || (range[0] <= motion.distance_ly && motion.distance_ly <= range[1]), where + "range of the distance");
+      } else {
+        check(motion.parallax_error_arcsec === null && motion.distance_ly === null && motion.distance_ly_range === null, where + "a distance without a parallax");
+      }
+      const far = motion.distance_ly === null ? "" : `, ${motion.distance_ly} light-years away`;
+      lines.push(`moved (${candidate.confidence}): ${motion.rate_arcsec_per_year} +- ${motion.rate_error_arcsec_per_year} arcsec per year toward ${motion.angle_deg} degrees${far}, detectors ${candidate.detectors.join("")}`);
+    } else {
+      check(candidate.motion === null, where + "a changed candidate carries no motion");
+      check(new Set(changes.map((change) => change.detector)).size >= 2, where + "a change needs two detectors");
+      lines.push(`changed (${candidate.confidence}): ${changes.map((change) => `x${change.ratio} in detector ${change.detector}`).join(", ")}`);
+    }
+  }
+  return { count: candidates.length, moved, changed: candidates.length - moved, frames: file.frames ?? 0, lines };
+}
+
 function sameFields(a: any, b: any, keys: string[]): boolean {
   return a != null && b != null && keys.every((key) => a[key] === b[key]);
 }
@@ -360,6 +512,7 @@ function checkIndex(index: any, folder: string): void {
       console.log(`${listed.file}: ${summary.frames} frames, ${summary.wavelengths[0]} to ${summary.wavelengths[1]} micrometers`);
     }
     if (entry.spectrum) checkListedSpectrum(entry, folder, measured);
+    if (entry.candidates) checkListedCandidates(entry, folder, total);
     context = "";
     console.log(`${entry.name}: ${total} frames in ${(entry.detectors ?? []).length} files, ${entry.passes} passes`);
   }
@@ -406,11 +559,36 @@ function checkListedSpectrum(entry: any, folder: string, measured: Map<string, M
   console.log(`${listed.file}: ${summary.points} points, ${summary.withFlux} with a flux, ${compared} equal to their frame within ${worstFlux.toExponential(1)}`);
 }
 
+// The candidates file of a target against the index and against its bundles.
+function checkListedCandidates(entry: any, folder: string, frames: number): void {
+  const listed = entry.candidates;
+  context = `${listed.file}: `;
+  check(listed.file === `${entry.key}-candidates.json`, "name of the file");
+  let text: string;
+  try {
+    text = readFileSync(join(folder, listed.file), "utf8");
+  } catch {
+    check(false, "the file is missing");
+    return;
+  }
+  const file = JSON.parse(text);
+  const summary = checkCandidates(file);
+  check(Buffer.byteLength(text, "utf8") === listed.bytes, "size differs from the index");
+  check(sameFields(file.target, entry.target, TARGET_KEYS), "target differs from the index");
+  check(sameFields(file.grid, entry.grid, GRID_KEYS), "grid differs from the index");
+  check(summary.count === listed.count && summary.moved === listed.moved && summary.changed === listed.changed, "counts differ from the index");
+  // A frame without a background cannot be compared with the others and is left out.
+  check(summary.frames <= frames && summary.frames >= 0.9 * frames, "frames measured against the frames of the bundles");
+  check((file.visits ?? []).length === entry.passes, "visits differ from the passes of the index");
+  console.log(`${listed.file}: ${summary.count} candidates in ${file.sources} sources and ${summary.frames} frames`);
+  for (const line of summary.lines) console.log(`  ${line}`);
+}
+
 const options = process.argv.slice(2).filter((argument) => argument.startsWith("--"));
 const paths = process.argv.slice(2).filter((argument) => !argument.startsWith("--"));
 const unknown = options.filter((option) => option !== "--bright-star");
 if (paths.length !== 1 || unknown.length > 0) {
-  console.error("Usage: node samples/check-sample.ts <bundle.json, spectrum.json or index.json> [--bright-star]");
+  console.error("Usage: node samples/check-sample.ts <bundle.json, spectrum.json, candidates.json or index.json> [--bright-star]");
   process.exit(2);
 }
 
@@ -419,6 +597,8 @@ if (content.format === INDEX_FORMAT) {
   checkIndex(content, dirname(paths[0]));
 } else if (content.format === SPECTRUM_FORMAT) {
   for (const line of checkSpectrum(content).lines) console.log(line);
+} else if (content.format === CANDIDATES_FORMAT) {
+  for (const line of checkCandidates(content).lines) console.log(line);
 } else {
   for (const line of checkBundle(content, options.includes("--bright-star")).lines) console.log(line);
 }

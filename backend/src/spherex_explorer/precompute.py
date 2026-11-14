@@ -1,14 +1,16 @@
 """Builds the files of the test targets ahead of time: python -m spherex_explorer.precompute.
 
 A bundle is the answer of `exposures` and of `frames` for one target and one detector,
-and a spectrum file is the answer of `spectrum`, both saved in the formats of
-docs/api-contract.md. The site shows the five test targets of the challenge from these
-files, at once, even when the service or the archive is asleep. The same code as the
-live service builds them, so both give the same frames and the same fluxes.
+a spectrum file is the answer of `spectrum` and a candidates file that of `candidates`,
+all saved in the formats of docs/api-contract.md. The site shows the five test targets
+of the challenge from these files, at once, even when the service or the archive is
+asleep. The same code as the live service builds them, so both give the same frames,
+the same fluxes and the same candidates.
 """
 
 import argparse
 import asyncio
+import base64
 import json
 import logging
 import sys
@@ -18,16 +20,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx2
+import numpy as np
 
 from spherex_explorer import __version__
+from spherex_explorer.api.candidates import candidates_out
 from spherex_explorer.api.exposures import exposure_out, grid_out
 from spherex_explorer.api.frames import frame_out
 from spherex_explorer.api.resolve import NameResolver
 from spherex_explorer.api.spectrum import point_out
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive
 from spherex_explorer.config import Settings, get_settings
+from spherex_explorer.detection import MOVED, FieldFrame
 from spherex_explorer.errors import NotFound, UpstreamUnavailable
-from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE
+from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE, Grid
 from spherex_explorer.pipeline import (
     ExposureArchive,
     FrameSource,
@@ -35,6 +40,7 @@ from spherex_explorer.pipeline import (
     build_frame,
     list_exposures,
     measure_spectrum,
+    report_field,
 )
 from spherex_explorer.targets import SesameResolver, Target
 
@@ -43,6 +49,7 @@ logger = logging.getLogger(__name__)
 BUNDLE_FORMAT = "spherex-explorer/bundle"
 INDEX_FORMAT = "spherex-explorer/index"
 SPECTRUM_FORMAT = "spherex-explorer/spectrum"
+CANDIDATES_FORMAT = "spherex-explorer/candidates"
 FORMAT_VERSION = 1
 INDEX_FILE = "index.json"
 _ANGLE_DECIMALS = 6
@@ -191,7 +198,7 @@ async def build_target(
         logger.info("%s: %s, %d frames, %.1f MB", wanted.name, name, len(kept), size_bytes / 1e6)
 
     passes = {listed.pass_number for listed in listing.exposures}
-    return {
+    entry = {
         "key": wanted.key,
         "name": wanted.name,
         "target": target_out,
@@ -200,6 +207,96 @@ async def build_target(
         "detectors": detectors,
         "spectrum": spectrum,
     }
+    candidates = write_candidates(wanted.key, output, [d["file"] for d in detectors])
+    if candidates is not None:
+        entry["candidates"] = candidates
+    return entry
+
+
+def _bundle_frames(bundle: dict) -> list[FieldFrame]:
+    """The frames of a bundle as the detection needs them."""
+    size = bundle["grid"]["size"]
+    listed = {exposure["id"]: exposure for exposure in bundle["exposures"]}
+    frames = []
+    for frame in bundle["frames"]:
+        exposure = listed[frame["id"]]
+        image = np.frombuffer(base64.b64decode(frame["image"]), dtype="<f2")
+        mask = np.frombuffer(base64.b64decode(frame["mask"]), dtype=np.uint8)
+        frames.append(
+            FieldFrame(
+                detector=exposure["detector"],
+                pass_number=exposure["pass"],
+                time_mjd=frame["time_mjd"],
+                wavelength_um=frame["wavelength_um"],
+                bandwidth_um=frame["bandwidth_um"],
+                background=frame["background"],
+                image=image.astype(np.float32).reshape(size, size),
+                mask=mask.reshape(size, size),
+            )
+        )
+    return frames
+
+
+def write_candidates(key: str, output: Path, bundles: Sequence[str]) -> dict | None:
+    """Write the candidates file of one target and give what the index says about it.
+
+    The field is measured on the frames of the bundles, the very ones the site shows.
+    None when the target has no bundle.
+    """
+    target_out: dict = {}
+    grid: dict = {}
+    frames: list[FieldFrame] = []
+    for name in bundles:
+        bundle = json.loads((output / name).read_text(encoding="utf-8"))
+        target_out, grid = bundle["target"], bundle["grid"]
+        frames += _bundle_frames(bundle)
+    if not frames:
+        return None
+    target = Target(
+        ra=target_out["ra"],
+        dec=target_out["dec"],
+        epoch=target_out["epoch"],
+        pm_ra=target_out["pm_ra"],
+        pm_dec=target_out["pm_dec"],
+    )
+    report = candidates_out(report_field(target, Grid(**grid), frames)).model_dump(by_alias=True)
+    name = f"{key}-candidates.json"
+    size_bytes = _write(
+        output / name,
+        {
+            "format": CANDIDATES_FORMAT,
+            "version": FORMAT_VERSION,
+            "generated": _now(),
+            **report,
+            # As in the other files of a target, its name comes with its position.
+            "target": target_out,
+        },
+    )
+    found = report["candidates"]
+    moved = sum(1 for candidate in found if candidate["kind"] == MOVED)
+    logger.info("%s: %s, %d candidates", key, name, len(found))
+    return {
+        "file": name,
+        "count": len(found),
+        "moved": moved,
+        "changed": len(found) - moved,
+        "bytes": size_bytes,
+    }
+
+
+def rebuild_candidates(output: Path, keys: Sequence[str]) -> None:
+    """Write again the candidates files of targets whose bundles are already there.
+
+    Nothing is downloaded: it is the way to follow a change of the detection.
+    """
+    index = json.loads((output / INDEX_FILE).read_text(encoding="utf-8"))
+    for entry in index["targets"]:
+        if keys and entry["key"] not in keys:
+            continue
+        bundles = [detector["file"] for detector in entry.get("detectors", [])]
+        candidates = write_candidates(entry["key"], output, bundles)
+        if candidates is not None:
+            write_index(output, [{"key": entry["key"], "candidates": candidates}])
 
 
 async def _write_spectrum(
@@ -334,14 +431,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Build the spectrum files only, and leave the bundles as they are.",
     )
+    parser.add_argument(
+        "--candidates-only",
+        action="store_true",
+        help="Build the candidates files only, from the bundles already there. No download.",
+    )
     arguments = parser.parse_args(argv)
     if not arguments.output.is_dir():
         parser.error(f"{arguments.output} is not a folder")
     if arguments.parallel < 1:
         parser.error("--parallel must be at least 1")
+    if arguments.spectra_only and arguments.candidates_only:
+        parser.error("--spectra-only and --candidates-only cannot go together")
 
     logging.basicConfig(level="INFO", format="%(asctime)s %(levelname)s %(message)s")
     logging.getLogger("httpx2").setLevel("WARNING")
+    if arguments.candidates_only:
+        if not (arguments.output / INDEX_FILE).is_file():
+            parser.error(f"{arguments.output} has no {INDEX_FILE}: build the bundles first")
+        rebuild_candidates(arguments.output, arguments.target)
+        return 0
     try:
         asyncio.run(
             run(

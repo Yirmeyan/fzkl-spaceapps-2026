@@ -37,6 +37,33 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 17:12 ET - From: Tommy - Kind: Shipped / Need
+
+**The contract of the candidates lands on `main` with this entry, with five real files. You can build the panel of addition A now. #38 and #39 are merged: items 5 and 6 and the three fixes are done, thank you.**
+
+1. **What to read.** `docs/api-contract.md`, section [Candidates](api-contract.md#candidates). The files are `samples/<key>-candidates.json`, 1 to 2 kB each, listed in `index.json` under `candidates` (`file`, `count`, `moved`, `changed`, `bytes`). Load the file of a preset with its spectrum, before any bundle.
+2. **What the five files say,** with no position given to the detection:
+
+   | Preset | Candidate | Numbers to show |
+   | --- | --- | --- |
+   | Barnard's Star | `moved`, high, detectors 5 and 6 | 10.4 arcseconds in 362 days, 10.5 ± 0.9 per year, toward the north |
+   | Epsilon Indi B | `moved`, high, six detectors | 4.63 ± 0.06 arcseconds per year, and a distance: 10.7 light-years, between 9.5 and 12.1. The catalog says 12.0 |
+   | WISE 0855 | `moved`, medium, detectors 5 and 6 only | 7.5 ± 0.8 arcseconds per year toward the west. Found by the service on its own |
+   | RW Aurigae | `changed`, high | Half as bright near 4 and 5 micrometers between visit 1 and visit 3, 1.4 times brighter near 1.4 |
+   | R Draconis | none, and one entry in `saturated` | Too bright for SPHEREx to measure, in the six detectors |
+
+3. **What to build.**
+   - **A panel "What moved or changed here"**, visible without a click. One plain sentence per candidate, written from its numbers: "Moved 10.4 arcseconds in 362 days", "About 10.7 light-years away, measured from its swing with the seasons", "Half as bright near 4 micrometers between visit 1 and visit 3". Always the word "candidate", with "high confidence" or "medium confidence".
+   - **On the image:** a ring where the candidate is in the visit shown (`track[].xy` for that `pass`), and for `moved` an arrow from the first sighting to the last. A discreet mark on each entry of `saturated`, with "Too bright for SPHEREx to measure here".
+   - **`is_target`** tells "This is the object you asked for" from "Another object of this field".
+   - **`detectors`** tells where the candidate can be seen. WISE 0855 only shows in detectors 5 and 6: say so when another detector is on screen.
+   - **A click on a candidate makes it the target:** its `ra`, `dec`, `epoch`, and the `pm_ra` and `pm_dec` of its `motion` when it has one, are the parameters of `exposures`. Its spectrum then loads as for any position.
+   - **An empty list is a result.** Say that nothing moved by more than `limits.shift_arcsec` or changed by more than `limits.change` among the `sources` followed.
+   - Ignore a `kind` you do not know. Take `xy` as it is on the default view, and put `ra`, `dec` through `skyToPixel` for any other grid.
+4. **Every number comes from the file.** Do not compute a speed, a distance or a confidence in the browser, and do not round a `medium` up to a certainty.
+5. **The same answer for any position, `GET /api/candidates`, comes next.** It returns the same object without `format`, `version` and `generated`, and takes the parameters of `exposures`. Build the data layer for two sources, as for the spectrum. It reads every frame of the view, so expect 15 to 30 seconds: ask for it once the frames of the first detector are on screen, and show "Looking for what moved or changed" meanwhile. I will post here when it is live.
+6. **For the demo.** The same code, run on five nearby stars it was never shown, finds them all and measures a distance for four: Luhman 16 at 7.0 light-years (6.5 in the catalog), Teegarden's Star at 12.3 (12.5), SCR J1845-6357 at 13.0 (13.1), DENIS J0255-4700 at 15.3 (15.9). Pointed at a random place of the Milky Way, it flags one star of 39, a known long-period variable. These will open from a link once the live call is there.
+
 ### 2026-11-14 16:28 ET — From: Nic — Kind: Shipped
 
 **Item 6 PR:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/39 — frame meta + tint mask + Flags legend; addition B unknown `quality` plots. Rebased onto #38 after #37. Merge order: **#38 then #39**.
