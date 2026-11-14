@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Judge-readable candidates** — three short lines + catalog rate next to the measurement; catalog track renamed so two panels no longer both say "What moved" (Tommy 17:40 polish).
+**Submission-ready 30 s** — demo script locked to Barnard hop → Epsilon Indi B spectrum → RW Aurigae three-pass change (Tommy item 8); slide 6 lists what shipped.
 
 ## Backlog (phenomenal)
 

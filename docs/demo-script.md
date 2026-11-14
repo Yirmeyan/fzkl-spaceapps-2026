@@ -1,6 +1,6 @@
 # Jury demo (English)
 
-Goal: anyone non-technical sees **real stellar motion** without a lecture.
+Goal: anyone non-technical sees **real stellar motion** and **real spectra** without a lecture. One viewport, dark desk, no page scroll.
 
 ## One-click path
 
@@ -15,30 +15,30 @@ Goal: anyone non-technical sees **real stellar motion** without a lecture.
 3. **Blink** — Visit 1 ↔ Visit 3; the star hops.
 4. **Blend visits** — early + late together; the mover shimmers.
 5. **Difference** — bright/dark dipole = mover.
-6. **Right panel** — how far it moved + catalogue match.
+6. **Right panel** — “Where the catalog puts it” plus “What moved or changed here” (service measurement next to catalog rate).
 7. **Done** — story complete without mini-games.
 
-## Manual 30-second backup
+## Manual 30-second path (preferred for video)
 
-1. **(0–5 s)** Title: *SPHEREx Explorer*. Barnard's Star loaded (SAMPLE or LIVE pill).
-2. **(5–12 s)** **Play movie** — infrared colors.
-3. **(12–20 s)** **B** blink visits — “the star hops; background stays.”
-4. **(20–26 s)** **G** Blend visits or **D** Show the move.
-5. **(26–30 s)** Point at the right-rail **What moved** summary.
+1. **(0–10 s) Barnard's Star hops** — preset loaded; **Play**, then blink visits (**B**) so the bright core jumps while the background stays. Point at the catalog track and the candidates panel: measured rate next to `Catalog: …″ per year`.
+2. **(10–20 s) Epsilon Indi B spectrum** — switch to **Epsilon Indi B**. Unsaturated; open the spectrum chart (log y when the range is wide). One short line: “nearby brown dwarf, real SPHEREx flux.”
+3. **(20–30 s) RW Aurigae changes** — switch to **RW Aurigae**. Step Visit 1 → 2 → 3 (or pass tabs): brightness / shape change across passes. Optional: candidates “changed” line if the panel lists it.
 
-Backup if “is this fake?”: “NASA SPHEREx cutouts; orange cross is the catalogue position.”
+Backup if “is this fake?”: “NASA SPHEREx cutouts; orange marks are catalogue or measured positions on the same grid.”
+
+Deep links for cut takes: `?target=barnard`, `?target=epsindi`, `?target=rwaur` (plus `demo=1` on Barnard for the auto walkthrough).
 
 ## 7-slide outline (P1)
 
 1. Problem — too much SPHEREx sky for one human
-2. Idea — public tool to blink / difference / ghost visits
-3. Demo — Barnard's Star motion (`?demo=1`)
-4. How it works — browser compose + Cloud Run frames
-5. SPHEREx-aware — wavelength, passes, saturated cores honest
-6. What’s next — resolve names live, B6 bundles for five targets
+2. Idea — public tool to blink / difference / ghost visits, then measure what moved
+3. Demo — Barnard's Star hops (`?demo=1`), then Epsilon Indi B spectrum, then RW Aurigae across three passes
+4. How it works — browser compose + Cloud Run frames, resolve, spectrum, candidates
+5. SPHEREx-aware — wavelength, passes, saturated cores honest, wider field on demand
+6. What we shipped — five live presets, any-sky resolve, spectrum in one request, candidates that match the catalog, shareable URLs
 7. Team / AI disclosure / links / AGPL
 
 ## Do not say
 
 - Wavelength micrometers unless asked
-- Internal step codes (F7, B4) unless a technical judge asks
+- Internal step codes (F7, B4, addition A) unless a technical judge asks

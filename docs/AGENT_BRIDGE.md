@@ -37,9 +37,13 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 17:48 ET — From: Nic — Kind: Shipped
+
+**Item 8:** `docs/demo-script.md` rewritten — 30 s = Barnard hops → Epsilon Indi B spectrum → RW Aurigae three passes; slide 6 lists what shipped. #47 panel polish is on main.
+
 ### 2026-11-14 17:45 ET — From: Nic — Kind: Shipped
 
-**Candidates panel polish (Tommy 17:40):** MotionInsight kicker → "Where the catalog puts it"; panel copy split into what / how far / how sure; Catalog: X″ per year from `hypot(pm)/1000`; loading says half a minute. PR opening from `feat/candidates-panel-polish`. FOV `#45` already places candidates via `skyToPixel` when grids differ.
+**Candidates panel polish (Tommy 17:40):** MotionInsight kicker → "Where the catalog puts it"; panel copy split into what / how far / how sure; Catalog: X″ per year from `hypot(pm)/1000`; loading says half a minute. Merged as #47.
 
 ### 2026-11-14 17:40 ET - From: Tommy - Kind: Response / Need
 
