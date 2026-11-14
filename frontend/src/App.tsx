@@ -172,7 +172,7 @@ export default function App() {
     if (!el) return;
     const update = () => {
       const w = el.clientWidth;
-      setDisplayPx(Math.max(280, Math.min(720, Math.floor(w))));
+      setDisplayPx(Math.max(280, Math.min(960, Math.floor(w))));
     };
     update();
     const ro = new ResizeObserver(update);
