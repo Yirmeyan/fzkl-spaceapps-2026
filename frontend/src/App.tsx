@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   type FormEvent,
   startTransition,
   useCallback,
@@ -28,7 +29,7 @@ import {
   resolveName,
 } from "./data/client";
 import type { Bundle, Frame, Grid, Target } from "./data/contract";
-import { computeDisplayLimits } from "./data/contract";
+import { computeDisplayLimits, mjdToDate } from "./data/contract";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
 import { KNOWN_TARGETS, targetByKey } from "./data/targets";
 import { Charts } from "./spectrum/Charts";
@@ -39,10 +40,10 @@ import { GhostVisits } from "./ui/GhostVisits";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { MissionBriefing } from "./ui/MissionBriefing";
-import { MotionStory } from "./ui/MotionStory";
-import { PredictVsObserve } from "./ui/PredictVsObserve";
+import { MotionInsight } from "./ui/MotionInsight";
 import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
+import { type StoryboardCell, VisitStoryboard } from "./ui/VisitStoryboard";
 import { FrameCanvas } from "./viewer/FrameCanvas";
 import type { TrailPoint } from "./viewer/overlays";
 import { SkyPlayer } from "./viewer/SkyPlayer";
@@ -69,6 +70,12 @@ function uiModeFromView(mode: ComposeMode, blink: boolean): UiMode {
   if (mode === "difference") return "difference";
   if (mode === "stack" || mode === "track") return "more";
   return "watch";
+}
+
+/** Map SPHEREx λ (µm) → CSS hue for the stage “infrared aurora”. */
+function wavelengthHue(um: number): number {
+  const t = Math.min(1, Math.max(0, (um - 0.75) / (5.0 - 0.75)));
+  return Math.round(210 - t * 200); // blue → amber → rose across the SPHEREx band
 }
 
 type LoadState =
@@ -106,14 +113,21 @@ export default function App() {
   const [demoLine, setDemoLine] = useState("");
   const [showBriefing, setShowBriefing] = useState(() => {
     try {
+      if (new URLSearchParams(window.location.search).get("demo") === "1") return false;
       return sessionStorage.getItem("spx-briefing-done") !== "1";
     } catch {
       return true;
     }
   });
+  const [linkCopied, setLinkCopied] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const demoTimer = useRef<number | null>(null);
+  const demoFromUrl = useRef(
+    typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("demo") === "1",
+  );
+  const demoAutoStarted = useRef(false);
 
   function dismissBriefing(startDemo: boolean) {
     try {
@@ -125,6 +139,18 @@ export default function App() {
     if (startDemo) {
       window.setTimeout(() => runAutoDemo(), 200);
     }
+  }
+
+  function copyJudgeLink() {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("demo", "1");
+    url.searchParams.set("target", view.targetKey || "barnard");
+    const href = url.toString();
+    void navigator.clipboard.writeText(href).then(() => {
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    });
   }
 
   const patchView = useCallback((partial: Partial<ViewState>) => {
@@ -675,6 +701,23 @@ export default function App() {
     patchView({ playing: false, pass: null, mode: "single" });
   }
 
+  // Judge deep-link: ?demo=1 skips briefing and launches the walkthrough once data is ready.
+  useEffect(() => {
+    if (!demoFromUrl.current || demoAutoStarted.current) return;
+    if (load.status !== "ready") return;
+    demoAutoStarted.current = true;
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("demo");
+      window.history.replaceState(null, "", `${u.pathname}${u.search}${u.hash}`);
+      sessionStorage.setItem("spx-briefing-done", "1");
+    } catch {
+      /* ignore */
+    }
+    window.setTimeout(() => runAutoDemo(), 400);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load.status]);
+
   function runAutoDemo() {
     if (load.status !== "ready") return;
     if (demoTimer.current != null) window.clearTimeout(demoTimer.current);
@@ -736,7 +779,7 @@ export default function App() {
         patchView({ mode: "single", playing: false, pass: null });
         // Scroll predict ribbon into view for judges
         window.requestAnimationFrame(() => {
-          document.querySelector(".predict-observe")?.scrollIntoView({
+          document.querySelector(".motion-insight")?.scrollIntoView({
             behavior: "smooth",
             block: "nearest",
           });
@@ -783,6 +826,41 @@ export default function App() {
   const splitStacks = splitVisits ? visitStacks : null;
   const ghostStacks = ghostVisits ? visitStacks : null;
   const spotStacks = spotMover ? visitStacks : null;
+
+  const storyboard = useMemo(() => {
+    if (load.status !== "ready" || passes.length < 2) return null;
+    const pool = forDifference;
+    const cells: StoryboardCell[] = [];
+    const stacks: { pixels: Float32Array; mask: Uint8Array; noise: number | null }[] = [];
+    for (const p of passes) {
+      const stack = stackFrames(pool.filter((f) => f.exposure.pass === p));
+      stacks.push(stack);
+      const mjds = pool.filter((f) => f.exposure.pass === p).map((f) => f.frame.time_mjd);
+      const mid = mjds.reduce((a, b) => a + b, 0) / Math.max(mjds.length, 1);
+      const dateLabel = Number.isFinite(mid)
+        ? mjdToDate(mid).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+        : `Visit ${p}`;
+      cells.push({
+        pass: p,
+        pixels: stack.pixels,
+        mask: stack.mask,
+        label: `Visit ${p}`,
+        dateLabel,
+      });
+    }
+    const limits = applyContrast(
+      computeDisplayLimits(
+        stacks.map((s) => ({
+          pixels: s.pixels,
+          mask: s.mask,
+          background: 0,
+          noise: s.noise,
+        })),
+      ),
+      view.contrast,
+    );
+    return { cells, limits, size: load.data.grid.size };
+  }, [load, passes, forDifference, view.contrast]);
 
   async function onSearch(e: FormEvent) {
     e.preventDefault();
@@ -872,6 +950,15 @@ export default function App() {
           <button
             type="button"
             className="ghost"
+            onClick={() => copyJudgeLink()}
+            title="Copy a link that auto-starts the jury demo"
+          >
+            {linkCopied ? "Link copied" : "Judge link"}
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            title="Short how-to: play, blink, blend, difference"
             onClick={() => patchView({ showHelp: !view.showHelp })}
           >
             Quick guide
@@ -883,10 +970,17 @@ export default function App() {
 
       <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
 
-      <section className="picker" aria-label="Choose a star">
+      <section
+        className={`picker${load.status === "ready" ? " picker-compact" : ""}`}
+        aria-label="Choose a star"
+      >
         <div className="picker-head">
           <h2>Pick a star</h2>
-          <p>Start with Barnard's Star — it moves the fastest of any nearby star.</p>
+          {load.status !== "ready" && (
+            <p>
+              Start with Barnard's Star — or type any name; live resolve finds the sky position.
+            </p>
+          )}
         </div>
         <div className="target-row">
           {KNOWN_TARGETS.map((t) => (
@@ -898,10 +992,19 @@ export default function App() {
                 setBlinkPasses(false);
                 patchView({ targetKey: t.key, mode: "single", pass: null });
               }}
-              disabled={!t.bundleUrl && t.key !== view.targetKey}
+              disabled={!t.bundleUrl && (t.ra == null || t.dec == null)}
+              title={
+                t.bundleUrl
+                  ? t.blurb
+                  : t.ra != null
+                    ? `${t.blurb} Loads from the live SPHEREx API.`
+                    : "Waiting on a sample bundle or coordinates."
+              }
             >
               <span className="target-name">{t.label}</span>
-              <span className="target-blurb">{t.bundleUrl ? t.blurb : "Coming soon"}</span>
+              <span className="target-blurb">
+                {t.bundleUrl ? t.blurb : t.ra != null ? "Live feed available" : "Coming soon"}
+              </span>
             </button>
           ))}
         </div>
@@ -913,10 +1016,15 @@ export default function App() {
             id="sky-query"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Or type a name / sky coordinates"
+            placeholder="Name (live resolve) or RA, Dec"
             autoComplete="off"
+            title="Type a star name or sky coordinates (RA, Dec in degrees)"
           />
-          <button type="submit" className="primary">
+          <button
+            type="submit"
+            className="primary"
+            title="Resolve the name and load SPHEREx images for that sky position"
+          >
             Look up
           </button>
         </form>
@@ -925,16 +1033,29 @@ export default function App() {
       <nav className="mode-tabs" aria-label="What do you want to do?">
         {(
           [
-            ["watch", "1 · Watch the movie"],
-            ["compare", "2 · Blink visits"],
-            ["difference", "3 · Show the move"],
-            ["more", "More views"],
-          ] as [UiMode, string][]
-        ).map(([id, label]) => (
+            [
+              "watch",
+              "1 · Watch the movie",
+              "Play infrared frames of this star — each frame is a slightly different color",
+            ],
+            [
+              "compare",
+              "2 · Blink visits",
+              "Flip between early and late SPHEREx visits so the star’s hop is obvious",
+            ],
+            [
+              "difference",
+              "3 · Show the move",
+              "Subtract two visits: a bright/dark pair means the star moved",
+            ],
+            ["more", "More views", "Averaged stack, tracking, and technical filters"],
+          ] as [UiMode, string, string][]
+        ).map(([id, label, tip]) => (
           <button
             key={id}
             type="button"
             className={uiMode === id ? "active" : ""}
+            title={tip}
             onClick={() => setUiMode(id)}
           >
             {label}
@@ -965,7 +1086,7 @@ export default function App() {
             </div>
             <div className="stage-actions">
               <p className="kbd-hint" title="Keyboard shortcuts">
-                J · G · M · S · B · D · F
+                J · G · S · B · D · F
               </p>
               {targetByKey(view.targetKey)?.ra != null && (
                 <button
@@ -991,13 +1112,38 @@ export default function App() {
                   Live feed
                 </button>
               )}
-              <button type="button" className="primary" onClick={() => void toggleFullscreen()}>
+              <button
+                type="button"
+                className="primary"
+                title="Expand the sky stage to fill the screen (F)"
+                onClick={() => void toggleFullscreen()}
+              >
                 Fullscreen
               </button>
             </div>
           </div>
 
-          <div className="stage-measure" ref={measureRef}>
+          <div
+            className="stage-measure"
+            ref={measureRef}
+            style={
+              display?.meta?.frame.wavelength_um != null
+                ? ({
+                    "--wave-hue": String(wavelengthHue(display.meta.frame.wavelength_um)),
+                  } as CSSProperties)
+                : undefined
+            }
+            data-wave={
+              display?.meta?.frame.wavelength_um != null
+                ? display.meta.frame.wavelength_um.toFixed(2)
+                : undefined
+            }
+          >
+            {display?.meta?.frame.wavelength_um != null && (
+              <p className="wave-aurora-chip" aria-live="polite">
+                Infrared color · {display.meta.frame.wavelength_um.toFixed(2)} µm
+              </p>
+            )}
             {load.status === "loading" && (
               <div className="status-banner">
                 {load.message}
@@ -1150,17 +1296,6 @@ export default function App() {
               )}
           </div>
 
-          {load.status === "ready" && (
-            <>
-              <PredictVsObserve
-                target={load.data.target}
-                grid={load.data.grid}
-                frames={load.data.frames}
-              />
-              <MotionStory target={load.data.target} grid={load.data.grid} trail={trail} />
-            </>
-          )}
-
           {display && view.mode === "single" && display.kind === "single" && (
             <>
               <FrameCaption
@@ -1172,6 +1307,7 @@ export default function App() {
                 <button
                   type="button"
                   className="primary play-btn"
+                  title="Step through infrared wavelengths for this visit (Space)"
                   onClick={() => {
                     setBlinkPasses(false);
                     setSplitVisits(false);
@@ -1184,6 +1320,7 @@ export default function App() {
                   type="button"
                   className={ghostVisits ? "active" : ""}
                   disabled={passes.length < 2}
+                  title="Overlay early and late visits so the moving star shimmers (G)"
                   onClick={() => {
                     setBlinkPasses(false);
                     setSplitVisits(false);
@@ -1192,26 +1329,13 @@ export default function App() {
                     patchView({ playing: false, mode: "single" });
                   }}
                 >
-                  Ghost sky
-                </button>
-                <button
-                  type="button"
-                  className={spotMover ? "active" : ""}
-                  disabled={passes.length < 2 || trail.length < 2}
-                  onClick={() => {
-                    setBlinkPasses(false);
-                    setSplitVisits(false);
-                    setGhostVisits(false);
-                    setSpotMover((v) => !v);
-                    patchView({ playing: false, mode: "single" });
-                  }}
-                >
-                  Spot the mover
+                  Blend visits
                 </button>
                 <button
                   type="button"
                   className={splitVisits ? "active" : ""}
                   disabled={passes.length < 2}
+                  title="Show early and late visits next to each other (S)"
                   onClick={() => {
                     setBlinkPasses(false);
                     setGhostVisits(false);
@@ -1232,6 +1356,7 @@ export default function App() {
                   }
                   disabled={filtered.length === 0}
                   aria-label="Scrub through frames"
+                  title="Drag to pick a frame by hand"
                 />
               </div>
             </>
@@ -1262,10 +1387,39 @@ export default function App() {
         </section>
 
         <aside className="rail">
+          {load.status === "ready" && (
+            <MotionInsight
+              target={load.data.target}
+              grid={load.data.grid}
+              frames={load.data.frames}
+              trail={trail}
+              targetName={load.data.target.name ?? targetName}
+            />
+          )}
+
+          {load.status === "ready" && storyboard && (
+            <VisitStoryboard
+              size={storyboard.size}
+              lo={storyboard.limits.lo}
+              hi={storyboard.limits.hi}
+              colorMap={view.colorMap}
+              cells={storyboard.cells}
+              trail={trail}
+              activePass={view.pass}
+              onPickPass={(pass) => {
+                setBlinkPasses(false);
+                setGhostVisits(false);
+                setSpotMover(false);
+                setSplitVisits(false);
+                patchView({ mode: "single", pass, frameIndex: 0, playing: false });
+              }}
+            />
+          )}
+
           <div className="rail-card">
             <h3>Controls for this step</h3>
             <p className="rail-hint">
-              Only the buttons for the selected step are active. Switch steps with the tabs above.
+              Hover any button for a tip. Only the controls for the selected step are active.
             </p>
 
             {uiMode === "watch" && (
@@ -1275,6 +1429,7 @@ export default function App() {
                   <button
                     type="button"
                     className={view.pass == null ? "active" : ""}
+                    title="Include frames from every SPHEREx visit of this field"
                     onClick={() => patchView({ pass: null, frameIndex: 0 })}
                   >
                     All visits
@@ -1284,6 +1439,7 @@ export default function App() {
                       key={p}
                       type="button"
                       className={view.pass === p ? "active" : ""}
+                      title={`Show only Visit ${p} frames`}
                       onClick={() => patchView({ pass: p, frameIndex: 0 })}
                     >
                       Visit {p}
@@ -1295,6 +1451,7 @@ export default function App() {
                   <button
                     type="button"
                     className={view.waveUm == null ? "active" : ""}
+                    title="Use every infrared wavelength in the movie"
                     onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
                   >
                     All colors
@@ -1303,6 +1460,7 @@ export default function App() {
                     type="button"
                     className={view.waveUm != null ? "active" : ""}
                     disabled={!display || !("meta" in display) || !display.meta}
+                    title="Keep only frames near this frame’s wavelength (fairer blink)"
                     onClick={() => {
                       if (!display || !("meta" in display) || !display.meta) return;
                       patchView({
@@ -1478,7 +1636,10 @@ export default function App() {
           </div>
 
           {load.status === "ready" && view.mode === "single" && (
-            <div className="rail-card">
+            <details className="rail-card details">
+              <summary title="Wavelength and visit timeline — optional for deeper look">
+                Infrared timeline
+              </summary>
               <Charts
                 frames={filtered}
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
@@ -1487,7 +1648,7 @@ export default function App() {
                   patchView({ frameIndex: index, playing: false, mode: "single" });
                 }}
               />
-            </div>
+            </details>
           )}
 
           <details
@@ -1495,7 +1656,7 @@ export default function App() {
             open={showAdvanced}
             onToggle={(e) => setShowAdvanced((e.target as HTMLDetailsElement).open)}
           >
-            <summary>Technical details</summary>
+            <summary title="Raw metadata for reviewers who want numbers">Technical details</summary>
             {display && load.status === "ready" && display.meta ? (
               <AdvancedDetails
                 target={load.data.target}

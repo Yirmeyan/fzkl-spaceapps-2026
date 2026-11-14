@@ -37,9 +37,42 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 ~15:20 ET — From: Nic — Kind: Shipped
+
+Follow-up presentation: **compact star picker** once loaded; **Infrared timeline** (charts) collapsed by default; more hover tips on visit/color chips. Still on PR #21.
+
+### 2026-11-14 ~15:15 ET — From: Nic — Kind: Shipped
+
+**Presentation reset** (Nic human): clarity over mini-challenges.
+
+1. Renamed **Ghost sky → Blend visits** (plain language + hover tips on main buttons).
+2. **Spot the mover** removed from primary transport (key M only).
+3. Motion path / predict / storyboard moved into the **right rail** so the stage scrolls less.
+4. One **What moved** insight block instead of three stacked essays.
+
+### 2026-11-14 ~15:05 ET — From: Nic — Kind: Shipped
+
+**Motion fingerprint** — animated SVG of the visit trail + hop in arcsec (shareable for judges). On PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/21 (CI green).
+
+### 2026-11-14 ~15:00 ET — From: Nic — Kind: Shipped / Response
+
+1. **B5 resolve is live on Cloud Run** — confirmed `GET /api/resolve?name=Sirius` returns coords + PM. Search copy updated; name lookup works end-to-end.
+2. **Infrared aurora** — stage glow + chip track the active frame wavelength while you play.
+3. Duplicate local loop shells killed; single 5m loop (PID 24764) kept.
+
+### 2026-11-14 ~14:55 ET — From: Nic — Kind: Shipped
+
+**Visit storyboard** filmstrip under the stage (tap a visit to jump). On PR https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/21 with judge deep-link. Loop re-armed locally (old 5m shells had died).
+
+### 2026-11-14 ~14:50 ET — From: Nic — Kind: Shipped / Question
+
+1. **#19 merged** — thank you. Local branch fast-forwarded (`edd31ce`).
+2. **Judge link** — UI copies `?demo=1&target=barnard` so the walkthrough auto-starts; `docs/demo-script.md` updated.
+3. **B5 resolve:** (superseded — now live as of ~15:00).
+
 ### 2026-11-14 ~14:45 ET — From: Nic — Kind: Shipped
 
-Jury **auto-demo v2** (key J): adds Ghost sky + Predict-vs-observe beats; points judges at Spot the mover (M). **PR #19 CI is green** (frontend/backend/Pages) — merge when you want it on prod.
+Jury **auto-demo v2** (key J): adds Ghost sky + Predict-vs-observe beats; points judges at Spot the mover (M). **PR #19** later merged.
 
 ### 2026-11-14 ~14:40 ET — From: Nic — Kind: Response
 

@@ -32,23 +32,23 @@ export const DEMO_BEATS: {
   },
   {
     phase: "ghost",
-    ms: 6500,
-    line: "Ghost sky: both visits at once. The mover breathes — fixed stars stay put.",
+    ms: 6000,
+    line: "Blend visits: early and late stacked together — the mover shimmers; fixed stars stay put.",
   },
   {
     phase: "difference",
     ms: 5500,
-    line: "Difference: bright/dark dipole = mover. Fixed stars cancel to near zero.",
+    line: "Show the move: bright/dark pair = it moved. Fixed stars cancel to near zero.",
   },
   {
     phase: "predict",
-    ms: 5500,
-    line: "Predict vs observe: catalogue proper motion vs what SPHEREx measured — the sky agrees.",
+    ms: 5000,
+    line: "Side panel: catalogue prediction vs what SPHEREx measured — the sky agrees.",
   },
   {
     phase: "done",
-    ms: 3800,
-    line: "Press M anytime to Spot the mover yourself. That is the challenge in under a minute.",
+    ms: 3500,
+    line: "That is the story: infrared movie, blink, blend, difference — motion anyone can see.",
   },
 ];
 

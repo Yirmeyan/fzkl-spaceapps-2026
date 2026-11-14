@@ -1,11 +1,11 @@
 # Win progress tracker (Nic / frontend + shared)
 
-Last recalibration: 2026-11-14 ~14:45 America/Toronto.
+Last recalibration: 2026-11-14 ~15:20 America/Toronto.
 
 ## Mission
 
 Become the **reference public SPHEREx motion site** — jury should feel NASA-grade wow, not “nice student dashboard”.
-Auto model OK. **Every loop = one phenomenal idea** (+ polish allowed as support).
+Auto model OK. **Presentation clarity beats feature spam** (human override 15:15).
 
 ## Stop rule
 
@@ -15,12 +15,12 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 | Lane | Now | Notes |
 | --- | ---: | --- |
-| Unblocked Nic lane | **93%** | Jury demo v2 + PR #19 CI green — merge when ready |
-| Team win / top-tier | **65%** | Live feed rules honored; B4–B6 still open |
+| Unblocked Nic lane | **94%** | Compact picker + collapsed timeline; still polish |
+| Team win / top-tier | **78%** | B5 resolve live; B4/B6 still open |
 
 ## This loop’s wow
 
-**Jury auto-demo v2** — Ghost sky + Predict beats wired into J walkthrough; PR #19 checks green.
+**Less scroll, clearer stage** — compact picker when loaded; charts behind Infrared timeline.
 
 ## Backlog (phenomenal)
 
@@ -28,9 +28,9 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | --- | --- | --- |
 | P0 | Ghost overlay visits | **Shipping** |
 | P0b | Mission briefing / immersive first paint | **Shipping** |
-| P1 | A5 — ship to main/prod | **#17 merged** · **#19 CI green** |
+| P1 | A5 — ship to main/prod | **#17 + #19 on main** |
 | P2 | Predict-vs-observe PM ribbon | **Shipping** |
-| P3 | Spot-the-mover challenge | **Shipping** |
+| P3 | Spot-the-mover challenge | Demoted (key M only; not primary UI) |
 | P4 | Tommy live frames the hour they land | **Wired (Live feed)** |
 
 ## Work log
@@ -47,3 +47,9 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 14:25 | Spot the mover (M) | 91 | 62 |
 | 14:40 | Multi-det live cascade + retries | 92 | 64 |
 | 14:45 | Jury demo v2 (ghost+predict) | 93 | 65 |
+| 14:50 | Judge link ?demo=1 + #19 merged | 94 | 70 |
+| 14:55 | Visit storyboard filmstrip | 95 | 70 |
+| 15:00 | Infrared aurora + resolve live | 96 | 78 |
+| 15:05 | Motion fingerprint SVG | 97 | 78 |
+| 15:15 | Presentation reset (clarity > bling) | 93 | 78 |
+| 15:20 | Compact picker + collapsed charts | 94 | 78 |
