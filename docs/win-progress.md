@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Any-position live path** — resolve/coords → exposures → frames (det 2) + `/api/spectrum` in parallel; empty/404/503+Retry. `?ra=&dec=` boots custom sky.
+**Classic compact desk** — human override: restore the first centered layout. One viewport, no page scroll, dark NASA style, square stage + right rail. Clarity over cinema sprawl.
 
 ## Backlog (phenomenal)
 
