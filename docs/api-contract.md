@@ -25,7 +25,7 @@ A fourth question needs no image: **what is the spectrum of this object?** `GET 
 | `GET /api/resolve?name=` | A target | 1.5 s |
 | `GET /api/exposures?ra=&dec=` | A target, a grid and a list of exposures | 1.5 s, 3 s for a moving target |
 | `GET /api/frames/{id}?ra=&dec=` | One frame | 0.6 s |
-| `GET /api/spectrum?ra=&dec=` | A target and one flux per exposure | 5 to 15 s, with the number of exposures |
+| `GET /api/spectrum?ra=&dec=` | A target and one flux per exposure | 6 to 11 s for 250 to 550 exposures |
 
 The times of `exposures` and `frames` are measured on the service, the second one from a laptop: 0.6 s for a first frame, 2.4 to 3.9 s for the 62 frames of a detector asked together. The time of `resolve` is that of the underlying request.
 
@@ -264,7 +264,7 @@ Measures the target in every exposure that covers it and returns the fluxes, wit
 - A point without a flux (`saturated`, `masked`, `outside`) is still listed, so that the interface can say why a part of the spectrum is empty.
 - An exposure whose file cannot be read gives no point. The call only fails, with a 503, when most of the files cannot be read.
 - `wavelength_um` is taken where the target is, and the frame of the same exposure gives the wavelength at the center of its grid. The two differ by less than 0.005 micrometer in the default view.
-- With `detector`, the six detectors can be asked in parallel and drawn as they arrive. The passes keep the numbers they have over all the detectors.
+- With `detector`, the six detectors can be asked in parallel and drawn as they arrive. Measured on the service, the whole does not come sooner that way: ask one detector at a time only to show progress. The passes keep the numbers they have over all the detectors.
 - The place of a moving target is computed at the date of each exposure, as for a frame.
 
 ## The frame
