@@ -7,6 +7,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from spherex_explorer.errors import UpstreamUnavailable
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,6 +38,19 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         return JSONResponse(status_code=422, content=_body("invalid_request", _describe(exc)))
+
+    @app.exception_handler(UpstreamUnavailable)
+    async def upstream_unavailable(request: Request, exc: UpstreamUnavailable) -> JSONResponse:
+        # The reason names an outside service: it goes to the logs, not to the client.
+        logger.warning("%s on %s %s", exc, request.method, request.url.path)
+        return JSONResponse(
+            status_code=503,
+            content=_body(
+                "upstream_unavailable",
+                "The SPHEREx archive did not answer. Try again in a moment.",
+            ),
+            headers={"Retry-After": str(exc.retry_after_s)},
+        )
 
     @app.exception_handler(Exception)
     async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
