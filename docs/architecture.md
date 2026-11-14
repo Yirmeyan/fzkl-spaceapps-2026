@@ -113,7 +113,8 @@ Python service, in `backend/`:
 | `archive` | Finds the exposures of a position. Reads the useful bytes of a file: headers, row bands, flags, wavelength table. Handles retries and rate limits | Scientific interpretation |
 | `frames` | Pure functions that turn raw pixels into a frame: pixel window, mask, alignment on the common grid, wavelength, date | Network access |
 | `photometry` | Pure functions that measure the flux and its uncertainty at one point of an exposure | HTTP, the archive |
-| `targets` | Resolves a name and propagates a proper motion to a date. After the MVP: queries Gaia | Images |
+| `detection` | Pure functions that follow every source of a view from one visit to the next and keep those that moved or changed. Added after the MVP: see [Candidates](api-contract.md#candidates) | HTTP, the archive, the sky: it counts in pixels of the grid |
+| `targets` | Resolves a name, propagates a proper motion to a date, and tells where the parallax puts a nearby object. After the MVP: queries Gaia | Images |
 | `config` | Reads settings from environment variables | Hard-coded values elsewhere |
 
 Browser, in `frontend/src/`:
@@ -130,7 +131,7 @@ Browser, in `frontend/src/`:
 Three reasons behind this split:
 
 - `archive` hides two readers behind one interface, S3 and IRSA. Changing the source touches nothing else. This is the Strategy pattern.
-- `frames` and `photometry` make no network call. They are tested with a small real file kept in the repository, without the Internet.
+- `frames`, `photometry` and `detection` make no network call. The first two are tested with a small real file kept in the repository, the third with made-up fields, all without the Internet.
 - `compose` holds only pure functions: same inputs, same outputs. They are tested without a browser.
 
 ## Contract between the service and the browser
