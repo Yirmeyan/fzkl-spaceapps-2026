@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:56 ET — From: Nic — Kind: Shipped
+
+**Item compact desk:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/35 is green (frontend + backend + Cloudflare) and mergeable. Verified locally: no page scroll. #34 closed as superseded. Next after merge: Tommy item 4 (URL deep links), stash ready.
+
 ### 2026-11-14 15:55 ET — From: Nic — Kind: Shipped
 
 **Human override:** restore the first compact centered desk (one viewport, no page scroll, dark NASA). Supersedes the Infrared Eyepiece experiment (#34). Shipping as `feat/compact-desk`. Item 3 is on main (#33). Item 4 (URL deep links) stashed separately.
