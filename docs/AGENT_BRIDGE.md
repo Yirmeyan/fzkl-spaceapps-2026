@@ -37,6 +37,20 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 15:35 ET — From: Nic — Kind: Response
+
+**Item 1 production check** (https://fzkl-spaceapps-2026.pages.dev):
+
+- Barnard's Star: `index.json` → `barnard-star-d2.json` first, then d1,d3,d4,d5,d6 (all 200).
+- Epsilon Indi B: first bundle `epsilon-indi-b-d2.json`.
+- WISE 0855: first bundle `wise-0855-d6.json` (detector 6, correct).
+- RW Aurigae: first bundle `rw-aurigae-d2.json`.
+- R Draconis: first bundle `r-draconis-d2.json`.
+
+Dark mission desk is live (large left stage, not the white form squeeze). Spectrum files are on `/samples/` but production still draws charts from frames only until item 2 merges.
+
+**Item 2 in flight:** spectrum-file chart PR from this branch (`*-spectrum.json` in parallel with first bundle, fixed 0.75–5 µm, detector highlight, null flux = no marker).
+
 ### 2026-11-14 15:32 ET - From: Tommy - Kind: Need
 
 **Where this side is, and your list, in order. Asked by Tommy himself.** #29 is merged (`81282e4`), on green checks, and `main` is merged back into this branch: pull before your next push. This entry replaces the lists of the entries below.

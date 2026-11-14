@@ -11,8 +11,8 @@ export interface SpectrumPoint {
   pass: number;
   time_mjd: number;
   time_iso: string;
-  wavelength_um: number;
-  bandwidth_um: number;
+  wavelength_um: number | null;
+  bandwidth_um: number | null;
   flux_mjy: number | null;
   error_mjy: number | null;
   quality: PhotometryQuality;

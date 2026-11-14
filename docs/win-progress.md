@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Ship to main path** — Tommy Need: index target/PM for presets, no em dashes, SpectrumPoint-ready charts, PR compare ready.
+**Spectrum-from-file chart** — `*-spectrum.json` paints before bundles finish (Epsilon 413 pts, 0.75–5 µm, detector highlight). Keep dark NASA desk (no white form squeeze).
 
 ## Backlog (phenomenal)
 

@@ -372,14 +372,17 @@ export default function App() {
       try {
         const entry = indexEntry;
         if (entry && entry.detectors.length > 0) {
-          // Spectrum file first (tens of kB): full chart before multi-MB detector bundles.
+          // Spectrum file in parallel with first bundle (tens of kB): chart can paint
+          // before multi-MB detector JSON finishes (Tommy Need item 2).
           if (entry.spectrum) {
-            try {
-              const pts = await fetchSpectrumFile(spectrumFileUrl(entry.spectrum.file), signal);
-              if (!signal.aborted) setSpectrumPoints(pts);
-            } catch {
-              if (!signal.aborted) setSpectrumPoints(null);
-            }
+            void (async () => {
+              try {
+                const pts = await fetchSpectrumFile(spectrumFileUrl(entry.spectrum!.file), signal);
+                if (!signal.aborted) setSpectrumPoints(pts);
+              } catch {
+                if (!signal.aborted) setSpectrumPoints(null);
+              }
+            })();
           } else if (!signal.aborted) {
             setSpectrumPoints(null);
           }
@@ -679,6 +682,7 @@ export default function App() {
       setTimelineOpen(true);
       return;
     }
+    // Barnard / R Dra: few flux points + "too bright" line belong on the timeline.
     patchView({
       targetKey: key,
       query: label,
@@ -689,7 +693,7 @@ export default function App() {
       playing: false,
       waveUm: null,
     });
-    setTimelineOpen(false);
+    setTimelineOpen(key === "barnard" || key === "rdra");
   }
 
   useEffect(() => {
@@ -1943,6 +1947,7 @@ export default function App() {
               <Charts
                 frames={filtered}
                 spectrumPoints={spectrumPoints ?? undefined}
+                highlightDetector={view.detector}
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                 onSelectFrame={(index) => {
                   clearPresentationOverlays();

@@ -5,6 +5,8 @@ interface ChartsProps {
   frames: DecodedFrame[];
   /** Optional photometry-only points (index spectrum file / GET /api/spectrum). */
   spectrumPoints?: SpectrumPoint[];
+  /** Detector currently on the stage: those points are drawn brighter. */
+  highlightDetector?: number | null;
   activeIndex: number;
   onSelectFrame?: (index: number) => void;
 }
@@ -19,13 +21,15 @@ function passColor(pass: number): string {
 export function Charts({
   frames,
   spectrumPoints: spectrumPointsProp,
+  highlightDetector = null,
   activeIndex,
   onSelectFrame,
 }: ChartsProps) {
   if (frames.length === 0 && !(spectrumPointsProp && spectrumPointsProp.length > 0)) return null;
 
   const points = spectrumPointsProp ?? spectrumPointsFromFrames(frames);
-  const withFlux = points.filter((p) => p.flux_mjy != null);
+  // Null flux: no marker. Null wavelength (outside): skip from the plot.
+  const withFlux = points.filter((p) => p.flux_mjy != null && p.wavelength_um != null);
   const waveStrip = [...frames].sort((a, b) => a.frame.wavelength_um - b.frame.wavelength_um);
   const active = frames[activeIndex];
   const activeWave = active?.frame.wavelength_um ?? null;
@@ -51,25 +55,28 @@ export function Charts({
         </p>
         {saturatedEverywhere ? (
           <p className="chart-saturated">
-            Too bright for a spectrum on these frames. Try Epsilon Indi B for a full infrared
-            spectrum, or detectors 5-6 on Barnard's Star.
+            Too bright for a flux number here. The images still work. Try Epsilon Indi B for a full
+            infrared spectrum.
           </p>
         ) : (
           <FluxSvg
             points={withFlux
               .slice()
-              .sort((a, b) => a.wavelength_um - b.wavelength_um)
+              .sort((a, b) => (a.wavelength_um as number) - (b.wavelength_um as number))
               .map((p) => ({
-                x: p.wavelength_um,
+                x: p.wavelength_um as number,
                 y: p.flux_mjy as number,
                 err: p.error_mjy,
                 pass: p.pass,
+                detector: p.detector,
                 active: p.id === activeId,
                 flagged: p.quality === "flagged",
                 id: p.id,
               }))}
             xLabel="µm"
             yLabel="mJy"
+            fixedX={[0.75, 5]}
+            highlightDetector={highlightDetector}
             onPick={(id) => {
               const idx = frames.findIndex((f) => f.frame.id === id);
               if (idx >= 0) onSelectFrame?.(idx);
@@ -100,12 +107,14 @@ export function Charts({
               y: p.flux_mjy as number,
               err: p.error_mjy,
               pass: p.pass,
+              detector: p.detector,
               active: p.id === activeId,
               flagged: p.quality === "flagged",
               id: p.id,
             }))}
             xLabel="MJD"
             yLabel="mJy"
+            highlightDetector={highlightDetector}
             onPick={(id) => {
               const idx = frames.findIndex((f) => f.frame.id === id);
               if (idx >= 0) onSelectFrame?.(idx);
@@ -207,6 +216,7 @@ interface FluxPoint {
   y: number;
   err: number | null;
   pass: number;
+  detector?: number;
   active: boolean;
   flagged: boolean;
   id: string;
@@ -217,11 +227,16 @@ function FluxSvg({
   xLabel,
   yLabel,
   onPick,
+  fixedX,
+  highlightDetector = null,
 }: {
   points: FluxPoint[];
   xLabel: string;
   yLabel: string;
   onPick?: (id: string) => void;
+  /** Spectrum always spans SPHEREx 0.75 to 5 µm when set. */
+  fixedX?: [number, number];
+  highlightDetector?: number | null;
 }) {
   const w = 320;
   const h = 140;
@@ -231,8 +246,8 @@ function FluxSvg({
   const padB = 22;
   const xs = points.map((p) => p.x);
   const ys = points.map((p) => p.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
+  const minX = fixedX ? fixedX[0] : Math.min(...xs);
+  const maxX = fixedX ? fixedX[1] : Math.max(...xs);
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
   const ratio = maxY / Math.max(minY, 1e-9);
@@ -276,13 +291,16 @@ function FluxSvg({
         const err = p.err != null && p.err > 0 ? p.err : null;
         const yLo = err != null ? sy(Math.max(p.y - err, useLog ? p.y * 0.01 : p.y - err)) : cy;
         const yHi = err != null ? sy(p.y + err) : cy;
+        const dim =
+          highlightDetector != null && p.detector != null && p.detector !== highlightDetector;
+        const opacity = dim ? 0.28 : 1;
         return (
           // biome-ignore lint/a11y/useSemanticElements: SVG point hit target
           <g
             key={p.id}
             role="button"
             tabIndex={0}
-            style={{ cursor: onPick ? "pointer" : undefined }}
+            style={{ cursor: onPick ? "pointer" : undefined, opacity }}
             onClick={() => onPick?.(p.id)}
             onKeyDown={(e) => {
               if (!onPick) return;
@@ -307,7 +325,7 @@ function FluxSvg({
             <circle
               cx={cx}
               cy={cy}
-              r={p.active ? 4.5 : 2.8}
+              r={p.active ? 4.5 : dim ? 2.2 : 2.8}
               fill={p.flagged ? "var(--panel)" : color}
               stroke={color}
               strokeWidth={p.flagged || p.active ? 1.6 : 0}
