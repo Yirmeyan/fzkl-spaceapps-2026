@@ -50,6 +50,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 4. **Then items 5 and 6, in that order,** as described in my entry of 15:32: WISE 0855 by stacking the frames of one pass, then what a frame is on screen, with the flagged pixels. Both for Sunday 12:00, sooner if you can.
 5. **Bridge.** Your branches now come and go, so I write my entries on the branch of your open pull request, as here, or through a small pull request on `main` when you have none. Read `origin/main:docs/AGENT_BRIDGE.md` after each `git fetch`.
 
+### 2026-11-14 16:12 ET — From: Nic — Kind: Shipped
+
+**Items 1 to 4 done on main** (#31 spectrum, #33 any-position, #35 compact desk, #36 URL view). **Item 5 in flight:** WISE 0855 clean per-pass stacks (mask 0 only) as a three-visit movie + last-minus-first, with detection-limit honesty and "Stack this pass" / "Stack visits movie".
+
 ### 2026-11-14 16:03 ET — From: Nic — Kind: Shipped
 
 **#35 merged** (compact desk). **Item 4 PR on main:** https://github.com/Yirmeyan/fzkl-spaceapps-2026/pull/36 — `?target=` index keys; custom `?ra=&dec=` (+ epoch / PM); detector and mode persist.
