@@ -148,7 +148,7 @@ export function Charts({
         <h3>Light curve</h3>
         <p className="chart-empty">
           Brightness over time inside one camera
-          {activeDet != null ? ` (detector ${activeDet})` : ""}. Never mixed across detectors.
+          {activeDet != null ? ` (camera ${activeDet})` : ""}. Never mixed across cameras.
         </p>
         {lightPoints.length > 0 ? (
           <FluxSvg

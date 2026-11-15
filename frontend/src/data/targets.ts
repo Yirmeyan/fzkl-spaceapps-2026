@@ -28,7 +28,7 @@ export const KNOWN_TARGETS: KnownTarget[] = [
   {
     key: "barnard",
     label: "Barnard's Star",
-    blurb: "The mover: watch it hop between SPHEREx visits.",
+    blurb: "A nearby star that moves fast. Watch it change place between visits.",
     bundleUrl: `${import.meta.env.BASE_URL}samples/barnard-star-d2.json`,
     // Index also has these; kept as offline fallback only.
     ra: 269.452077,
@@ -40,14 +40,16 @@ export const KNOWN_TARGETS: KnownTarget[] = [
   {
     key: "epsindi",
     label: "Epsilon Indi B",
-    blurb: "The spectrum: brown-dwarf infrared colors with deep absorption bands.",
+    blurb:
+      "Brown dwarfs, objects too small to shine like stars. Their infrared colors give them away.",
     bundleUrl: null,
     inSampleIndex: true,
   },
   {
     key: "wise0855",
     label: "WISE 0855",
-    blurb: "The faint one: near the detection limit. Stack a visit to see it.",
+    blurb:
+      "One of the coldest and faintest neighbors of the Sun, at the limit of what SPHEREx can see.",
     bundleUrl: null,
     // Do not hardcode 2010 sky position. Use index.json target (has proper motion).
     inSampleIndex: true,
@@ -55,21 +57,23 @@ export const KNOWN_TARGETS: KnownTarget[] = [
   {
     key: "rwaur",
     label: "RW Aurigae",
-    blurb: "The variable: brightness changes from visit to visit.",
+    blurb: "A young star whose brightness changes from one visit to the next.",
     bundleUrl: null,
     inSampleIndex: true,
   },
   {
     key: "rdra",
     label: "R Draconis",
-    blurb: "The saturated one: images only. Too bright for a flux number.",
+    blurb:
+      "A giant star so bright that it saturates the cameras. A test of the limits of the tool.",
     bundleUrl: null,
     inSampleIndex: true,
   },
   {
     key: "synthx",
     label: "Synthetic Planet X",
-    blurb: "Made-up outer-solar-system body on real SPHEREx frames. Labeled SYNTHETIC.",
+    blurb:
+      "SYNTHETIC: not a real object. A made-up moving dot added to real SPHEREx images, to show what a distant planet would look like here.",
     bundleUrl: null,
     inSampleIndex: true,
     synthetic: true,

@@ -37,6 +37,15 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 10:40 ET - From: Tommy - Kind: Shipped
+**Pull requests 1 and 2 of the 01:15 need are done on my side, as announced at 01:40: the welcome window, and the words and sentences. Pull request 3 (simple screen) and the 00:25 need (film in seconds) stay yours.**
+
+- **Welcome window:** `ui/WelcomeWindow.tsx` replaces `MissionBriefing` and `HelpPanel`. It opens by itself at the first opening (`state/welcome.ts`, remembered in `localStorage`), and again from **How it works**, through `view.showHelp` as Help did. Closed by its button, the cross, Escape or a click outside. Not opened when the address carries `demo=1` or `years=1`.
+- **Words:** every label and sentence is in `ui/copy.ts`. Change a word there, nowhere else. `copy.test.ts` refuses pass, detector, hop, FOV, eyepiece, λ and dashes. Each group of the panel shows the sentence of the selected option in a `<p className="control-hint">`.
+- **Renamed:** Move is Subtract, More is Advanced, Study this is Open this object, D1 is Camera 1, Pass is Visit. The Share menu is one **Copy link** button and a small **Tour** menu. **Share hop is gone**, with its link that opened Barnard's Star for any place: Copy link keeps the view.
+- **Left for pull request 3, as measured in a browser:** at 360, 390 and 430 px wide the page still scrolls sideways (107, 83 and 35 px). The stage keeps a width of 447 px whatever the screen: `.viewer-pane` and the single column of `.workspace`. The header buttons now wrap.
+- **Checked:** lint, typecheck, 83 tests, build, a headless browser at 320, 360 and 1280 px, then the preview of each branch with the live service. The welcome window is merged: pull request 92.
+
 ### 2026-11-15 01:40 ET - From: Tommy - Kind: Shipped
 **Who does what before the freeze, so that nothing is done twice. Yirmeyan decided it before going to sleep.**
 

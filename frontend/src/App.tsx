@@ -89,6 +89,22 @@ import {
 import { browserStorage, rememberWelcome, welcomesAtOpening } from "./state/welcome";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
 import { CandidatesPanel } from "./ui/CandidatesPanel";
+import {
+  COLORS,
+  COMBINE,
+  CONTRAST,
+  EXAMPLES,
+  FLAGS,
+  LOOK,
+  PALETTE,
+  PLAYER,
+  SIZE,
+  STRIP,
+  SURVEYS,
+  TOP,
+  VISITS,
+  WAYS,
+} from "./ui/copy";
 import { type DetectorBand, DetectorDial } from "./ui/DetectorDial";
 import { FrameCaption } from "./ui/FrameCaption";
 import { GhostVisits } from "./ui/GhostVisits";
@@ -375,15 +391,13 @@ export default function App() {
       window.setTimeout(() => setFrameLinkCopied(false), 2000);
       setDiscoveryIsHalo(false);
       setDiscoveryFlash(
-        `Frame link copied · frame ${view.frameIndex + 1}${
-          view.detector != null ? ` · D${view.detector}` : ""
+        `Link copied · image ${view.frameIndex + 1}${
+          view.detector != null ? ` · camera ${view.detector}` : ""
         }${synthetic ? " · SYNTHETIC" : ""}`,
       );
       window.setTimeout(() => setDiscoveryFlash(null), 2400);
     });
   }
-
-  const [hopLinkCopied, setHopLinkCopied] = useState(false);
 
   const patchView = useCallback((partial: Partial<ViewState>) => {
     setView((prev) => {
@@ -2068,7 +2082,7 @@ export default function App() {
       diff: {
         pixels: diff.pixels,
         mask: diff.mask,
-        label: "Diff",
+        label: STRIP.difference,
         sub: `Visit ${a} − Visit ${b}. bright/dark = motion`,
       },
       earlyXy: earlyBead ? ([earlyBead.x, earlyBead.y] as [number, number]) : null,
@@ -2106,20 +2120,6 @@ export default function App() {
       pass: pick === "early" ? hopProof.a : hopProof.b,
       playing: false,
       frameIndex: 0,
-    });
-  }
-
-  function copyHopLink() {
-    if (!hopProof) return;
-    const url = new URL(window.location.href);
-    url.search = "";
-    url.searchParams.set("target", view.targetKey || "barnard");
-    url.searchParams.set("mode", "difference");
-    url.searchParams.set("a", String(hopProof.a));
-    url.searchParams.set("b", String(hopProof.b));
-    void navigator.clipboard.writeText(url.toString()).then(() => {
-      setHopLinkCopied(true);
-      window.setTimeout(() => setHopLinkCopied(false), 2000);
     });
   }
 
@@ -2267,10 +2267,10 @@ export default function App() {
           <button
             type="button"
             className="ghost"
-            title="What the search found in the fields we checked"
+            title={TOP.journal.hint}
             onClick={() => setJournalOpen(true)}
           >
-            Journal
+            {TOP.journal.label}
           </button>
           <a
             className="ghost"
@@ -2279,48 +2279,48 @@ export default function App() {
                 ? `${import.meta.env.BASE_URL}sky.html?ra=${load.data.target.ra}&dec=${load.data.target.dec}&fov=30`
                 : `${import.meta.env.BASE_URL}sky.html`
             }
-            title="All-sky SPHEREx map — open centered on this field when loaded"
+            title={TOP.skyMap.hint}
           >
-            Sky map
+            {TOP.skyMap.label}
           </a>
+          <button
+            type="button"
+            className={frameLinkCopied ? "active" : "ghost"}
+            disabled={load.status !== "ready"}
+            onClick={() => copyFrameLink()}
+            title={TOP.copyLink.hint}
+          >
+            {frameLinkCopied ? "Copied" : TOP.copyLink.label}
+          </button>
           <details className="jury-tools">
-            <summary title="Demo and share tools">Share</summary>
-            {cinema && (
-              <button
-                type="button"
-                className={eyepiece ? "primary" : "ghost"}
-                onClick={() => setEyepiece((v) => !v)}
-                title={eyepiece ? "Leave eyepiece (Esc or E)" : "Eyepiece: sky only (E)"}
-              >
-                {eyepiece ? "Leave eyepiece" : "Eyepiece"}
-              </button>
-            )}
+            <summary title={TOP.tour.hint}>{TOP.tour.label}</summary>
             <button
               type="button"
               className="ghost"
               disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
               onClick={() => runAutoDemo()}
-              title="Timed walkthrough (J)"
+              title={TOP.guidedTour.hint}
             >
-              Demo
+              {TOP.guidedTour.label}
             </button>
             <button
               type="button"
               className="ghost"
               onClick={() => copyJudgeLink()}
-              title="Copy a link that auto-starts the demo"
+              title={TOP.tourLink.hint}
             >
-              {linkCopied ? "Copied" : "Demo link"}
+              {linkCopied ? "Copied" : TOP.tourLink.label}
             </button>
-            <button
-              type="button"
-              className={frameLinkCopied ? "active" : "ghost"}
-              disabled={load.status !== "ready"}
-              onClick={() => copyFrameLink()}
-              title="Copy a link to this exact frame"
-            >
-              {frameLinkCopied ? "Copied" : "This frame"}
-            </button>
+            {cinema && (
+              <button
+                type="button"
+                className={eyepiece ? "primary" : "ghost"}
+                onClick={() => setEyepiece((v) => !v)}
+                title={eyepiece ? TOP.leaveFullScreen.hint : TOP.fullScreen.hint}
+              >
+                {eyepiece ? TOP.leaveFullScreen.label : TOP.fullScreen.label}
+              </button>
+            )}
           </details>
         </div>
       </header>
@@ -2380,6 +2380,7 @@ export default function App() {
         }}
       />
 
+      <p className="targets-label">{EXAMPLES.label}</p>
       <nav className="targets" aria-label="Challenge test targets">
         {KNOWN_TARGETS.filter((t) => !t.synthetic).map((t) => {
           const ready = t.inSampleIndex || !!t.bundleUrl || (t.ra != null && t.dec != null);
@@ -2422,12 +2423,13 @@ export default function App() {
         <button
           type="button"
           className="ghost"
-          title="Reopen the introduction"
+          title={TOP.howItWorks.hint}
           onClick={() => patchView({ showHelp: true })}
         >
-          How it works
+          {TOP.howItWorks.label}
         </button>
       </nav>
+      <p className="targets-hint">{targetByKey(view.targetKey)?.blurb ?? EXAMPLES.typed}</p>
       <form className="search" onSubmit={onSearch}>
         <label className="sr-only" htmlFor="sky-query">
           Object name or RA Dec
@@ -2447,25 +2449,19 @@ export default function App() {
       <p className="search-hint">Try: Luhman 16 · 133.7951, -7.2451 · 08h55m10.8s -07d14m43s</p>
 
       <nav className="mode-tabs" aria-label="What do you want to do?">
-        {(
-          [
-            ["watch", "Watch", "Play infrared frames — each frame is a slightly different color"],
-            ["compare", "Blink", "Flip early ↔ late visits at the same λ so the hop is obvious"],
-            ["difference", "Move", "Subtract two visits: bright/dark pair = motion"],
-            ["more", "More", "Average stack, tracking, and filters"],
-          ] as [UiMode, string, string][]
-        ).map(([id, label, tip]) => (
+        {(["watch", "compare", "difference", "more"] as const).map((id) => (
           <button
             key={id}
             type="button"
             className={uiMode === id ? "active" : ""}
-            title={tip}
+            title={WAYS[id].hint}
             onClick={() => setUiMode(id)}
           >
-            {label}
+            {WAYS[id].label}
           </button>
         ))}
       </nav>
+      <p className="mode-hint">{WAYS[uiMode].hint}</p>
 
       <main className="main workspace">
         <section className="viewer-pane stage" ref={stageRef}>
@@ -2776,7 +2772,7 @@ export default function App() {
                         disabled={flightPlaying}
                         title="Animate the object from AllWISE 2010 to SPHEREx now"
                       >
-                        {flightPlaying ? "Playing…" : "Play years"}
+                        {flightPlaying ? "Playing…" : SURVEYS.years.label}
                       </button>
                     </fieldset>
                   )}
@@ -2942,14 +2938,6 @@ export default function App() {
                 active={hopProofActive}
                 onPick={onHopProofPick}
               />
-              <button
-                type="button"
-                className="hop-share-btn"
-                title="Copy a link that opens Show the move for this star"
-                onClick={() => copyHopLink()}
-              >
-                {hopLinkCopied ? "Copied" : "Share hop"}
-              </button>
             </div>
           )}
 
@@ -3026,7 +3014,7 @@ export default function App() {
                   type="button"
                   className={blinkPasses ? "active" : "ghost"}
                   disabled={passes.length < 2}
-                  title="Blink early ↔ late visits at the same infrared color (B)"
+                  title={`${WAYS.compare.hint} (B)`}
                   onClick={() => {
                     if (blinkPasses) {
                       setBlinkPasses(false);
@@ -3037,40 +3025,40 @@ export default function App() {
                     }
                   }}
                 >
-                  {blinkPasses ? "Stop blink" : "Blink"}
+                  {blinkPasses ? "Stop blink" : WAYS.compare.label}
                 </button>
                 <button
                   type="button"
                   className="ghost"
                   disabled={passes.length < 2}
-                  title="Difference two visits — bright/dark pair = motion"
+                  title={WAYS.difference.hint}
                   onClick={() => setUiMode("difference")}
                 >
-                  Move
+                  {WAYS.difference.label}
                 </button>
                 <button
                   type="button"
                   className={ghostVisits ? "active" : "ghost"}
                   disabled={passes.length < 2}
-                  title="Overlay early and late visits (G)"
+                  title={PLAYER.overlay.hint}
                   onClick={() => {
                     setExclusiveOverlay(ghostVisits ? null : "ghost");
                     patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
                   }}
                 >
-                  Blend
+                  {PLAYER.overlay.label}
                 </button>
                 <button
                   type="button"
                   className={splitVisits ? "active" : "ghost"}
                   disabled={passes.length < 2}
-                  title="Compare two visits side by side (S)"
+                  title={PLAYER.sideBySide.hint}
                   onClick={() => {
                     setExclusiveOverlay(splitVisits ? null : "split");
                     patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
                   }}
                 >
-                  Split
+                  {PLAYER.sideBySide.label}
                 </button>
               </div>
               {!overlayActive && (
@@ -3188,24 +3176,24 @@ export default function App() {
         <aside className="side rail">
           <div className="controls">
             <fieldset>
-              <legend>Pass</legend>
+              <legend>{VISITS.label}</legend>
               <button
                 type="button"
                 className={view.pass == null ? "active" : ""}
-                title="Include frames from every SPHEREx visit of this field"
+                title={VISITS.all.hint}
                 onClick={() => {
                   clearPresentationOverlays();
                   patchView({ pass: null, frameIndex: 0, playing: false });
                 }}
               >
-                All
+                {VISITS.all.label}
               </button>
               {passes.map((p) => (
                 <button
                   key={p}
                   type="button"
                   className={view.pass === p ? "active" : ""}
-                  title={`Show only Visit ${p} frames`}
+                  title={VISITS.one(p).hint}
                   onClick={() => {
                     clearPresentationOverlays();
                     patchView({ pass: p, frameIndex: 0, playing: false, mode: "single" });
@@ -3214,22 +3202,19 @@ export default function App() {
                   {p}
                 </button>
               ))}
+              <p className="control-hint">
+                {view.pass == null ? VISITS.all.hint : VISITS.one(view.pass).hint}
+              </p>
             </fieldset>
 
             <fieldset>
-              <legend>Mode</legend>
-              {(
-                [
-                  ["single", "Single"],
-                  ["stack", "Stack"],
-                  ["difference", "Difference"],
-                  ["track", "Track"],
-                ] as const
-              ).map(([mode, label]) => (
+              <legend>{COMBINE.label}</legend>
+              {(["single", "stack", "difference", "track"] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   className={view.mode === mode && !passMovie ? "active" : ""}
+                  title={COMBINE.options[mode].hint}
                   onClick={() => {
                     clearPresentationOverlays();
                     setBlinkPasses(false);
@@ -3243,26 +3228,27 @@ export default function App() {
                     });
                   }}
                 >
-                  {label}
+                  {COMBINE.options[mode].label}
                 </button>
               ))}
+              <p className="control-hint">{COMBINE.options[view.mode].hint}</p>
             </fieldset>
 
             <fieldset>
-              <legend>Wavelength</legend>
+              <legend>{COLORS.label}</legend>
               <button
                 type="button"
                 className={view.waveUm == null ? "active" : ""}
-                title="Use every infrared wavelength in the movie"
+                title={COLORS.all.hint}
                 onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
               >
-                All λ
+                {COLORS.all.label}
               </button>
               <button
                 type="button"
                 className={view.waveUm != null ? "active" : ""}
                 disabled={!display || !("meta" in display) || !display.meta}
-                title="Keep only frames near this frame’s wavelength"
+                title={COLORS.thisOne.hint}
                 onClick={() => {
                   if (!display || !("meta" in display) || !display.meta) return;
                   patchView({
@@ -3272,20 +3258,23 @@ export default function App() {
                   });
                 }}
               >
-                Match this λ
+                {COLORS.thisOne.label}
               </button>
               {view.waveUm != null && (
                 <span className="wave-chip">
                   {view.waveUm.toFixed(3)} ± {view.waveTolUm.toFixed(3)} µm · {filtered.length}{" "}
-                  frames
+                  images
                 </span>
               )}
+              <p className="control-hint">
+                {view.waveUm == null ? COLORS.all.hint : COLORS.thisOne.hint}
+              </p>
             </fieldset>
 
             <fieldset className="contrast-field">
-              <legend>Contrast</legend>
-              <label>
-                <span className="sr-only">Contrast</span>
+              <legend>{CONTRAST.label}</legend>
+              <label title={CONTRAST.hint}>
+                <span className="sr-only">{CONTRAST.label}</span>
                 <input
                   type="range"
                   min={0.4}
@@ -3299,129 +3288,138 @@ export default function App() {
                   onKeyUp={() => {
                     if (contrastLive !== view.contrast) patchView({ contrast: contrastLive });
                   }}
-                  aria-label="Contrast"
+                  aria-label={CONTRAST.label}
                 />
                 <span>{contrastLive.toFixed(1)}×</span>
               </label>
+              <p className="control-hint">{CONTRAST.hint}</p>
             </fieldset>
 
             <fieldset>
-              <legend>Color</legend>
+              <legend>{PALETTE.label}</legend>
               <button
                 type="button"
                 className={view.colorMap === "heat" ? "active" : ""}
+                title={PALETTE.heat.hint}
                 onClick={() => patchView({ colorMap: "heat" })}
               >
-                IR heat
+                {PALETTE.heat.label}
               </button>
               <button
                 type="button"
                 className={view.colorMap === "gray" ? "active" : ""}
+                title={PALETTE.gray.hint}
                 onClick={() => patchView({ colorMap: "gray" })}
               >
-                Gray
+                {PALETTE.gray.label}
               </button>
+              <p className="control-hint">
+                {view.colorMap === "heat" ? PALETTE.heat.hint : PALETTE.gray.hint}
+              </p>
             </fieldset>
 
             <fieldset>
-              <legend>Look</legend>
+              <legend>{LOOK.label}</legend>
               <button
                 type="button"
                 className={smoothScale ? "active" : ""}
-                title="Smooth upscale — softer star, less blocky (default)"
+                title={LOOK.smooth.hint}
                 onClick={() => setSmoothScale(true)}
               >
-                Soft
+                {LOOK.smooth.label}
               </button>
               <button
                 type="button"
                 className={!smoothScale ? "active" : ""}
-                title="Nearest-neighbor pixels — each detector pixel is a sharp block"
+                title={LOOK.pixels.hint}
                 onClick={() => setSmoothScale(false)}
               >
-                Sharp
+                {LOOK.pixels.label}
               </button>
               <button
                 type="button"
                 className={showPathTrail ? "active" : ""}
-                title="Show visit beads / catalog path on the sky"
+                title={LOOK.path.hint}
                 onClick={() => setShowPathTrail((v) => !v)}
               >
                 {showPathTrail ? "Path on" : "Path off"}
               </button>
+              <p className="control-hint">
+                {smoothScale ? LOOK.smooth.hint : LOOK.pixels.hint}
+                {showPathTrail ? ` ${LOOK.path.on}` : ""}
+              </p>
             </fieldset>
 
             <fieldset>
-              <legend>Field of view</legend>
+              <legend>{SIZE.label}</legend>
               <button
                 type="button"
                 className={fieldPreset === "default" ? "active" : ""}
-                title="Tight cutout 0.1° · 128² — instant once cached"
+                title={SIZE.close.hint}
                 onClick={() => applyFieldPreset("default")}
               >
-                0.1° · 128²
+                {SIZE.close.label}
               </button>
               <button
                 type="button"
                 className={fieldPreset === "wide" ? "active" : ""}
-                title="Wider archive cutout 0.3° · 256² — prefetched in the background"
+                title={SIZE.wide.hint}
                 onClick={() => applyFieldPreset("wide")}
               >
-                0.3° · 256²
+                {SIZE.wide.label}
               </button>
-              <span className="wave-chip">
-                {fieldPreset === "wide"
-                  ? "Wider · 256² from archive (cached after first load)"
-                  : "Default · other FOV warms in the background"}
-              </span>
+              <p className="control-hint">
+                {fieldPreset === "wide" ? SIZE.wide.hint : SIZE.close.hint}
+              </p>
             </fieldset>
 
             <fieldset>
-              <legend>Other telescopes</legend>
+              <legend>{SURVEYS.label}</legend>
               <button
                 type="button"
                 className={showGaia ? "active" : ""}
                 disabled={catalogError != null && !catalogFile}
-                title="Overlay Gaia DR3 stars in this view"
+                title={SURVEYS.gaia.hint}
                 onClick={() => setShowGaia((v) => !v)}
               >
-                Gaia DR3
+                {SURVEYS.gaia.label}
               </button>
               <button
                 type="button"
                 className={showAllwise ? "active" : ""}
                 disabled={catalogError != null && !catalogFile}
-                title="AllWISE infrared sky from ~2010"
+                title={SURVEYS.wise.hint}
                 onClick={() => setShowAllwise((v) => !v)}
               >
-                AllWISE 2010
+                {SURVEYS.wise.label}
               </button>
               <button
                 type="button"
                 className={showAllwise && flightPath ? "active" : ""}
                 disabled={catalogError != null && !catalogFile}
-                title="Path from WISE 2010 to SPHEREx now"
+                title={SURVEYS.path.hint}
                 onClick={() => {
                   setShowAllwise(true);
                   setShowPathTrail(true);
                   setFlightScrub(1);
                 }}
               >
-                2010 → now
+                {SURVEYS.path.label}
               </button>
               <button
                 type="button"
                 className={flightPlaying ? "active" : ""}
                 disabled={(catalogError != null && !catalogFile) || flightPlaying}
-                title="Animate decades along the AllWISE path"
+                title={SURVEYS.years.hint}
                 onClick={() => {
                   setShowAllwise(true);
                   setShowPathTrail(true);
                   playFlightYears();
                 }}
               >
-                Play years
+                {SURVEYS.years.label}
               </button>
+              <p className="control-hint">{SURVEYS.group}</p>
               {catalogWaiting && <span className="wave-chip">Asking catalogs…</span>}
               {catalogError && <span className="wave-chip catalog-unavail">{catalogError}</span>}
               {catalogTip && <span className="wave-chip catalog-tip">{catalogTip}</span>}
@@ -3478,7 +3476,7 @@ export default function App() {
                 </dd>
               </div>
               <div>
-                <dt>Pass / detector</dt>
+                <dt>Visit / camera</dt>
                 <dd>
                   {display.meta.exposure.pass} / {display.meta.exposure.detector} ·{" "}
                   {display.meta.exposure.collection}
@@ -3598,7 +3596,9 @@ export default function App() {
 
           {load.status === "ready" && (
             <details className="rail-card details rail-secondary" open>
-              <summary title="How far the catalog says the star hops">Catalog hop</summary>
+              <summary title="How far star catalogs say this object should move between visits.">
+                What the catalogs predict
+              </summary>
               <MotionInsight
                 grid={load.data.grid}
                 trail={trail}
@@ -3715,13 +3715,14 @@ export default function App() {
                         setPassMovie(false);
                         patchView({ mode: "stack", playing: false });
                       }}
+                      title={COMBINE.options.stack.hint}
                     >
-                      Stack
+                      {COMBINE.options.stack.label}
                     </button>
                     <button
                       type="button"
                       className={passMovie ? "active" : ""}
-                      title="Mean of each visit (mask 0 only), then last minus first"
+                      title={COMBINE.averageMovie.hint}
                       onClick={() => {
                         clearPresentationOverlays();
                         setPassMovie(true);
@@ -3733,7 +3734,7 @@ export default function App() {
                         });
                       }}
                     >
-                      Stack movie
+                      {COMBINE.averageMovie.label}
                     </button>
                     <button
                       type="button"
@@ -3758,12 +3759,12 @@ export default function App() {
                         patchView({ mode: "stack", playing: false });
                       }}
                     >
-                      Stack this pass
+                      {COMBINE.averageThisVisit}
                     </button>
                   )}
                   {view.mode !== "difference" && (
                     <>
-                      <p className="control-label">Pass</p>
+                      <p className="control-label">{VISITS.label}</p>
                       <div className="chip-row">
                         <button
                           type="button"
@@ -3795,7 +3796,7 @@ export default function App() {
                     checked={tintMask}
                     onChange={(e) => setTintMask(e.target.checked)}
                   />
-                  <span>Tint flagged pixels</span>
+                  <span title={FLAGS.hint}>{FLAGS.label}</span>
                 </label>
                 <button
                   type="button"
@@ -3808,7 +3809,8 @@ export default function App() {
                 {showAllwise && flightPath && (
                   <p className="micro flight-path-note">
                     Flight path {flightPath.label}
-                    {flightPath.sourceId ? ` · ${flightPath.sourceId}` : ""} · scrub or Play years
+                    {flightPath.sourceId ? ` · ${flightPath.sourceId}` : ""} · scrub or{" "}
+                    {SURVEYS.years.label}
                   </p>
                 )}
                 {catalogFile?.catalogs.some((c) => c.truncated) && (
@@ -3940,9 +3942,9 @@ function AdvancedDetails({
           </dd>
         </div>
         <div>
-          <dt>Detector / visit</dt>
+          <dt>Camera / visit</dt>
           <dd>
-            Detector {e.detector} · Visit {e.pass} · {e.collection}
+            Camera {e.detector} · Visit {e.pass} · {e.collection}
           </dd>
         </div>
         <div>
@@ -3985,11 +3987,7 @@ function AdvancedDetails({
       </dl>
       <div className={`mask-legend${tintMask ? " mask-legend--on" : ""}`}>
         <p className="mask-legend-title">Mask bits (SPHEREx Flags)</p>
-        <p className="mask-legend-hint">
-          {tintMask
-            ? "Tint is on: pink-magenta pixels have any flag set."
-            : "Turn on Tint flagged pixels in Look to see them on the image."}
-        </p>
+        <p className="mask-legend-hint">{tintMask ? FLAGS.on : FLAGS.off}</p>
         <ul className="mask-legend-list">
           {MASK_BIT_LEGEND.map((row) => (
             <li key={row.bit}>

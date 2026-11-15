@@ -47,7 +47,7 @@ export function MotionInsight({ grid, trail, targetName, hasCatalogMotion }: Mot
         <p className="motion-insight-body">
           The bright core in the image is the real SPHEREx data. The orange cross and numbered path
           are the catalogue proper-motion track drawn on top: a guide, not a second independent
-          measurement. Watch {targetName} hop; background stars stay put.
+          measurement. Watch {targetName} move while the background stars stay put.
         </p>
       </header>
       <MotionFingerprint grid={grid} trail={trail} targetName={targetName} />

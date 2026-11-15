@@ -6,6 +6,7 @@ import {
   noSwingSentence,
 } from "../data/candidates";
 import type { CatalogSlice } from "../data/catalog";
+import { FOUND } from "./copy";
 
 interface CandidatesPanelProps {
   data: CandidatesFile | null;
@@ -95,7 +96,7 @@ export function CandidatesPanel({
                   )}
                   {hidden && (
                     <span className="candidates-det-warn">
-                      Seen in detectors {c.detectors.join(", ")} — not this camera.
+                      Seen by cameras {c.detectors.join(", ")}, not by this one.
                     </span>
                   )}
                 </button>
@@ -103,9 +104,9 @@ export function CandidatesPanel({
                   type="button"
                   className="candidates-study"
                   onClick={() => onStudy(i)}
-                  title="Load this place as the target so its spectrum can load"
+                  title={FOUND.open.hint}
                 >
-                  Study this
+                  {FOUND.open.label}
                 </button>
               </li>
             );

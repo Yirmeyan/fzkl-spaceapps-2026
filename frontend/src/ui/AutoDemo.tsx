@@ -20,7 +20,7 @@ export const DEMO_BEATS: {
   {
     phase: "blink",
     ms: 6000,
-    line: "Blink Visit 1 ↔ Visit 3. The bright star hops. That hop is real motion.",
+    line: "Blink between visit 1 and visit 3. The bright star jumps. That jump is real motion.",
   },
   {
     phase: "ghost",

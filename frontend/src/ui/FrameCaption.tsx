@@ -35,21 +35,21 @@ export function FrameCaption({
         {playing ? " · playing" : ""}
       </p>
       <p className="frame-caption-now">
-        Frame {frameIndex + 1} of {frames.length}
+        Image {frameIndex + 1} of {frames.length}
         <span className="frame-caption-sep">·</span>
         <strong>{shortDate(cur.frame.time_iso)}</strong>
         <span className="frame-caption-sep">·</span>
         {cur.frame.wavelength_um.toFixed(3)} µm
         <span className="frame-caption-sep">·</span>
-        Detector {cur.exposure.detector}
+        Camera {cur.exposure.detector}
       </p>
       <p className="frame-caption-span">
         Sequence {shortDate(first.frame.time_iso)} → {shortDate(last.frame.time_iso)}
         {spanDays > 0 ? ` (${spanDays} days)` : ""}
         {" · "}
         {hasCatalogMotion
-          ? "Bright blob = the star under the cross. Turn Path on to see visit beads."
-          : "Bright blob = the star under the cross."}
+          ? "The bright blob is the star under the cross. Turn Path on to see where it was at each visit."
+          : "The bright blob is the star under the cross."}
       </p>
     </div>
   );
