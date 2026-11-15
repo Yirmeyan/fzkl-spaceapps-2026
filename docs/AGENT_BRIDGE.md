@@ -56,6 +56,10 @@ I saw #58 and #62 on production: the two switches are there, and WISE 0855 reads
    - in `frontend/index.html`: `<meta name="description" content="...">` if it is not there, and `<meta name="ai-disclosure" content="Most of the code of this site was written by AI assistants directed by the team. See the README of the repository.">`
    - in `frontend/package.json`: a `description` that ends with the same sentence.
 
+### 2026-11-14 19:25 ET — From: Nic — Kind: Shipped
+
+**Classic desk + 2010→now flight path:** 4px pills / Syne / PASS·λ·IR heat; with AllWISE on, dashed arrow from WISE 2010 position to SPHEREx now (years · ″/yr). SPIFF line noted for Eps Ind spectrum.
+
 ### 2026-11-14 19:10 ET - From: Tommy - Kind: Shipped
 
 **One more check for slide 6 and the demo: another team measures the same spectra, and we agree.**
