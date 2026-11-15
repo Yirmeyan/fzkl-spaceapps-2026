@@ -66,7 +66,7 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Can it follow a star too bright to be measured? | Through the halo of light around it. R Draconis saturates the six detectors, and its halo says it faded by half between June 2025 and June 2026: a Mira variable going from its maximum to its minimum. Checked blind on 16 saturated stars chosen before the run: five of eight known long-period variables were flagged, each change in the direction the AAVSO index predicts, and none of eight steady giants |
 | How often is it wrong? | The one blind round, 21 fields chosen before the run, gave one false alarm in 16 quiet fields: a source cut by the edge of the view. Such positions are now refused. Every rule, and what it cost to find it, is in [the contract](docs/api-contract.md#how-it-was-checked) |
 
-The service has 514 automated tests. Every pull request runs them, and checks the 45 static files against the contract.
+The service has 515 automated tests. Every pull request runs them, and checks the 45 static files against the contract.
 
 ## How it works
 
@@ -133,6 +133,7 @@ The Space Apps rules ask teams to say how they used AI. Here it is, plainly.
 - **The idea and the decisions are the team's.** The team chose the challenge and the idea, set the priorities (speed first, then a correct handling of SPHEREx, then the spectrum, then comfort), approved the architecture plan and every change to the contract, and decided what to build and what to drop.
 - **Every scientific claim above comes from a check we can rerun,** not from what a model remembers: the tests of this repository, and the comparisons listed under "What we checked".
 - **No image or video of the tool is generated.** Every picture it shows is SPHEREx data.
+- **The same statement travels with the code.** It is in the description of the Python package, in the description of the service at [`/api/docs`](https://spherex-explorer-139331018511.us-east4.run.app/api/docs), in the description and the topics of this repository, and at the foot of every page of the site.
 
 ## License
 

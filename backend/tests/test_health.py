@@ -18,6 +18,13 @@ def test_health_reports_status_and_version():
     assert response.headers["cache-control"] == "no-store"
 
 
+def test_the_description_of_the_service_says_how_it_was_written():
+    described = make_client().get("/api/openapi.json").json()["info"]
+
+    assert described["title"] == "SPHEREx explorer service"
+    assert "written by AI assistants directed by the team" in described["description"]
+
+
 def test_unknown_route_returns_json_error():
     response = make_client().get("/api/does-not-exist")
 

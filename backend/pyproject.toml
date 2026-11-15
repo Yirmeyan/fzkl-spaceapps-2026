@@ -1,7 +1,7 @@
 [project]
 name = "spherex-explorer"
 version = "0.1.0"
-description = "Service that reads SPHEREx exposures and serves aligned frames."
+description = "Service that reads SPHEREx exposures and serves aligned frames, spectra, candidates and catalogs. Written with AI assistants directed by the team: see the README of the repository."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = "AGPL-3.0-only"

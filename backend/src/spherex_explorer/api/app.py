@@ -29,6 +29,14 @@ logger = logging.getLogger(__name__)
 
 # Connections kept for the search of exposures, next to those of the file reads.
 _SEARCH_CONNECTIONS = 8
+# What the documentation page of the service says of it. The rules of the challenge ask
+# that code written with AI says so in its description and in its metadata.
+_DESCRIPTION = (
+    "Reads the public SPHEREx images of any place of the sky: aligned frames, spectra, "
+    "what moved or changed, and what other telescopes know there. Built by team Foxtrot "
+    "Zulu Kilo Lima for the 2026 NASA Space Apps Challenge. Most of this code was written "
+    "by AI assistants directed by the team: see the README of the repository."
+)
 # Smallest answer worth compressing, and how hard to try: a frame shrinks by half.
 _COMPRESS_FROM_BYTES = 1024
 _COMPRESSION_LEVEL = 6
@@ -118,6 +126,7 @@ def create_app(
 
     app = FastAPI(
         title="SPHEREx explorer service",
+        description=_DESCRIPTION,
         version=__version__,
         lifespan=lifespan,
         docs_url="/api/docs",
