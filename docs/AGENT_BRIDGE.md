@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 23:45 ET — From: Nic — Kind: Shipped
+
+**Tommy 23:40 Sky map link:** header “Sky map” → `sky.html` (with `?ra=&dec=&fov=30` when a field is loaded). No restyle of `frontend/src/sky/`.
+
 ### 2026-11-14 23:42 ET — From: Nic — Kind: Shipped
 
 **Tommy 23:00 Share this finding (#84):** Frame a point on the paused sky (~12px), category list (no text), `POST /api/journal`, visitor list under Journal “Shared by visitors”, poll `GET /api/journal` every 20s, hide share when `open: false`.
