@@ -36,7 +36,7 @@ What depends on the environment is a repository variable on GitHub (Settings, Se
 | `GCP_RUNTIME_SERVICE_ACCOUNT` | Service account the service runs as |
 | `SPX_ALLOWED_ORIGINS` | Web pages allowed to call the service from a browser. `*` for every origin, or origins separated by commas, without spaces or quotes: `http://localhost:5173,https://example.org` |
 
-The value is `*`: the service is public, read-only, and uses no cookie or account, so any page may read it, including every preview address of the site. What bounds its use is the instance limit of Cloud Run, not this list. To close it again, set the variable to a list of origins and start the workflow again.
+The value is `*`: the service is public, uses no cookie or account, and the one thing it accepts is a mark of the journal, which holds no text, so any page may read it, including every preview address of the site. What bounds its use is the instance limit of Cloud Run, not this list. To close it again, set the variable to a list of origins and start the workflow again.
 
 ## One-time setup of the Google Cloud project
 
@@ -52,10 +52,11 @@ What it creates:
 
 | Resource | Purpose |
 | --- | --- |
-| Six enabled services | Cloud Run, Artifact Registry, IAM, IAM Credentials, Security Token Service, Resource Manager |
+| Seven enabled services | Cloud Run, Artifact Registry, IAM, IAM Credentials, Security Token Service, Resource Manager, Firestore |
 | Artifact Registry repository `spherex-explorer` | Holds the images. It keeps the 5 most recent and deletes the others after a day |
 | Service account `spx-deployer` | Used by the workflow. It can push images to that repository and deploy revisions, nothing more |
-| Service account `spx-runtime` | Identity of the running service. It has no permission, because the service only reads public data |
+| Service account `spx-runtime` | Identity of the running service. Its one permission is to read and write the database of the journal: everything else the service reads is public data |
+| Firestore database `(default)` | Keeps the marks visitors share in the journal, one document for each, in the collection `marks`. In the region of the service, within the free quota |
 | Workload identity pool `github` and its provider | Accept tokens from this repository only, identified by its numeric id, and from the `main` branch only |
 | Cloud Run service `spherex-explorer` | Created with a sample image from Google, replaced by the first deployment |
 
@@ -84,11 +85,22 @@ gcloud run services update-traffic spherex-explorer --region=us-east4 --to-revis
 
 The next merge deploys a new revision and takes the traffic back.
 
+## The journal
+
+The marks visitors share are the only thing the service stores. They are in the Firestore database `(default)` of the project, collection `marks`, one document for each: the mark as the contract shows it, and the moment it was shared.
+
+- The workflow gives the service the name of the project as `SPX_JOURNAL_PROJECT`. Without it the marks stay in the memory of each process and are lost at the next start: this is what a developer's machine does.
+- The service signs its calls with the token Cloud Run hands to its runtime identity. No key exists.
+- **To close the journal to new marks,** add `echo 'SPX_JOURNAL_OPEN: "false"'` to the variables of the workflow and merge, or set the variable on the service in the console for an immediate effect. The list stays readable.
+- **To remove a mark,** delete its document in the console, under Firestore, `marks`. The service forgets it within three hours, or at its next start.
+- `SPX_JOURNAL_LIMIT` (300) and `SPX_JOURNAL_PER_HOUR` (5) bound the journal and each visitor.
+
 ## Costs and limits
 
 - One instance stays up during the hackathon and the judging, so that the first visitor after a quiet hour does not wait for a container to start. An idle instance of this size costs less than a dollar a day, taken from the trial credit of the project. After the judging, set `--min-instances=0` in the workflow: the service then costs nothing while nobody uses it.
 - Three instances at most: a traffic peak slows the service down instead of raising the bill.
 - The first request after a pause waits for the container to start.
+- The journal stays inside the free quota of Firestore: 50,000 reads and 20,000 writes a day. A process asks the store what is new every 20 seconds at most, which costs one read when nothing is, and reads the whole journal every three hours. With three instances busy all day and a full journal that is about 40,000 reads. Writes are bounded by the 300 marks.
 
 ## Removing everything
 

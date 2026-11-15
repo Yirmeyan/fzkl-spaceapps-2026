@@ -122,6 +122,11 @@ const POINT_KEYS = ["id", "detector", "pass", "time_mjd", "time_iso", "wavelengt
 const WITHOUT_VALUE = ["masked", "saturated", "outside"];
 const CANDIDATES_FORMAT = "spherex-explorer/candidates";
 const CATALOG_FORMAT = "spherex-explorer/catalog";
+const JOURNAL_FORMAT = "spherex-explorer/journal";
+const JOURNAL_FILE = "journal.json";
+const JOURNAL_KEYS = ["format", "version", "generated", "entries"];
+const ENTRY_KEYS = ["id", "name", "source", "status", "kind", "method", "confidence", "significance", "ra", "dec", "epoch", "target", "preset", "found", "known", "measured"];
+const OPENED_KEYS = ["ra", "dec", "epoch", "pm_ra", "pm_dec"];
 const CATALOG_FILE_KEYS = ["format", "version", "generated", "view", "epoch", "catalogs"];
 const VIEW_KEYS = ["ra", "dec", "fov_deg"];
 const CATALOG_KEYS = ["key", "name", "epoch", "band", "limit", "truncated", "sources"];
@@ -810,17 +815,81 @@ function checkListedCandidates(entry: any, folder: string, frames: number): void
   for (const line of summary.lines) console.log(`  ${line}`);
 }
 
+// The journal: the findings of the fields the search was checked on. Each entry says
+// what was measured, whether a catalog knows it, and what opens the tool on it. With
+// the index at hand, an entry of a static target must be a candidate of its file.
+function checkJournal(journal: any, index: any | null, folder: string): string[] {
+  context = `${JOURNAL_FILE}: `;
+  check(sameKeys(journal, JOURNAL_KEYS), "fields of the file");
+  check(journal.format === JOURNAL_FORMAT && journal.version === 1, "format or version");
+  const entries: any[] = journal.entries ?? [];
+  check(entries.length > 0, "the journal lists no finding");
+  const listed = new Map<string, any>((index?.targets ?? []).map((entry: any) => [entry.key, entry]));
+  const seen = new Set<string>();
+  const counts: Record<string, number> = { confirmed: 0, unconfirmed: 0, synthetic: 0 };
+  for (const entry of entries) {
+    const where = `entry ${entry.id}: `;
+    check(sameKeys(entry, ENTRY_KEYS), where + "fields");
+    check(typeof entry.id === "string" && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(entry.id) && !seen.has(entry.id), where + "the id must be a key, and one of a kind");
+    seen.add(entry.id);
+    check(typeof entry.name === "string" && entry.name.length > 0, where + "name");
+    check(["team", "visitor"].includes(entry.source), where + "source");
+    check(entry.status in counts, where + "status");
+    counts[entry.status] = (counts[entry.status] ?? 0) + 1;
+    check(["moved", "swung", "changed"].includes(entry.kind), where + "kind");
+    check(["source", "halo"].includes(entry.method) && ["high", "medium"].includes(entry.confidence), where + "method or confidence");
+    check(entry.significance >= 5, where + "significance under the limit of a claim");
+    check(entry.ra >= 0 && entry.ra < 360 && Math.abs(entry.dec) <= 90 && entry.epoch > 2020 && entry.epoch < 2040, where + "place or date");
+    const opened = entry.target;
+    check(sameKeys(opened, OPENED_KEYS) && OPENED_KEYS.every((key) => Number.isFinite(opened?.[key])), where + "what opens the tool");
+    check(typeof entry.found === "string" && entry.found.length > 0, where + "what was found");
+    // A finding is confirmed by what a catalog says of it, and unconfirmed without.
+    check(entry.status === "unconfirmed" ? entry.known === null : typeof entry.known === "string" && entry.known.length > 0, where + "what catalogs say goes with the status");
+    check(/^\d{4}-\d{2}-\d{2}$/.test(entry.measured), where + "day of the measurement");
+    if (entry.preset === null) {
+      check(entry.status !== "synthetic", where + "a made-up body lives in its own static target");
+      continue;
+    }
+    if (index === null) continue;
+    const target = listed.get(entry.preset);
+    check(target !== undefined, where + "the preset is not a target of the index");
+    if (target === undefined) continue;
+    check((entry.status === "synthetic") === (target.synthetic !== undefined), where + "a made-up body must be told as synthetic, and only one");
+    check(entry.status !== "synthetic" || /synthetic/i.test(entry.name), where + "the name of a made-up body must say synthetic");
+    let file: any = null;
+    try {
+      file = JSON.parse(readFileSync(join(folder, target.candidates?.file ?? ""), "utf8"));
+    } catch {
+      check(false, where + "the candidates file of its preset cannot be read");
+    }
+    const same = (file?.candidates ?? []).some((candidate: any) => candidate.kind === entry.kind && candidate.ra === entry.ra && candidate.dec === entry.dec);
+    check(same, where + "it is not a candidate of the file of its preset");
+  }
+  context = "";
+  return [`${JOURNAL_FILE}: ${entries.length} findings, ${counts.confirmed} confirmed by a catalog, ${counts.unconfirmed} unconfirmed, ${counts.synthetic} synthetic`];
+}
+
 const options = process.argv.slice(2).filter((argument) => argument.startsWith("--"));
 const paths = process.argv.slice(2).filter((argument) => !argument.startsWith("--"));
 const unknown = options.filter((option) => option !== "--bright-star");
 if (paths.length !== 1 || unknown.length > 0) {
-  console.error("Usage: node samples/check-sample.ts <bundle.json, spectrum.json, candidates.json, catalog.json or index.json> [--bright-star]");
+  console.error("Usage: node samples/check-sample.ts <bundle.json, spectrum.json, candidates.json, catalog.json, journal.json or index.json> [--bright-star]");
   process.exit(2);
 }
 
 const content = JSON.parse(readFileSync(paths[0], "utf8"));
 if (content.format === INDEX_FORMAT) {
   checkIndex(content, dirname(paths[0]));
+  // The journal sits beside the index, and its entries point at the targets of the index.
+  let journal: any = null;
+  try {
+    journal = JSON.parse(readFileSync(join(dirname(paths[0]), JOURNAL_FILE), "utf8"));
+  } catch {
+    check(false, `${JOURNAL_FILE} is missing beside the index, or cannot be read`);
+  }
+  if (journal !== null) for (const line of checkJournal(journal, content, dirname(paths[0]))) console.log(line);
+} else if (content.format === JOURNAL_FORMAT) {
+  for (const line of checkJournal(content, null, dirname(paths[0]))) console.log(line);
 } else if (content.format === SPECTRUM_FORMAT) {
   for (const line of checkSpectrum(content).lines) console.log(line);
 } else if (content.format === CANDIDATES_FORMAT) {

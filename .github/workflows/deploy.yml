@@ -93,6 +93,7 @@ jobs:
             echo 'SPX_ENVIRONMENT: "production"'
             echo 'SPX_LOG_LEVEL: "INFO"'
             echo "SPX_ALLOWED_ORIGINS: \"${SPX_ALLOWED_ORIGINS}\""
+            echo "SPX_JOURNAL_PROJECT: \"${GCP_PROJECT_ID}\""
           } > "$variables"
           gcloud run deploy "$SERVICE" \
             --project="$GCP_PROJECT_ID" \

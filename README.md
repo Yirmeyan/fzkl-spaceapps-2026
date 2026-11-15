@@ -33,6 +33,7 @@ These are the five test targets of the challenge. Any other place works the same
 | Use the 102 bands, the six detectors, and spectra on the fly | Done. One request measures an object in every exposure that covers it, from 0.75 to 5 micrometers: [`GET /api/spectrum`](docs/api-contract.md#get-apispectrum) |
 | Add or subtract images taken at different dates | Done in the browser: blink, blend and difference between visits, and the stack of the frames of a visit, which brings out an object as faint as WISE 0855 |
 | Find what moves or varies | Beyond what was asked: the service finds it by itself. It follows every source of a field from visit to visit and lists the ones that moved or changed, with their speed, their distance when it can be measured, and a confidence. See [Candidates](docs/api-contract.md#candidates). It works for any place of the sky, and a panel shows the list. It also looks for a body of the outer solar system: one that swings by tens of arcseconds with the seasons, too far to be followed as a source. See [a body that swings](docs/api-contract.md#a-body-of-the-outer-solar-system-swings-with-the-seasons). A sixth target, synthetic and labeled as such, shows it at work: a made-up body drawn on real frames, which the service finds at its distance |
+| A place to see what was found | Beyond what was asked: [a journal](docs/api-contract.md#the-journal) lists the 28 findings of our own checks. Each one says what the service measured, what catalogs say of it, and opens the tool there in one click. 2 of them are in no catalog we asked. A visitor who sees something odd frames it and shares it in one click: [a mark](docs/api-contract.md#marks-shared-by-visitors) is a place and a category, with nothing to write, so there is nothing to moderate |
 | Coordinates in the URL, to embed the tool elsewhere | Done. The address of the page holds the target, a preset, a name or coordinates, and the view: detector, visit, mode |
 | Adjustable field of view | The service accepts any width from 0.02 to 0.5 degree. The interface shows 0.1 degree |
 | Metadata such as the contamination flags | Done. Each image shows its date, its wavelength, its detector, its visit and the quality of its measurement, and a switch tints the flagged pixels. See [the frame](docs/api-contract.md#the-frame) |
@@ -68,7 +69,7 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Can it follow a star too bright to be measured? | Through the halo of light around it. R Draconis saturates the six detectors, and its halo says it faded by half between June 2025 and June 2026: a Mira variable going from its maximum to its minimum. Checked blind on 16 saturated stars chosen before the run: five of eight known long-period variables were flagged, each change in the direction the AAVSO index predicts, and none of eight steady giants |
 | How often is it wrong? | The one blind round, 21 fields chosen before the run, gave one false alarm in 16 quiet fields: a source cut by the edge of the view. Such positions are now refused. Every rule, and what it cost to find it, is in [the contract](docs/api-contract.md#how-it-was-checked) |
 
-The service has 553 automated tests. Every pull request runs them, and checks the 54 static files against the contract. One of those checks is that the made-up body of the synthetic target is found at the distance it was drawn at.
+The service has 624 automated tests. Every pull request runs them, and checks the 55 static files against the contract. One of those checks is that the made-up body of the synthetic target is found at the distance it was drawn at.
 
 ## How it works
 
@@ -83,7 +84,7 @@ Browser (TypeScript, React)            Service (Python, FastAPI, Cloud Run)     
 ```
 
 - **The browser** does everything interactive without a round trip: animation, contrast, blink, blend, difference, charts.
-- **The service** answers seven calls: `health`, `resolve`, `exposures`, `frames`, `spectrum`, `candidates` and `catalog`. It keeps no user data, and what it remembers for an hour, lists of exposures and measured fields, only saves time.
+- **The service** answers nine calls: `health`, `resolve`, `exposures`, `frames`, `spectrum`, `candidates` and `catalog`, which only read, and the two of `journal`, to list the marks visitors shared and to share one. A mark is all it keeps: a place of the sky, a category chosen in a list, and the view it was made in. No account, no cookie, no name, no text, no address. What it remembers for an hour, lists of exposures and measured fields, only saves time.
 - **One grid per view.** Every image of a view is resampled on the same piece of sky, north up, so that pixel (x, y) is the same place in all of them. This is what lets the browser blink and subtract.
 - **Speed.** The 62 images of one detector arrive in about 3 seconds. A spectrum over 250 to 550 exposures takes 6 to 11 seconds. The five test targets show at once.
 

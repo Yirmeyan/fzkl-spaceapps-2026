@@ -5,7 +5,7 @@ The agreement between the Python service (`backend/`) and the browser (`frontend
 - **Version:** 1, written at step S1 of the [architecture plan](architecture.md).
 - **Changes:** through a pull request approved by the other teammate.
 - **Compatibility:** fields can be added at any time, so a client ignores the fields it does not know. Renaming or removing a field changes `version`.
-- **Status:** the service answers the seven calls of this document.
+- **Status:** the service answers the nine calls of this document.
 
 ## The idea in one minute
 
@@ -833,6 +833,137 @@ Call it with the `gaia` catalog. Three arcseconds is half a SPHEREx pixel: the c
 
 A candidate is a measurement that stands out, not a discovery. Say "candidate" on screen.
 
+## The journal
+
+A sixth thing to show: **what has been found so far.** `journal.json`, beside the index, lists the findings of the fields the search was checked on: 28 entries, 14 kB. A visitor opens any of them in one click, and sees the service measure it again.
+
+```json
+{
+  "format": "spherex-explorer/journal",
+  "version": 1,
+  "generated": "2026-11-15T03:37:04Z",
+  "entries": [
+    {
+      "id": "wolf-359",
+      "name": "Wolf 359",
+      "source": "team",
+      "status": "confirmed",
+      "kind": "moved",
+      "method": "source",
+      "confidence": "medium",
+      "significance": 9.6,
+      "ra": 164.092532,
+      "dec": 6.99531,
+      "epoch": 2025.89,
+      "target": {
+        "ra": 164.120504,
+        "dec": 7.014723,
+        "epoch": 2000.0,
+        "pm_ra": -3866.338,
+        "pm_dec": -2699.215
+      },
+      "preset": null,
+      "found": "Moved by 4.84 ± 0.51 arcseconds per year toward 243 degrees",
+      "known": "4.72 arcseconds per year toward 235 degrees in SIMBAD",
+      "measured": "2026-11-15"
+    }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `id` | string | Key of the entry, one of a kind in the file |
+| `name` | string | Name to display: the object when catalogs know it, or `Candidate at` and its place |
+| `source` | string | Who listed it. `team`: one of our checks. `visitor`: a mark shared from the site, which `journal.json` never holds: see [Marks shared by visitors](#marks-shared-by-visitors) |
+| `status` | string | `confirmed`: a catalog knows the object and what it does. `unconfirmed`: no catalog we asked explains it. `synthetic`: a made-up body, see [the sixth target](#a-sixth-target-that-is-not-real) |
+| `kind`, `method`, `confidence`, `significance` | as in a candidate | What the service found, copied from [the candidate](#candidates) |
+| `ra`, `dec`, `epoch` | numbers | Place of the candidate and its date |
+| `target` | object | What opens the tool on the finding: `ra`, `dec`, `epoch`, `pm_ra`, `pm_dec`, the parameters of `exposures`. For an object that is not the one its field was chosen for, it is the candidate itself, with the motion measured |
+| `preset` | string or null | Key of the static files of the target, when it has some: open those instead of calling the service |
+| `found` | string | What the service measured, in one sentence written from the candidate |
+| `known` | string or null | What catalogs say of the object. `null` when `status` is `unconfirmed` |
+| `measured` | string | Day of the measurement |
+
+- **25 confirmed, 2 unconfirmed, 1 synthetic.** 16 moved, 11 changed, 1 swung: the made-up body, the only one of its kind.
+- **Unconfirmed is not a discovery.** It means that SIMBAD, the AAVSO index and the variables of Gaia DR3 hold nothing at that place that explains the change. It is something for a visitor to look at.
+- **Every number comes from the service.** A static target is read from its candidates file. Any other field is measured through the archive, by the code that answers `candidates`. What catalogs say is written by hand in `backend/src/spherex_explorer/journal.py`, from the checks of [How it was checked](#how-it-was-checked).
+- **To open an entry:** with a `preset`, load the static files of that key. Without one, pass `target` to `exposures`, `frames` and `candidates` as for any position: the candidates take 20 to 35 seconds the first time.
+- A synthetic entry must be shown as synthetic, in the list as on the page it opens.
+- `python -m spherex_explorer.precompute --output samples --journal` builds it again: about eight minutes, for the twenty fields that have no static files.
+
+### Marks shared by visitors
+
+The second half of the journal is written by the visitors. Someone pauses the film on something odd, frames it, and shares it in one click. The others see it in the list and open the tool there.
+
+A mark is **a place, a category and the view it was made in**. It holds no text a visitor wrote, no name and no address: there is nothing in it to moderate, and nothing that tells who made it. It is **not a claim of the service**: nothing was measured. The field is measured when someone opens the mark, by `candidates`, like any other field.
+
+#### `GET /api/journal`
+
+```json
+{
+  "open": true,
+  "limit": 300,
+  "per_hour": 5,
+  "entries": [
+    {
+      "id": "v-3f9a1c20b7",
+      "name": "Mark at 13h20m02.4s +30d00m36s",
+      "source": "visitor",
+      "status": "unconfirmed",
+      "kind": null, "method": null, "confidence": null, "significance": null,
+      "ra": 200.01, "dec": 30.01, "epoch": null,
+      "target": { "ra": 200.0, "dec": 30.0, "epoch": 2000.0, "pm_ra": 0.0, "pm_dec": 0.0 },
+      "preset": null,
+      "found": null, "known": null, "measured": null,
+      "category": "moved",
+      "view": { "detector": 5, "pass": 2, "frame": "dr1.2025W34_2B_0090_4D2.l2b-v27-2026-229" },
+      "shared": "2026-11-15T03:04:05Z"
+    }
+  ]
+}
+```
+
+- `entries`: the marks, the newest first. Each has the sixteen fields of an entry of `journal.json`, so one list shows both, and three more: `category`, `view`, `shared`.
+- What the service would say is `null`: `kind`, `method`, `confidence`, `significance`, `epoch`, `found`, `known`, `measured`. Write "Shared by a visitor, not measured yet", never a sentence that sounds like a finding.
+- `status` is `unconfirmed`, or `synthetic` when the mark was made in the synthetic field. The second must be shown as synthetic.
+- `open`: `false` when the journal takes no new mark, because it was closed or because it is full. Hide or disable the button then.
+- The answer may be kept 20 seconds. A mark shared from another machine appears within that time.
+
+#### `POST /api/journal`
+
+The body is JSON:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `ra`, `dec` | number | The framed place, in degrees: the center of the frame the visitor drew |
+| `category` | string | `moved`, `changed`, `appears-once` or `other`. Chosen in a list: there is no free text |
+| `target` | object | The target of the view, as the other calls take it: `ra`, `dec`, and `epoch`, `pm_ra`, `pm_dec` when it has them |
+| `preset` | string, optional | Key of the static target, when the view is one |
+| `detector` | 1 to 6, optional | Detector shown when the mark was made |
+| `pass` | integer, optional | Visit shown when the mark was made |
+| `frame` | string, optional | `id` of the exposure the film was paused on |
+
+- `201` and the mark, as `GET` lists it. Add it to the list at once: there is no need to read the journal again.
+- `200` and the **existing** mark when the same category was already marked within 10 arcseconds: the journal keeps one mark of a place. Tell the visitor it was already shared, and show that mark.
+- Anything else in the body is refused: an unknown field, a category out of the list, a `preset` that is not a static target, a `frame` that is not an exposure, a place outside the view of its target (more than 0.36 degree away).
+
+| Status | `code` | When | What the browser does |
+| --- | --- | --- | --- |
+| 422 | `invalid_request` | The body is not a mark | A bug of the caller |
+| 429 | `too_many_marks` | The visitor shared 5 marks within the hour | Say so. `Retry-After` gives the seconds to wait |
+| 409 | `journal_full` | The journal holds its 300 marks | Say so, hide the button |
+| 503 | `journal_closed` | The journal was closed to new marks | Say so, hide the button |
+| 503 | `upstream_unavailable` | The store did not answer | Retry after `Retry-After`, once |
+
+What keeps the journal clean:
+
+- **Nothing to write.** No field of a mark is text of the visitor. The name is built from the place.
+- **Five marks an hour for each visitor.** The service counts them against a digest of the address of the request, kept in memory for the hour and written nowhere.
+- **One mark for one place,** and 300 marks in all.
+- **A switch.** `SPX_JOURNAL_OPEN: "false"` closes the journal to new marks: the list stays readable.
+- **What is stored** is the mark as shown above, in a Firestore database of the project, and nothing else. Removing one is deleting its document.
+
 ## Errors
 
 An error is an HTTP status and this body:
@@ -849,6 +980,7 @@ An error is an HTTP status and this body:
 | 422 | `invalid_request` | A parameter or an identifier is missing or invalid. The message names it: `ra is required; dec should be less than or equal to 90` | Fix the request. It is a bug of the caller |
 | 503 | `upstream_unavailable` | IRSA, the SPHEREx storage or the CDS, for names and catalogs, did not answer, or the field of `candidates` is still being measured | Wait for the number of seconds of the `Retry-After` header and retry, three times at most. For `candidates`, six times |
 | 500 | `internal_error` | A bug of the service. Details stay in its logs | Tell the user, do not retry |
+| 409, 429, 503 | `journal_full`, `too_many_marks`, `journal_closed` | Sharing a mark only: see [Marks shared by visitors](#marks-shared-by-visitors) | Say so |
 | Other | `http_error` | An error raised by the framework, for example an unknown route | Treat as a bug |
 
 One frame that fails does not fail the view: show the others.

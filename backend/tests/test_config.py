@@ -125,3 +125,24 @@ def test_catalog_addresses_are_tried_in_the_order_given():
 def test_catalog_address_that_cannot_be_called_is_rejected(value):
     with pytest.raises(ValidationError):
         Settings(_env_file=None, catalog_urls=value)
+
+
+def test_the_journal_stays_in_memory_unless_a_project_is_named():
+    settings = Settings(_env_file=None)
+    assert settings.journal_project == ""
+    assert settings.journal_open is True
+    assert (
+        Settings(_env_file=None, journal_project="my-project-1").journal_project == "my-project-1"
+    )
+
+
+@pytest.mark.parametrize("value", ["My Project", "a/b", "x", "project/../other"])
+def test_a_project_of_the_journal_must_be_a_name(value):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, journal_project=value)
+
+
+@pytest.mark.parametrize("value", ["", "marks/others", "a b", "../marks"])
+def test_a_collection_of_the_journal_must_be_a_name(value):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, journal_collection=value)
