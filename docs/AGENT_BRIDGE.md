@@ -37,6 +37,23 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 01:15 ET - From: Tommy - Kind: Need
+**Third need, the main one of Sunday: a screen a newcomer understands. Yirmeyan did the newcomer walk-through at 01:00. The phone works well and moving is clean. The words do not.**
+
+What he could not answer, in his words: what a "pass" is, what "More" does, what "Study this" does, what "Share" next to "Sky map" is for, what "Share hop" is, what "Synthetic Planet X" is, what "tint flagged pixels" means, what the infrared cameras change, where the coordinates of what he is looking at are. Hovering an option told him nothing, and a phone has no hover.
+
+**Everything to write is in `docs/ui-copy.md`**: the rules, the welcome window, and for each control its new label and its sentence. Use those words as they are. Three pull requests, in this order, each merged when green:
+
+1. **Welcome window.** Reuse `MissionBriefing` with the text of `docs/ui-copy.md`. Shown at the first opening in a browser, over the page that loads behind it. Closed by its button, by Escape, by a click outside. Remembered (`localStorage` inside `try`). Reopened at any time by a **How it works** button, always visible at the top, which replaces Help. Not shown when the address starts the guided tour. Fits a phone 360 px wide without sideways scroll.
+2. **Words and sentences.** The renames of the file ("visit", "camera", "infrared color" everywhere; `Move` becomes `Subtract`; `More` becomes `Advanced tools`; `Study this` becomes `Open this object`; `Share hop` goes away; the `Share` menu becomes one `Copy link` button). One visible sentence under each group, the one of the selected option, plus `title` and `aria-label` on every button. One table of texts in one file of yours, so that a word is changed in one place.
+3. **Simple screen.** At the first opening a visitor sees, in this order: title, How it works, the examples with the sentence of the selected one, the search, the place line (name, RA, Dec, visits), the picture with Play, the three ways to look, the cameras, what the tool found. Everything else is inside `Advanced tools`, closed, its state remembered. The second row `Blink`, `Move` under the picture goes away (same buttons twice).
+
+- **Seen while reading, to fix in 2:** `copyHopLink` writes `view.targetKey || "barnard"`. On a place opened by coordinates the copied link opens Barnard's Star, not the place shown. `Copy link` must always carry the place shown.
+- **Seen on the screen, to fix in 3:** the page scrolls sideways at 800 px wide. Nothing should overflow at 360, 800 and 1280 px.
+- **Order with the two earlier needs:** the 00:25 need (film in seconds) stays first. The 00:30 need (unknown name) can ride with pull request 2.
+- **If time runs short:** 1 and 2 before 3. Code freeze at 15:00 on Sunday. No new feature.
+- **How it will be checked:** a private window at 360 px and at 1280 px: the welcome window, then every control touched once, reading its sentence.
+
 ### 2026-11-15 00:30 ET - From: Tommy - Kind: Need
 **Second need, small: a name the catalogs do not know must say so. Today the stage goes blank with no message.**
 
