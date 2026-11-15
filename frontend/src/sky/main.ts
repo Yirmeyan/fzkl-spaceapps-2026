@@ -29,6 +29,10 @@ const CLICK_SLOP = 5;
 // that rewrites its address at every frame of a drag.
 const ADDRESS_DELAY_MS = 350;
 const FALLBACK_LAYER = "wise";
+// The archive takes a few seconds to send its images. The page says it is waiting, and
+// stops saying so after this long even when it saw none: images the engine already has
+// are not asked for again.
+const WAITING_AT_MOST_MS = 8000;
 
 function make<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -47,6 +51,7 @@ interface Page {
   map: HTMLDivElement;
   pin: HTMLDivElement;
   notice: HTMLDivElement;
+  waiting: HTMLDivElement;
   card: HTMLElement;
   cardPlace: HTMLParagraphElement;
   cardDegrees: HTMLParagraphElement;
@@ -93,7 +98,10 @@ function buildPage(root: HTMLElement): Page {
   const cardClose = make("button", "sky-card-close", "Close");
   cardClose.type = "button";
   card.append(cardPlace, cardDegrees, cardOpen, cardHint, cardClose);
-  stage.append(map, pin, card, notice);
+  const waiting = make("div", "sky-waiting", "Loading the images from the archive...");
+  waiting.setAttribute("role", "status");
+  waiting.hidden = true;
+  stage.append(map, pin, card, waiting, notice);
 
   const controls = make("footer", "sky-controls");
   const layerLabel = make("label", "sky-field", "Sky ");
@@ -122,6 +130,7 @@ function buildPage(root: HTMLElement): Page {
     map,
     pin,
     notice,
+    waiting,
     card,
     cardPlace,
     cardDegrees,
@@ -152,6 +161,22 @@ async function loadCubeAxis(): Promise<CubeAxis | null> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Call `seen` each time an image tile of a sky arrives. The engine does not say when it
+ * has something to draw: the browser does, for every file a page receives.
+ */
+function watchTiles(seen: () => void): void {
+  if (typeof PerformanceObserver === "undefined") {
+    return;
+  }
+  const observer = new PerformanceObserver((list) => {
+    if (list.getEntries().some((entry) => entry.name.includes("/Norder"))) {
+      seen();
+    }
+  });
+  observer.observe({ type: "resource" });
 }
 
 function say(page: Page, message: string, action?: { label: string; run: () => void }): void {
@@ -196,9 +221,24 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
 
   const map = new SkyMap(engine, page.map, view, layerOf(view.layer), frameAsked(), axis);
   map.onLayerFailure((layer) => {
+    page.waiting.hidden = true;
     say(page, `The sky "${layer.label}" did not load. Choose another one in the list below.`);
   });
   let selected: Place | null = null;
+
+  let waited: ReturnType<typeof setTimeout> | undefined;
+  function stopWaiting(): void {
+    clearTimeout(waited);
+    page.waiting.hidden = true;
+  }
+  // Said each time other images are asked for: another sky, another wavelength.
+  function waitForImages(): void {
+    clearTimeout(waited);
+    page.waiting.hidden = false;
+    waited = setTimeout(stopWaiting, WAITING_AT_MOST_MS);
+  }
+  watchTiles(stopWaiting);
+  waitForImages();
 
   function writeAddress(): void {
     const center = map.center();
@@ -274,6 +314,7 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
   page.layer.addEventListener("change", () => {
     view.layer = layerOf(page.layer.value).key;
     page.notice.hidden = true;
+    waitForImages();
     map.show(layerOf(view.layer), frameAsked(), axis);
     sayLayer();
     writeAddress();
@@ -281,6 +322,7 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
   page.slider.addEventListener("input", () => {
     const frame = frameAsked();
     if (frame !== null && axis) {
+      waitForImages();
       map.showFrame(frame, axis);
     }
     sayFrame();
