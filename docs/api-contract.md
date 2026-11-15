@@ -1069,7 +1069,7 @@ The candidates, checked on November 14, 2026 on the frames of 74 fields: 58 for 
 | SCR J1845-6357 | `moved`, high | 2.58 ± 0.10, parallax 0.25 ± 0.04 | 2.65, 0.250 |
 | Wolf 359 | `moved`, medium | 4.84 ± 0.51 | 4.72 |
 | DENIS J0255-4700 | `moved`, high | 1.10 ± 0.08, parallax 0.21 ± 0.04 | 1.15, 0.205 |
-| Kapteyn's Star | `moved`, medium, detectors 5 and 6 | 8.6 ± 1.1 | 8.64 |
+| Kapteyn's Star | `moved`, high, detectors 5 and 6 | 8.8 ± 0.9 | 8.64 |
 | van Maanen's Star | `moved`, high | 2.97 ± 0.09, parallax 0.22 ± 0.04 | 2.98, 0.232 |
 | TRAPPIST-1 | `moved`, high | 1.04 ± 0.08 | 1.05 |
 | LHS 292 | `moved`, high | 1.88 ± 0.18 | 1.64 |
@@ -1088,7 +1088,7 @@ The candidates, checked on November 14, 2026 on the frames of 74 fields: 58 for 
 | R Ursae Majoris, R Trianguli, V Coronae Borealis | Not claimed. Their halo changes by a quarter to a half, under the rule | | Mira variables of the AAVSO index |
 | Eta, Xi, Iota and Epsilon Draconis, Epsilon Virginis, Kappa Ophiuchi, Mu Leonis, Psi Ursae Majoris | No candidate. They saturate the six detectors | | Giants of type G7 to K2, steady to a few hundredths of a magnitude where the AAVSO index gives a range |
 
-- **A star that saturates most detectors is found only near the center of the view.** Barnard's Star saturates detectors 1 to 4. Asked for the place a visitor would click on the sky map, with no name and no proper motion, `candidates` finds it (10.5 arcseconds per year, 12 sigma) when the view is centered on the star, and finds nothing when the view is centered 14 arcseconds away. The same test finds Epsilon Indi B, WISE 0855, RW Aurigae and R Draconis. A target given with its proper motion is not concerned: the view then follows it.
+- **A fast star that saturates some detectors is followed in the others, wherever it is in the view.** Barnard's Star saturates detectors 1 to 4 and moves two pixels of the default view between visits. Where a star saturates, the peaks left around its heart are pieces of the ring of its halo: they are not taken for sources. Before this rule, one of them split the three places of Barnard's Star between two sources when the view was centered 14 arcseconds away, and nothing was claimed. Asked for the place a visitor would click on the sky map, with no name and no proper motion, `candidates` now finds it (10.5 arcseconds per year, 12 sigma), as it finds Epsilon Indi B, WISE 0855, RW Aurigae and R Draconis.
 - **16 of the 17 stars that move by more than 1 arcsecond were found,** each with a rate within two sigma of its catalog. The seven parallaxes measured are within one sigma of theirs. They are a twelfth to a thirtieth of a SPHEREx pixel.
 - **How these numbers were reached matters as much as the numbers.** The method was built on the first 18 fields. It was then run on 19 fresh ones: it found five of six moving stars, and raised two false alarms of medium confidence. Three rules came out of it: a position needs a source seen at 4 sigma, a path that cannot be checked needs twice the evidence, and a bad fit is one that chance does not explain.
 - **One round was blind.** 21 more fields were chosen before the run and run once. The three stars that move by more than 1 arcsecond were found, the two slower ones were left alone, and 15 quiet fields of 16 gave nothing. The sixteenth gave one false alarm, of high confidence: a source cut by the edge of the view. Positions that close to the edge are now refused.

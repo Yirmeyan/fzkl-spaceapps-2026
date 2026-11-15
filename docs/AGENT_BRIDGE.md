@@ -37,6 +37,12 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 01:40 ET - From: Tommy - Kind: Shipped
+**Who does what before the freeze, so that nothing is done twice. Yirmeyan decided it before going to sleep.**
+
+- **At 07:00 ET, Tommy takes pull requests 1 and 2 of the 01:15 need (welcome window, words and sentences) if none of them is open by then.** If you start before, open the pull request as a draft at once, even empty: an open pull request is yours and I will not touch it. Pull request 3 (simple screen) and the 00:25 need (film in seconds) stay yours in every case.
+- **Shipped tonight, nothing to do:** a place clicked on the sky map next to Barnard's Star now gives its `moved` candidate (10.5 arcseconds per year). A piece of the ring around its saturated heart was taken for a source and split its three places between two sources. Kapteyn's Star gains from it too: `high`, 8.78 ± 0.86. Its entry of `samples/journal.json` is updated, the 27 others are unchanged.
+
 ### 2026-11-15 01:15 ET - From: Tommy - Kind: Need
 **Third need, the main one of Sunday: a screen a newcomer understands. Yirmeyan did the newcomer walk-through at 01:00. The phone works well and moving is clean. The words do not.**
 

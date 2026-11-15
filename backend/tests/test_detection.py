@@ -433,6 +433,35 @@ def test_a_star_followed_where_it_does_not_saturate_is_one_candidate():
     assert {change.detector for change in candidates[0].changes} == {2, 3}
 
 
+@pytest.mark.parametrize("first_row", [44.0, 44.55])
+def test_a_fast_star_that_saturates_some_detectors_stays_one_source(first_row):
+    # Barnard's Star: two pixels of the view between visits, too bright for four detectors.
+    # Where it saturates, the brightest thing left is a piece of the ring around its
+    # blinded heart. Taken for a source, that piece catches the first place of the star
+    # and leaves the other two to another source: neither is seen to move enough.
+    saturating = (4, 5)
+
+    def place(visit):
+        return 48.2, first_row + 2.2 * (visit - 1)
+
+    def scene(detector, visit, wavelength):
+        ring = [(48.2, first_row - 2.5, 20000.0)] if detector in saturating else []
+        return [*steady_stars(), (*place(visit), 5000.0), *ring]
+
+    frames = field_frames(scene, detectors=(2, 3, 4, 5))
+    for visit in (1, 2, 3):
+        during = [frame for frame in frames if frame.pass_number == visit]
+        add_bright_star(during, *place(visit), lambda visit: 10.0, saturating=saturating)
+
+    field = measure_field(frames)
+    fast = nearest(field, *place(2))
+
+    assert [sighting.pass_number for sighting in fast.sightings] == [1, 2, 3]
+    assert [sighting.detectors for sighting in fast.sightings] == [(2, 3)] * 3
+    assert fast.sightings[2].y - fast.sightings[0].y == pytest.approx(4.4, abs=0.3)
+    assert [(found.kind, found.confidence) for found in find_candidates(field)] == [(MOVED, HIGH)]
+
+
 def test_a_star_near_saturation_has_a_less_certain_position():
     def scene(detector, visit, wavelength):
         return [*steady_stars(), (45.0, 50.0, 300.0)]
