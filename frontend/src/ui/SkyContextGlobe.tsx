@@ -326,12 +326,14 @@ export function SkyContextGlobe({
   }, [activeKey, activeRa, activeDec, fovDeg]);
 
   return (
-    <div className="sky-context" ref={wrapRef}>
-      <canvas
-        ref={canvasRef}
-        className="sky-context-canvas"
-        aria-label="Sky context globe. Drag to rotate. Click a pin to load that target."
-      />
+    <div className="sky-context-wrap">
+      <div className="sky-context" ref={wrapRef}>
+        <canvas
+          ref={canvasRef}
+          className="sky-context-canvas"
+          aria-label="Sky context globe. Drag to rotate. Click a pin to load that target."
+        />
+      </div>
       <p className="sky-context-caption">
         Cutout on the sky — not the full survey map. Drag to turn · click a star.
       </p>

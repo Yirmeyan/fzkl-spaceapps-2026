@@ -208,6 +208,11 @@ export default function App() {
   useEffect(() => {
     setFpsDraft(String(view.fps));
   }, [view.fps]);
+  /** Live contrast for the slider/sky; URL + heavy overlays commit on pointer up. */
+  const [contrastLive, setContrastLive] = useState(view.contrast);
+  useEffect(() => {
+    setContrastLive(view.contrast);
+  }, [view.contrast]);
   /** Sky context globe: open on desk, collapsed on narrow phones. */
   const [skyContextOpen, setSkyContextOpen] = useState(
     () => typeof window === "undefined" || !window.matchMedia("(max-width: 720px)").matches,
@@ -1094,7 +1099,7 @@ export default function App() {
         };
       }
       const diff = differencePasses(pool, view.diffPassA, view.diffPassB);
-      const limits = applyContrast(computeDisplayLimits([diff]), view.contrast);
+      const limits = applyContrast(computeDisplayLimits([diff]), contrastLive);
       const meta = pool.find((f) => f.exposure.pass === view.diffPassA) ?? pool[0]!;
       return {
         kind: "difference" as const,
@@ -1117,7 +1122,7 @@ export default function App() {
     if (view.mode === "stack") {
       // Tommy item 5: clean mean (mask === 0 only) when stacking a locked visit.
       const stacked = view.pass != null ? stackPassClean(filtered) : stackFrames(filtered);
-      const limits = applyContrast(computeDisplayLimits([stacked]), view.contrast);
+      const limits = applyContrast(computeDisplayLimits([stacked]), contrastLive);
       return {
         kind: "compose" as const,
         pixels: stacked.pixels,
@@ -1132,7 +1137,7 @@ export default function App() {
     }
     if (view.mode === "track") {
       const tracked = stackTrackingTarget(filtered);
-      const limits = applyContrast(computeDisplayLimits([tracked]), view.contrast);
+      const limits = applyContrast(computeDisplayLimits([tracked]), contrastLive);
       return {
         kind: "compose" as const,
         pixels: tracked.pixels,
@@ -1146,7 +1151,7 @@ export default function App() {
       };
     }
 
-    const limits = applyContrast(load.data.limits, view.contrast);
+    const limits = applyContrast(load.data.limits, contrastLive);
     return {
       kind: "single" as const,
       pixels: active.pixels,
@@ -1166,7 +1171,7 @@ export default function App() {
     view.mode,
     view.diffPassA,
     view.diffPassB,
-    view.contrast,
+    contrastLive,
   ]);
 
   const passes = useMemo(
@@ -3010,11 +3015,17 @@ export default function App() {
                   min={0.4}
                   max={3}
                   step={0.1}
-                  value={view.contrast}
-                  onChange={(e) => patchView({ contrast: Number(e.target.value) })}
+                  value={contrastLive}
+                  onChange={(e) => setContrastLive(Number(e.target.value))}
+                  onPointerUp={() => {
+                    if (contrastLive !== view.contrast) patchView({ contrast: contrastLive });
+                  }}
+                  onKeyUp={() => {
+                    if (contrastLive !== view.contrast) patchView({ contrast: contrastLive });
+                  }}
                   aria-label="Contrast"
                 />
-                <span>{view.contrast.toFixed(1)}×</span>
+                <span>{contrastLive.toFixed(1)}×</span>
               </label>
             </fieldset>
 

@@ -70,7 +70,7 @@ export function CandidatesPanel({
                 >
                   <span className="candidates-kind">
                     {c.kind}
-                    {c.is_target ? " · you asked for this" : " · other object"}
+                    {c.is_target ? " · target" : ""}
                   </span>
                   <span className="candidates-line">{lines.what}</span>
                   {lines.howMeasured && (

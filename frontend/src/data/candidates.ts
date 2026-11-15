@@ -202,7 +202,7 @@ export function candidateLines(
     };
   }
   return {
-    what: c.is_target ? "This is the object you asked for" : "Another object in this field",
+    what: c.is_target ? "This is the loaded target" : "Another object in this field",
     howFar: null,
     sure: `Candidate marked “${c.kind}”, ${conf}.`,
     catalog,
