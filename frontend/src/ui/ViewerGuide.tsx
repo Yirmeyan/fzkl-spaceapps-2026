@@ -1,43 +1,31 @@
 interface ViewerGuideProps {
   targetName?: string;
   pass?: number | null;
-  /** Kept for callers that still pass a mode tip; classic bullets stay the default. */
   mode?: "watch" | "blink" | "difference" | "stack" | "track" | "blend" | "split";
 }
 
-/** Classic plain-language legend under the sky (best early version). */
+/** Classic plain-language legend under the sky (compact). */
 export function ViewerGuide({ targetName, pass = null }: ViewerGuideProps) {
   return (
     <div className="viewer-guide">
-      <p className="viewer-guide-title">What you are looking at</p>
       <ul>
         <li>
-          This is a <strong>near-infrared</strong> SPHEREx image
+          Near-infrared SPHEREx
           {targetName ? (
             <>
               {" "}
               of <strong>{targetName}</strong>
             </>
           ) : null}
-          , shown in false color (dark → red → yellow → white = brighter).
+          : dark → red → yellow → white = brighter.
         </li>
         <li>
-          The <strong>bright blob</strong> under the orange cross is the target. It looks blown out
-          because it saturates the detector — that is normal for bright stars here.
+          The <strong>bright blob</strong> under the cross is the target (often saturated — normal).
         </li>
         <li>
-          Smaller yellow/white dots are other stars. Black patches are missing pixels (detector
-          edge).
-        </li>
-        <li>
-          <strong>What to notice:</strong> press Play, or click Pass 1 then Pass 2 then Pass 3 — the
-          bright blob drifts <strong>up (north)</strong> while background stars stay put. That
-          motion is the whole point of the challenge.
-          {pass != null ? ` (showing pass ${pass} only)` : null}
-        </li>
-        <li>
-          Tip: mode <strong>Difference</strong> with passes 1 − 3 makes movers light up even more
-          clearly.
+          <strong>What to notice:</strong> Play, or Pass 1 → 2 → 3 — the blob drifts{" "}
+          <strong>north</strong>; background stars stay put.
+          {pass != null ? ` (pass ${pass} only)` : null}
         </li>
       </ul>
     </div>

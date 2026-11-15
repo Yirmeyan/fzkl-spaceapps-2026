@@ -3308,11 +3308,47 @@ select {
   animation: none;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 720px) {
   .app--classic .main,
   .app--classic .workspace {
     grid-template-columns: 1fr;
   }
+
+  .app--classic .side,
+  .app--classic .rail {
+    position: static;
+    max-height: none;
+  }
+}
+
+.app--classic .viewer-guide-fold {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #0a101a;
+  padding: 0.35rem 0.65rem 0.45rem;
+}
+
+.app--classic .viewer-guide-fold > summary {
+  cursor: pointer;
+  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-size: 0.92rem;
+  color: #e8eef6;
+  list-style: none;
+}
+
+.app--classic .viewer-guide-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app--classic .viewer-guide-fold .viewer-guide {
+  border: none;
+  background: transparent;
+  padding: 0.35rem 0 0;
+}
+
+.app--classic .viewer-guide-fold .viewer-guide-title {
+  display: none;
 }
 
 .app--classic .viewer-pane,
@@ -3337,12 +3373,12 @@ select {
 
 .app--classic .viewer-guide {
   width: 100%;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   color: var(--muted);
-  background: #0a101a;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 0.65rem 0.8rem;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .app--classic .viewer-guide-title {

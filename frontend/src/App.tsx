@@ -223,15 +223,8 @@ export default function App() {
   const [passMovie, setPassMovie] = useState(false);
   const [demoPhase, setDemoPhase] = useState<DemoPhase>("idle");
   const [demoLine, setDemoLine] = useState("");
-  const [showBriefing, setShowBriefing] = useState(() => {
-    try {
-      const q = new URLSearchParams(window.location.search);
-      if (q.get("demo") === "1" || q.get("years") === "1") return false;
-      return sessionStorage.getItem("spx-briefing-done") !== "1";
-    } catch {
-      return true;
-    }
-  });
+  // Classic desk: no interstitial briefing — sky + controls must be immediate.
+  const [showBriefing, setShowBriefing] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -2571,9 +2564,6 @@ export default function App() {
                   Edge of the detector: no data in the hatched area.
                 </p>
               )}
-              {!eyepiece && (
-                <ViewerGuide targetName={targetName} pass={view.pass} mode={guideMode} />
-              )}
               <div className="transport">
                 <button
                   type="button"
@@ -2658,6 +2648,12 @@ export default function App() {
                   playing={view.playing || blinkPasses}
                   hasCatalogMotion={hasCatalogMotion}
                 />
+              )}
+              {!eyepiece && (
+                <details className="viewer-guide-fold" open>
+                  <summary>What you are looking at</summary>
+                  <ViewerGuide targetName={targetName} pass={view.pass} mode={guideMode} />
+                </details>
               )}
               {candidatesFile && load.status === "ready" && !blinkPasses && (
                 <MatchVerdict
