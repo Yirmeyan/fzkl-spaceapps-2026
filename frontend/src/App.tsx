@@ -97,7 +97,7 @@ import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { type StoryboardCell, VisitStoryboard } from "./ui/VisitStoryboard";
 import { FrameCanvas } from "./viewer/FrameCanvas";
-import type { TrailPoint } from "./viewer/overlays";
+import { allwiseFlightPath, type TrailPoint } from "./viewer/overlays";
 import { SkyPlayer } from "./viewer/SkyPlayer";
 
 type UiMode = "watch" | "compare" | "difference" | "more";
@@ -971,6 +971,27 @@ export default function App() {
     if (load.status !== "ready" || !hasCatalogMotion) return [];
     return meanPassTrail(load.data.frames);
   }, [load, hasCatalogMotion]);
+
+  /** AllWISE 2010 → SPHEREx now: the Planet X / Barnard trek on the sky. */
+  const flightPath = useMemo(() => {
+    if (!showAllwise || !catalogFile || load.status !== "ready") return null;
+    const slice = catalogFile.catalogs.find((c) => c.key === "allwise");
+    if (!slice) return null;
+    const frame = filtered[Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))];
+    const nowXy =
+      frame?.frame.target_xy ??
+      skyToPixel(load.data.grid, load.data.target.ra, load.data.target.dec);
+    const nowEpoch = middleFrameEpochYear(load.data.frames.map((f) => f.frame.time_mjd));
+    return allwiseFlightPath(
+      slice,
+      load.data.target.ra,
+      load.data.target.dec,
+      nowXy,
+      load.data.grid,
+      nowEpoch,
+    );
+  }, [showAllwise, catalogFile, load, filtered, view.frameIndex]);
+
   const blinkA = passes[0] ?? null;
   const blinkB = passes.length >= 2 ? passes[passes.length - 1]! : null;
   const detectors = load.status === "ready" ? uniqueDetectors(load.data.frames) : [];
@@ -1867,7 +1888,7 @@ export default function App() {
       <header className="top">
         <div className="brand-block">
           <h1 className="brand">SPHEREx Explorer</h1>
-          <p className="tagline">Watch the near-infrared sky move. NASA Space Apps 2026</p>
+          <p className="tagline">Watch the near-infrared sky move — NASA Space Apps 2026</p>
         </div>
         <div className="top-actions">
           <HealthBadge />
@@ -1898,14 +1919,6 @@ export default function App() {
           >
             {linkCopied ? "Copied" : "Link"}
           </button>
-          <button
-            type="button"
-            className="ghost"
-            title="Short how-to: play, blink, blend, difference"
-            onClick={() => patchView({ showHelp: !view.showHelp })}
-          >
-            Help
-          </button>
         </div>
       </header>
 
@@ -1924,22 +1937,33 @@ export default function App() {
           )}
         </div>
         <div className="target-row">
-          {KNOWN_TARGETS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              className={`target-card${view.targetKey === t.key ? " active" : ""}`}
-              onClick={() => {
-                setBlinkPasses(false);
-                patchView({ targetKey: t.key, mode: "single", pass: null });
-              }}
-              disabled={!t.inSampleIndex && !t.bundleUrl && (t.ra == null || t.dec == null)}
-              title={t.blurb}
-            >
-              <span className="target-name">{t.label}</span>
-              <span className="target-blurb">{t.blurb}</span>
-            </button>
-          ))}
+          {KNOWN_TARGETS.map((t) => {
+            const ready = t.inSampleIndex || !!t.bundleUrl || (t.ra != null && t.dec != null);
+            return (
+              <button
+                key={t.key}
+                type="button"
+                className={`target-btn${view.targetKey === t.key ? " active" : ""}`}
+                onClick={() => {
+                  setBlinkPasses(false);
+                  patchView({ targetKey: t.key, mode: "single", pass: null });
+                }}
+                disabled={!ready}
+                title={t.blurb}
+              >
+                <span className="target-name">{t.label}</span>
+                {!ready && <span className="soon">soon</span>}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className="ghost"
+            title="Short how-to: play, blink, blend, difference"
+            onClick={() => patchView({ showHelp: !view.showHelp })}
+          >
+            Help
+          </button>
         </div>
         <form className="search" onSubmit={onSearch}>
           <label className="sr-only" htmlFor="sky-query">
@@ -1949,7 +1973,7 @@ export default function App() {
             id="sky-query"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Name (live resolve) or RA, Dec"
+            placeholder="Name or RA, Dec"
             autoComplete="off"
             title="Type a star name or sky coordinates (RA, Dec in degrees)"
           />
@@ -1958,7 +1982,7 @@ export default function App() {
             className="primary"
             title="Resolve the name and load SPHEREx images for that sky position"
           >
-            Look up
+            Go
           </button>
         </form>
       </section>
@@ -2272,7 +2296,8 @@ export default function App() {
                         ) as CatalogKey[],
                       )
                     }
-                    catalogHighlightId={catalogHighlightId}
+                    catalogHighlightId={catalogHighlightId ?? flightPath?.sourceId ?? null}
+                    flightPath={flightPath}
                     onFrameIndexChange={onPlayerFrame}
                   />
                   {(showGaia || showAllwise) && catalogFile && load.status === "ready" && (
@@ -2709,7 +2734,7 @@ export default function App() {
                     </>
                   ) : (
                     <>
-                      <p className="control-label">Which visit to play</p>
+                      <p className="control-label">Pass</p>
                       <div className="chip-row">
                         <button
                           type="button"
@@ -2717,7 +2742,7 @@ export default function App() {
                           title="Include frames from every SPHEREx visit of this field"
                           onClick={() => patchView({ pass: null, frameIndex: 0 })}
                         >
-                          All visits
+                          All
                         </button>
                         {passes.map((p) => (
                           <button
@@ -2727,11 +2752,11 @@ export default function App() {
                             title={`Show only Visit ${p} frames`}
                             onClick={() => patchView({ pass: p, frameIndex: 0 })}
                           >
-                            Visit {p}
+                            {p}
                           </button>
                         ))}
                       </div>
-                      <p className="control-label">Keep one infrared color?</p>
+                      <p className="control-label">Wavelength</p>
                       <div className="chip-row">
                         <button
                           type="button"
@@ -2739,7 +2764,7 @@ export default function App() {
                           title="Use every infrared wavelength in the movie"
                           onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
                         >
-                          All colors
+                          All λ
                         </button>
                         <button
                           type="button"
@@ -2755,7 +2780,7 @@ export default function App() {
                             });
                           }}
                         >
-                          Lock this color
+                          Match this λ
                         </button>
                       </div>
                       <p className="micro">
@@ -2823,7 +2848,7 @@ export default function App() {
 
               {uiMode === "more" && (
                 <div className="control-block">
-                  <p className="control-label">Extra science views</p>
+                  <p className="control-label">Mode</p>
                   <div className="chip-row">
                     <button
                       type="button"
@@ -2834,7 +2859,7 @@ export default function App() {
                         patchView({ mode: "stack", playing: false });
                       }}
                     >
-                      Average stack
+                      Stack
                     </button>
                     <button
                       type="button"
@@ -2851,7 +2876,7 @@ export default function App() {
                         });
                       }}
                     >
-                      Stack visits movie
+                      Stack movie
                     </button>
                     <button
                       type="button"
@@ -2862,7 +2887,7 @@ export default function App() {
                         patchView({ mode: "track", playing: false });
                       }}
                     >
-                      Keep star centered
+                      Track
                     </button>
                   </div>
                   {view.pass != null && (
@@ -2881,7 +2906,7 @@ export default function App() {
                   )}
                   {view.mode !== "difference" && (
                     <>
-                      <p className="control-label">Visit filter</p>
+                      <p className="control-label">Pass</p>
                       <div className="chip-row">
                         <button
                           type="button"
@@ -2907,9 +2932,9 @@ export default function App() {
               )}
 
               <div className="control-block soft">
-                <p className="control-label">Look</p>
+                <p className="control-label">Contrast</p>
                 <label className="slider-row">
-                  <span>Contrast</span>
+                  <span>{view.contrast.toFixed(1)}×</span>
                   <input
                     type="range"
                     min={0.4}
@@ -2919,13 +2944,14 @@ export default function App() {
                     onChange={(e) => patchView({ contrast: Number(e.target.value) })}
                   />
                 </label>
+                <p className="control-label">Color</p>
                 <div className="chip-row">
                   <button
                     type="button"
                     className={view.colorMap === "heat" ? "active" : ""}
                     onClick={() => patchView({ colorMap: "heat" })}
                   >
-                    Warm IR
+                    IR heat
                   </button>
                   <button
                     type="button"
@@ -2962,6 +2988,23 @@ export default function App() {
                   />
                   <span>AllWISE (the infrared sky in 2010)</span>
                 </label>
+                <div className="chip-row" style={{ marginTop: "0.35rem" }}>
+                  <button
+                    type="button"
+                    className={showAllwise && flightPath ? "active" : ""}
+                    disabled={catalogError != null && !catalogFile}
+                    title="Draw the path from where WISE saw this object in 2010 to where SPHEREx sees it now"
+                    onClick={() => setShowAllwise(true)}
+                  >
+                    2010 → now
+                  </button>
+                </div>
+                {showAllwise && flightPath && (
+                  <p className="micro flight-path-note">
+                    Flight path {flightPath.label}
+                    {flightPath.sourceId ? ` · ${flightPath.sourceId}` : ""}
+                  </p>
+                )}
                 {catalogWaiting && <p className="micro">Asking the catalogs…</p>}
                 {catalogError && <p className="micro catalog-unavail">{catalogError}</p>}
                 {catalogFile?.catalogs.some((c) => c.truncated) && (

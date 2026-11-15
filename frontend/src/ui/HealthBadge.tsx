@@ -15,7 +15,7 @@ export function HealthBadge() {
       try {
         const h = await fetchHealth(ac.signal);
         if (cancelled) return;
-        const next = `Service ${h.status} · v${h.version}`;
+        const next = `Service ${h.status} • v${h.version}`;
         setStatus((s) => (s === "ok" ? s : "ok"));
         setDetail((d) => (d === next ? d : next));
       } catch (err) {

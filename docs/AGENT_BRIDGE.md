@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:25 ET — From: Nic — Kind: Shipped
+
+**Classic desk + 2010→now flight path:** 4px pills / Syne / PASS·λ·IR heat; with AllWISE on, dashed arrow from WISE 2010 position to SPHEREx now (years · ″/yr). SPIFF line noted for Eps Ind spectrum.
+
 ### 2026-11-14 19:10 ET - From: Tommy - Kind: Shipped
 
 **One more check for slide 6 and the demo: another team measures the same spectra, and we agree.**

@@ -1,6 +1,6 @@
 import type { Candidate, SaturatedStar } from "../data/candidates";
 import { candidateXyForPass } from "../data/candidates";
-import type { CatalogSlice } from "../data/catalog";
+import type { CatalogSlice, CatalogSource } from "../data/catalog";
 import type { Grid } from "../data/contract";
 import { skyToPixel, targetAt } from "../data/contract";
 
@@ -9,6 +9,109 @@ const CATALOG_COLORS: Record<string, string> = {
   gaia: "#a78bfa",
   allwise: "#34d399",
 };
+
+/** Dashed trek from a past catalog epoch to where SPHEREx sees the object now. */
+export interface FlightPath {
+  from: [number, number];
+  to: [number, number];
+  label: string;
+  sourceId?: string;
+}
+
+export function drawFlightPath(ctx: CanvasRenderingContext2D, path: FlightPath): void {
+  const [x0, y0] = path.from;
+  const [x1, y1] = path.to;
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  if (len < 2) return;
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(52, 211, 153, 0.95)";
+  ctx.fillStyle = "rgba(52, 211, 153, 0.95)";
+  ctx.lineWidth = 1.35;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const ux = dx / len;
+  const uy = dy / len;
+  const head = Math.min(7, len * 0.28);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 - ux * head - uy * head * 0.55, y1 - uy * head + ux * head * 0.55);
+  ctx.lineTo(x1 - ux * head + uy * head * 0.55, y1 - uy * head - ux * head * 0.55);
+  ctx.closePath();
+  ctx.fill();
+
+  // Past epoch bead
+  ctx.beginPath();
+  ctx.arc(x0, y0, 3.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#04120a";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+
+  const mx = (x0 + x1) / 2;
+  const my = (y0 + y1) / 2;
+  ctx.font = "bold 7px IBM Plex Sans, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = "rgba(7, 11, 18, 0.85)";
+  ctx.strokeText(path.label, mx, my - 3);
+  ctx.fillStyle = "#e8eef6";
+  ctx.fillText(path.label, mx, my - 3);
+  ctx.restore();
+}
+
+/** Angular separation in arcseconds (small-angle approx). */
+export function sepArcsec(ra1: number, dec1: number, ra2: number, dec2: number): number {
+  const midDec = ((dec1 + dec2) / 2) * (Math.PI / 180);
+  const dra = (ra1 - ra2) * Math.cos(midDec) * 3600;
+  const ddec = (dec1 - dec2) * 3600;
+  return Math.hypot(dra, ddec);
+}
+
+/**
+ * Closest AllWISE source to the live target → flight path from 2010 coords to now.
+ * Search radius 5′ (covers Barnard ~2.7′ and WISE 0855 ~2.1′).
+ */
+export function allwiseFlightPath(
+  slice: CatalogSlice,
+  targetRa: number,
+  targetDec: number,
+  nowXy: [number, number],
+  viewGrid: Grid,
+  nowEpochYear: number,
+  maxArcmin = 5,
+): FlightPath | null {
+  let best: CatalogSource | null = null;
+  let bestSep = Infinity;
+  for (const s of slice.sources) {
+    const sep = sepArcsec(s.ra, s.dec, targetRa, targetDec);
+    if (sep < bestSep) {
+      bestSep = sep;
+      best = s;
+    }
+  }
+  if (!best || bestSep > maxArcmin * 60) return null;
+
+  const from = skyToPixel(viewGrid, best.ra, best.dec);
+  const years = Math.max(0.1, nowEpochYear - slice.epoch);
+  const rate = bestSep / years;
+  const yearLabel = years >= 10 ? `${years.toFixed(0)} yr` : `${years.toFixed(1)} yr`;
+  const rateLabel = rate >= 1 ? `${rate.toFixed(1)}″/yr` : `${rate.toFixed(2)}″/yr`;
+  return {
+    from,
+    to: nowXy,
+    label: `${yearLabel} · ${rateLabel}`,
+    sourceId: best.id,
+  };
+}
 
 /** Catalogue marker + pass trail (big numbered beads, not stick-figure crosses). */
 

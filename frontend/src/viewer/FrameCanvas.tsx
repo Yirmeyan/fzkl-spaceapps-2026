@@ -5,7 +5,9 @@ import { type ColorMap, type Grid, renderFrameToRgba } from "../data/contract";
 import {
   drawCandidatesOverlay,
   drawCatalogOverlay,
+  drawFlightPath,
   drawTargetOverlay,
+  type FlightPath,
   type TrailPoint,
 } from "./overlays";
 
@@ -31,6 +33,7 @@ export interface FrameCanvasProps {
   catalogEnabled?: Set<string>;
   catalogHighlightId?: string | null;
   catalogTimeMjd?: number | null;
+  flightPath?: FlightPath | null;
   className?: string;
   displayPx?: number;
 }
@@ -56,6 +59,7 @@ export function FrameCanvas({
   catalogEnabled,
   catalogHighlightId = null,
   catalogTimeMjd = null,
+  flightPath = null,
   className,
   displayPx,
 }: FrameCanvasProps) {
@@ -106,6 +110,9 @@ export function FrameCanvas({
         catalogHighlightId,
       );
     }
+    if (flightPath) {
+      drawFlightPath(ctx, flightPath);
+    }
   }, [
     pixels,
     mask,
@@ -127,6 +134,7 @@ export function FrameCanvas({
     catalogEnabled,
     catalogHighlightId,
     catalogTimeMjd,
+    flightPath,
   ]);
 
   return (
