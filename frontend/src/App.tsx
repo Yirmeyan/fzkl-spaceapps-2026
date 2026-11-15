@@ -474,7 +474,8 @@ export default function App() {
         fieldWarmRef.current.clear();
         setLoad({
           status: "loading",
-          message: "Asking the SPHEREx archive which images cover this place…",
+          message:
+            "Asking the SPHEREx archive which images cover this place… It can take half a minute when the archive is busy.",
         });
         setLiveProgress(null);
         setSpectrumPoints(null);
