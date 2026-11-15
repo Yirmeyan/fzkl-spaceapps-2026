@@ -157,7 +157,8 @@ def test_application_opens_its_name_resolver_when_it_starts():
         ("W0855", "WISE J085510.83-071442.5"),
         ("Barnard", "Barnard's Star"),
         ("barnards  star", "Barnard's Star"),
-        ("Barnard’s Star", "Barnard's Star"),
+        # Typed on a phone: the apostrophe is the curly one.
+        ("Barnard\u2019s Star", "Barnard's Star"),
         ("Epsilon Indi Ba", "eps Ind B"),
     ],
 )
