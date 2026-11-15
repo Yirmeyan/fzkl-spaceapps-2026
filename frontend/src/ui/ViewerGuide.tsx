@@ -20,12 +20,13 @@ export function ViewerGuide({ targetName, pass = null }: ViewerGuideProps) {
           : dark → red → yellow → white = brighter.
         </li>
         <li>
-          The <strong>bright blob</strong> under the cross is the target (often saturated — normal).
+          The <strong>bright blob</strong> under the cross is the target. It is often saturated,
+          which is normal.
         </li>
         <li>
-          <strong>What to notice:</strong> Play, or Pass 1 → 2 → 3 — the blob drifts{" "}
-          <strong>north</strong>; background stars stay put.
-          {pass != null ? ` (pass ${pass} only)` : null}
+          <strong>What to notice:</strong> press Play, or go from visit 1 to visit 3: the blob
+          drifts <strong>north</strong> while the background stars stay put.
+          {pass != null ? ` (visit ${pass} only)` : null}
         </li>
       </ul>
     </div>

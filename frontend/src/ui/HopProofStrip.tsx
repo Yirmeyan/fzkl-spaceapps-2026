@@ -1,6 +1,7 @@
 import type { ColorMap } from "../data/contract";
 import { FrameCanvas } from "../viewer/FrameCanvas";
 import type { TrailPoint } from "../viewer/overlays";
+import { STRIP } from "./copy";
 
 export type HopProofPick = "early" | "diff" | "late";
 
@@ -54,7 +55,7 @@ export function HopProofStrip({
 
   return (
     <section className="hop-proof" aria-label="Proof that the star moved">
-      <p className="hop-proof-kicker">Hop</p>
+      <p className="hop-proof-kicker">{STRIP.label}</p>
       <div className="hop-proof-strip">
         {cells.map(({ id, cell, xy, showTrail }, i) => (
           <div key={id} className="hop-proof-step">
@@ -83,7 +84,7 @@ export function HopProofStrip({
           </div>
         ))}
       </div>
-      <p className="hop-proof-hint">Tap to jump</p>
+      <p className="hop-proof-hint">{STRIP.hint}</p>
     </section>
   );
 }

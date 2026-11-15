@@ -136,7 +136,7 @@ Every source and dependency, with its license, is in [`docs/sources.md`](docs/so
 
 The Space Apps rules ask teams to say how they used AI. Here it is, plainly.
 
-- **Most of the code, the tests and the documentation of this repository were written by AI assistants directed by the team.** The service, the data pipeline, the static files and their checks were written with Claude, by Anthropic. The site was written with Cursor Agent.
+- **Most of the code, the tests and the documentation of this repository were written by AI assistants directed by the team.** The service, the data pipeline, the static files and their checks were written with Claude, by Anthropic. The explorer page was written with Cursor Agent. The sky map page, the welcome window and the words of the interface were written with Claude.
 - **The idea and the decisions are the team's.** The team chose the challenge and the idea, set the priorities (speed first, then a correct handling of SPHEREx, then the spectrum, then comfort), approved the architecture plan and every change to the contract, and decided what to build and what to drop.
 - **Every scientific claim above comes from a check we can rerun,** not from what a model remembers: the tests of this repository, and the comparisons listed under "What we checked".
 - **No image or video of the tool is generated.** Every picture it shows is SPHEREx data.

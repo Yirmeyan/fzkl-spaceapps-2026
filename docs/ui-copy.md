@@ -3,12 +3,14 @@
 The words a visitor reads in the explorer, written for someone who has never heard of SPHEREx.
 This file is the reference for the labels, for the sentence under each control and for the welcome window.
 
+**Where it stands.** In the interface: the welcome window, the labels and the sentences below, kept in one table, `frontend/src/ui/copy.ts`, with a test that refuses the old words. Still to do: the place line above the picture, and the advanced tools closed at the first opening.
+
 ## Rules
 
 - **Three words carry the tool: visit, camera, infrared color.** The interface does not say pass, detector, λ, hop or FOV. The API keeps its own names.
 - **Every group of controls shows one sentence under its label**, visible without hovering. A phone has no hover.
 - **The sentence shown is the one of the selected option.** Choosing another option changes the sentence.
-- **Every button carries its sentence** as `title` and as `aria-label`.
+- **Every button carries its sentence** as its `title`. Its label stays the name a screen reader says.
 - **One action, one name.** "Share" is kept for the public journal. A link is copied with "Copy link".
 - **The made-up example always says so.** The word SYNTHETIC stays on its button, on its picture and in its sentence.
 - **A number comes with its unit in words the first time**: "10.4 arcseconds (an arcsecond is 1/3600 of a degree)".
@@ -37,9 +39,11 @@ Shown at the first opening, over the page that loads behind it. Reopened at any 
 > - **Camera**: SPHEREx has six. Each one sees a range of infrared colors.
 > - **Infrared color**: a wavelength, counted in micrometers (µm). Cooler objects glow at larger numbers.
 >
-> [ Start exploring ] [ Take the guided tour ]
->
 > You can reopen this at any time with How it works.
+>
+> [ Start exploring ] [ Take the guided tour ]
+
+The two buttons stay in sight while the text scrolls, so the window closes at once on a phone. It also closes with the cross, with Escape and with a click outside. It does not open by itself when the address starts the guided tour.
 
 ## Top of the page
 
@@ -51,7 +55,7 @@ Shown at the first opening, over the page that loads behind it. Reopened at any 
 | Share (menu) | Copy link | Copy the address of exactly what you see, to send it to someone. |
 | Help | How it works | Reopen the introduction. |
 
-The guided tour, the full screen view and the demo link leave the Share menu and go into Advanced tools.
+The guided tour, its link and the full screen view are in a small menu named **Tour**, next to Copy link.
 
 ## Examples
 
@@ -82,8 +86,8 @@ The place line is new. It sits right above the picture and follows the place sho
 |---|---|---|
 | Watch | Watch | Play the images one after the other. Each one is a slightly different infrared color. |
 | Blink | Blink | Flip between the first and the last visit. What jumps has moved. |
-| Move | Subtract | Subtract the first visit from the last. What stayed put disappears. What moved leaves a bright spot next to a dark one. |
-| More | Advanced tools | Every other setting, for people who want to dig. |
+| Move | Subtract | Subtract one visit from another. What stayed put disappears. What moved leaves a bright spot next to a dark one. |
+| More | Advanced | Every other setting, for people who want to dig. |
 
 Under the picture:
 
@@ -94,8 +98,8 @@ Under the picture:
 | frame slider | | Drag to choose an image. |
 | HOP | First visit, difference, last visit | Tap a picture to show it large. |
 | Visit 1 / Diff / Visit 3 | Visit 1, Aug 2025 / Difference / Visit 3, Aug 2026 | |
-| Share hop | removed | Copy link at the top does it, and keeps the view. |
-| second row Blink, Move | removed | Same buttons as above. |
+| Share hop | removed | Copy link at the top does it, keeps the view, and works for a place opened by its coordinates. |
+| second row Blink, Move | Blink, Subtract | Still there: it goes away with the simple screen. |
 
 ## Infrared cameras
 
@@ -137,7 +141,7 @@ Closed at the first opening. Everything below lives there.
 | WAVELENGTH | Infrared colors | |
 | All λ | All colors | Play every infrared color. |
 | Match this λ | This color only | Keep the images close to the color shown, so that visits compare like with like. |
-| CONTRAST | Brightness | Slide to bring out faint or bright details. |
+| CONTRAST | Contrast | Slide to bring out faint details, or to tame bright ones. |
 | COLOR | Colors of the picture | |
 | IR heat | Heat | Black to yellow, like a thermal camera. These colors are a choice: infrared has none. |
 | Gray | Gray | Black to white. |
@@ -152,7 +156,7 @@ Closed at the first opening. Everything below lives there.
 | AllWISE 2010 | WISE in 2010 | Show where the WISE telescope saw these objects around 2010. |
 | 2010 → now | Path since 2010 | Draw the path from the 2010 position to today. |
 | Play years | Play the years | Animate the years between 2010 and now. |
-| Tint flagged pixels | Show unreliable pixels | Hatch the pixels that SPHEREx itself flags as unreliable, for example saturated ones. |
+| Tint flagged pixels | Show unreliable pixels | Tint in pink the pixels that SPHEREx itself flags as unreliable, for example saturated ones. |
 | Frame a point | Mark a spot | Click the picture to put a small frame around something you noticed. |
 | Blend | Overlay | Show the first and the last visit on top of each other. |
 | Split | Side by side | Show two visits next to each other. |

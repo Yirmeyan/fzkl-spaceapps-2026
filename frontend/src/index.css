@@ -191,6 +191,7 @@ select {
 
 .top-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
 }
@@ -409,6 +410,45 @@ select {
   margin: 0.35rem 0 0;
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+/* One sentence in plain English under a group of controls: what the chosen option does. */
+.targets-label,
+.targets-hint,
+.mode-hint,
+.control-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.targets-label {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.targets-hint {
+  position: relative;
+  z-index: 1;
+  margin: 0.45rem 0 0.9rem;
+  color: var(--ink);
+}
+
+.mode-hint {
+  position: relative;
+  z-index: 1;
+  margin: 0.5rem 0 0.9rem;
+  color: var(--ink);
+}
+
+.control-hint {
+  flex-basis: 100%;
+  margin-top: 0.35rem;
 }
 
 .edge-nodata {
@@ -1163,6 +1203,13 @@ select {
   letter-spacing: 0.04em;
 }
 
+/* A phone has no room for the word: the heading above the row says "cameras". */
+@media (max-width: 640px) {
+  .detector-dial-word {
+    display: none;
+  }
+}
+
 .detector-dial-um {
   font-size: 0.62rem;
   color: #93a4b8;
@@ -1181,22 +1228,6 @@ select {
   align-items: center;
   gap: 0.35rem;
   width: 100%;
-}
-
-.hop-share-btn {
-  padding: 0.28rem 0.75rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  border-radius: 999px;
-  border: 1px solid rgba(253, 186, 116, 0.45);
-  background: rgba(253, 186, 116, 0.1);
-  color: #fdba74;
-  cursor: pointer;
-}
-
-.hop-share-btn:hover {
-  background: rgba(253, 186, 116, 0.2);
-  border-color: #fdba74;
 }
 
 .storyboard-fold summary {
