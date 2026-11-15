@@ -308,7 +308,8 @@ body {
   pointer-events: none;
   position: absolute;
   text-align: center;
-  top: 14px;
+  /* Under the coordinates the engine writes in the corner. */
+  top: 48px;
   transform: translateX(-50%);
   z-index: 1;
 }
