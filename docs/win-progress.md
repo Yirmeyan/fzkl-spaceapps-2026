@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Locked molecule glow:** when the sky is Match-this-λ near H₂O/CH₄, that band lights up on the spectrum — spectrum and stage stay in lockstep.
+**Molecule on stage:** when λ is locked near H₂O/CH₄, the sky chip reads “CH₄ · 2.3 µm” (gold) — plus `C` copies This frame.
 
 ## Backlog (phenomenal)
 
@@ -71,3 +71,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 20:00 | Synthetic detection trust line (WISE 0855) | 98 | 90 |
 | 20:10 | This frame deep-link copy button | 98 | 90 |
 | 20:15 | Locked H2O/CH4 band glow on spectrum | 98 | 90 |
+| 20:20 | Molecule stage badge + C = This frame | 98 | 90 |

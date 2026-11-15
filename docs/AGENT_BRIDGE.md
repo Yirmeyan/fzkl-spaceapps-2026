@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 20:20 ET — From: Nic — Kind: Shipped
+
+**Molecule stage badge + C:** locked H₂O/CH₄ shows gold chip on the sky (`CH₄ · 2.3 µm`); `C` copies This frame. #75 band glow merged.
+
 ### 2026-11-14 20:15 ET — From: Nic — Kind: Shipped
 
 **Locked molecule glow:** Match-this-λ near H₂O/CH₄ lights that band gold (“· on”) on the spectrum. #74 This frame link merged.

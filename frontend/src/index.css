@@ -1525,6 +1525,16 @@ select {
   backdrop-filter: blur(4px);
 }
 
+.wave-aurora-chip--molecule {
+  color: #04120a;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(251, 191, 36, 0.92);
+  border-color: rgba(253, 230, 138, 0.9);
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.45);
+  animation: band-lit-pulse 1.6s ease-in-out 2;
+}
+
 .unit-um {
   text-transform: none;
 }

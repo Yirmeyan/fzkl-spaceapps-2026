@@ -112,6 +112,27 @@ const FIELD_PRESETS = {
 } as const;
 type FieldPreset = keyof typeof FIELD_PRESETS;
 
+/** Epsilon Indi B absorption windows (spectrum + stage badge). */
+const EPSINDI_BANDS = [
+  { label: "H₂O", um: 1.4, halfUm: 0.15 },
+  { label: "CH₄", um: 2.3, halfUm: 0.18 },
+  { label: "H₂O", um: 1.9, halfUm: 0.1 },
+] as const;
+
+function moleculeNearWave(waveUm: number | null): (typeof EPSINDI_BANDS)[number] | null {
+  if (waveUm == null) return null;
+  let best: (typeof EPSINDI_BANDS)[number] | null = null;
+  let bestD = Infinity;
+  for (const b of EPSINDI_BANDS) {
+    const d = Math.abs(waveUm - b.um);
+    if (d <= Math.max(b.halfUm, 0.08) && d < bestD) {
+      best = b;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
 function meanPassTrail(frames: DecodedFrame[]): TrailPoint[] {
   const map = new Map<number, { sx: number; sy: number; n: number }>();
   for (const f of frames) {
@@ -1404,6 +1425,10 @@ export default function App() {
         setExclusiveOverlay(spotMover ? null : "spot");
         patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
       }
+      if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        if (load.status === "ready") copyFrameLink();
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -2043,7 +2068,7 @@ export default function App() {
             className={frameLinkCopied ? "active" : "ghost"}
             disabled={load.status !== "ready"}
             onClick={() => copyFrameLink()}
-            title="Copy a link to this exact frame (target, frame, detector, wavelength)"
+            title="Copy a link to this exact frame (target, frame, detector, wavelength) — C"
           >
             {frameLinkCopied ? "Copied" : "This frame"}
           </button>
@@ -2220,8 +2245,19 @@ export default function App() {
             }
           >
             {display?.meta?.frame.wavelength_um != null && (
-              <p className="wave-aurora-chip" aria-live="polite">
-                Infrared color · {display.meta.frame.wavelength_um.toFixed(2)} µm
+              <p
+                className={`wave-aurora-chip${
+                  view.targetKey === "epsindi" && moleculeNearWave(view.waveUm)
+                    ? " wave-aurora-chip--molecule"
+                    : ""
+                }`}
+                aria-live="polite"
+              >
+                {(() => {
+                  const mol = view.targetKey === "epsindi" ? moleculeNearWave(view.waveUm) : null;
+                  const um = display.meta!.frame.wavelength_um.toFixed(2);
+                  return mol ? `${mol.label} · ${um} µm` : `Infrared color · ${um} µm`;
+                })()}
               </p>
             )}
             {haloPulse && (
@@ -3279,15 +3315,7 @@ export default function App() {
                     ? "Within 2 percent of the published SPIFF library"
                     : null
                 }
-                bandMarkers={
-                  view.targetKey === "epsindi"
-                    ? [
-                        { label: "H₂O", um: 1.4, halfUm: 0.15 },
-                        { label: "CH₄", um: 2.3, halfUm: 0.18 },
-                        { label: "H₂O", um: 1.9, halfUm: 0.1 },
-                      ]
-                    : null
-                }
+                bandMarkers={view.targetKey === "epsindi" ? [...EPSINDI_BANDS] : null}
                 onBandPick={(um, label) => {
                   clearPresentationOverlays();
                   const pool =
