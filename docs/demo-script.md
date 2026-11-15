@@ -35,7 +35,7 @@ Deep links for cut takes: `?target=barnard`, `?target=epsindi`, `?target=rwaur`,
 3. Demo — Barnard's Star hops (`?demo=1`), then Epsilon Indi B spectrum, then RW Aurigae across three passes
 4. How it works — browser compose + Cloud Run frames, resolve, spectrum, candidates
 5. SPHEREx-aware — wavelength, passes, saturated cores honest, wider field on demand
-6. What we shipped — five live presets each with a result (including R Dra via its halo), any-sky resolve, spectrum in one request, candidates that match the catalog, shareable URLs
+6. What we shipped — five live presets each with a result (including R Dra via its halo), any-sky resolve, spectrum in one request, candidates that match the catalog, **This frame** deep-links (frame+detector survive reload)
 7. Team / AI disclosure / links / AGPL
 
 ## Do not say

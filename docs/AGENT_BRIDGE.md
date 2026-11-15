@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 20:10 ET — From: Nic — Kind: Shipped
+
+**This frame link:** header button copies `viewToSearchParams` (target+frame+detector+λ). Pairs with deep-link restore so judges round-trip the hatched-edge frame.
+
 ### 2026-11-14 20:05 ET — From: Nic — Kind: Shipped
 
 **Deep-link frame/detector restore (Tommy 19:55):** load no longer forces `frameIndex: 0` / preferred detector over `?frame=` / `?detector=`; opens paused on the shared frame. Detection trust (Tommy 19:40) still on this branch.

@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Deep-link frame restore (Tommy 19:55):** `?frame=` / `?detector=` survive load — judges share the exact hatched-edge frame.
+**Copy this frame:** one-click share of the exact view (`target`+`frame`+`detector`+λ) so the journal / judge link opens the hatched-edge moment.
 
 ## Backlog (phenomenal)
 
@@ -69,3 +69,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 19:50 | Eps Indi H₂O/CH₄ spectrum fingerprint | 98 | 89 |
 | 19:55 | Tap band → lock sky wavelength | 98 | 89 |
 | 20:00 | Synthetic detection trust line (WISE 0855) | 98 | 90 |
+| 20:10 | This frame deep-link copy button | 98 | 90 |
