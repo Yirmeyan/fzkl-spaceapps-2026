@@ -885,6 +885,28 @@ The candidates, checked on November 14, 2026 on the frames of 74 fields: 58 for 
 - **The halo of saturated stars had its own blind round.** The method was set on the saturated stars of the 58 fields: R Draconis, and seven stars that are not known to change much. Then 16 stars that saturate the six detectors were chosen before the run and run once: the last three rows of the table. Five of the eight variables were flagged, and none of the eight giants. The three variables left out do change, the way their period predicts for two of them, but pass the rule in one detector at most. Nothing was changed after that round.
 - **A halo and a direct measurement agree.** IRAS 18372-0002, the variable of the Milky Way field above, saturates detector 4 alone. Between its second and third visits its halo there fades to 0.69 ± 0.12 of its brightness. Measured directly in detectors 5 and 6, the star fades to 0.75 and to 0.63.
 
+The faintest object the detection finds, measured on November 14, 2026 by adding stars to real frames. In each of the 32 quiet fields a made-up star was added to every frame, at the place its motion gives at the time of the frame, and the detection was run as the service runs it. One star at a time, 80 runs per field, 2,560 in all. The table counts the fields, out of 32, where the star came out as a `moved` candidate:
+
+| Flux of the star, millijansky | Seen by the six detectors, at 1.5, 3 and 8 arcseconds per year | Seen by detectors 5 and 6 only, at the same speeds |
+| --- | --- | --- |
+| 0.03 | 0, 0, 0 | 0, 0, 0 |
+| 0.05 | 0, 1, 1 | 0, 0, 0 |
+| 0.1 | 1, 5, 10 | 0, 0, 0 |
+| 0.2 | 12, 19, 24 | 0, 1, 8 |
+| 0.3 | 25, 28, 28 | 0, 3, 17 |
+| 0.5 | 21, 26, 28 | 2, 12, 25 |
+| 1 | 25, 29, 32 | 12, 25, 32 |
+| 2 | 28, 29, 30 | 20, 28, 28 |
+| 5 | 30, 32, 31 | 25, 28, 31 |
+| 20 | 30, 32, 31 | 27, 32, 32 |
+
+- **A star seen by the six detectors is found from 0.2 to 0.3 millijansky,** magnitude 18.2 to 17.7 in the AB system. A star seen by detectors 5 and 6 only has the stated flux in detector 6, three tenths of it in detector 5 and nothing under 3.8 micrometers: the color of a cold brown dwarf. It needs 0.5 to 1 millijansky. WISE 0855 is that kind of object, about 0.5 millijansky beyond 4.5 micrometers and 8.15 arcseconds per year, and it is found, at medium confidence.
+- **No star that did not move was claimed.** A fourth of the runs, 640, added a star that stays where it is. None came out as a candidate, of either kind. Before any star was added, the 32 fields gave no candidate.
+- **The speeds are right, their uncertainties a little short.** Over the 976 stars found, the median of the speed found minus the true one is -0.02 arcsecond per year, and half are within 0.1. The true speed is within two stated sigma for 85 percent of them and within three for 92 percent, where 95 and 99.7 would be exact. The ones far off sit beside a real star.
+- **Why a bright star is sometimes missed.** Two of the 32 fields have two visits only, half a year apart: at 1.5 arcseconds per year a star moves by 0.8 arcsecond there, under the rule of 1 arcsecond. The others fell beside a real star of the field, where a position is refused.
+- **A near neighbor can mislead, about once in 200.** In 12 runs a candidate came out elsewhere than on the added star, once with a star that did not move. The two cases looked at are a real star of the field, 5 and 9 pixels of the view from the added one, whose measured position the added star disturbed.
+- **What this test does not say.** The added star is round, with the width real stars have in each detector, 9 to 10.5 arcseconds at half height on the grid of the view. It has one flux across a detector and a straight path, without parallax. The fields are quiet ones, far from the Milky Way. A real object in a crowded field does worse.
+
 The catalogs, checked on November 14, 2026 against the candidates of the five test targets. Each source of Gaia DR3 is moved from 2016 to the date of the candidate with its own motion:
 
 | Target | The nearest source of Gaia DR3, at the date of the candidate | The nearest source of AllWISE, where it was in 2010 |

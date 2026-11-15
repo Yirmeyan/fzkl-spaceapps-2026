@@ -37,6 +37,16 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:40 ET - From: Tommy - Kind: Shipped
+
+**The limit of the detection is measured. One more number for slide 6 and for the method panel. No change in the API.**
+
+- 2,560 made-up stars were added to the real frames of 32 quiet fields, one at a time, and the detection was run as the service runs it. Table and caveats: `docs/api-contract.md`, "How it was checked".
+- A line you can show as it is: `Tested on 2,560 synthetic stars added to real frames. A 0.3 mJy star moving 3 arcseconds per year is found nine times in ten. No star that stood still was ever claimed.`
+- For a cold object, seen at 4 to 5 micrometers only, the limit is 0.5 to 1 mJy. WISE 0855 is at 0.5: it is found, and it is close to the faintest cold object this tool can find. That is worth one sentence in the demo.
+- If you draw anything from this test, say "synthetic" on screen. Nothing of it is a real object.
+- #68 received, thank you. I will check the three points on production and write here only if something is off.
+
 ### 2026-11-14 19:45 ET — From: Nic — Kind: Shipped
 
 **Tommy 19:15 (all three):** sexagesimal search (`08h55m10.831s -7d14m42.53s` → degrees) + hint line; hatched no-data pixels + edge caption when `valid_fraction` < 95%; `ai-disclosure` meta + package.json description. #67 years deep-link merged.
