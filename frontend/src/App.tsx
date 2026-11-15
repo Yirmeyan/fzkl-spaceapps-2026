@@ -76,6 +76,7 @@ import { Charts } from "./spectrum/Charts";
 import { fetchSpectrumFile, type SpectrumPoint } from "./spectrum/spectrumPoints";
 import { wavelengthHue } from "./spectrum/waveHue";
 import {
+  normalizeTargetKey,
   readSkyFromUrl,
   readViewFromUrl,
   type TargetExtras,
@@ -140,6 +141,9 @@ type LoadState =
 
 export default function App() {
   const [view, setView] = useState<ViewState>(() => readViewFromUrl());
+  /** One-shot: honor ?frame=&detector= from the address bar (Tommy 19:55). */
+  const deepLinkBootRef = useRef(readViewFromUrl());
+  const deepLinkAppliedRef = useRef(false);
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
   const [searchInput, setSearchInput] = useState(view.query);
   const [blinkPasses, setBlinkPasses] = useState(false);
@@ -474,12 +478,17 @@ export default function App() {
         publishLive(priorExposures, priorFrames);
 
         if (di === 0) {
+          const boot = deepLinkBootRef.current;
+          const honor =
+            !deepLinkAppliedRef.current && normalizeTargetKey(boot.targetKey) === targetKey;
+          if (honor) deepLinkAppliedRef.current = true;
           patchView({
             targetKey,
-            frameIndex: 0,
-            pass: null,
-            detector: det,
+            frameIndex: honor ? boot.frameIndex : 0,
+            pass: honor ? boot.pass : null,
+            detector: honor && boot.detector != null ? boot.detector : det,
             query: t.name ?? `${t.ra}, ${t.dec}`,
+            playing: honor ? false : undefined,
           });
           setSearchInput(t.name ?? `${t.ra}, ${t.dec}`);
         }
@@ -606,15 +615,19 @@ export default function App() {
           if (signal.aborted) return;
           let merged = decodeBundle(firstBundle);
           setLoad({ status: "ready", data: merged, source: "sample" });
-          // First paint on preferred detector; full defaults after cascade.
+          // Honor deep-link frame/detector once; otherwise preferred detector at frame 0.
+          const boot = deepLinkBootRef.current;
+          const honor = !deepLinkAppliedRef.current && normalizeTargetKey(boot.targetKey) === key;
+          if (honor) deepLinkAppliedRef.current = true;
           patchView({
             targetKey: key,
-            frameIndex: 0,
-            pass: null,
-            detector: first.detector,
+            frameIndex: honor ? boot.frameIndex : 0,
+            pass: honor ? boot.pass : null,
+            detector: honor && boot.detector != null ? boot.detector : first.detector,
             query: known.label,
             playing: false,
-            mode: "single",
+            mode: honor ? boot.mode : "single",
+            waveUm: honor ? boot.waveUm : null,
           });
           setSearchInput(known.label);
 
@@ -841,7 +854,8 @@ export default function App() {
   useEffect(() => {
     if (filtered.length === 0) return;
     if (view.frameIndex >= filtered.length) {
-      patchView({ frameIndex: 0 });
+      // Clamp to last frame — never snap to 0 (wipes deep-linked ?frame=).
+      patchView({ frameIndex: filtered.length - 1 });
     }
   }, [filtered.length, view.frameIndex, patchView]);
 
@@ -2745,6 +2759,11 @@ export default function App() {
                 catalogPmRa={load.status === "ready" ? load.data.target.pm_ra : null}
                 catalogPmDec={load.status === "ready" ? load.data.target.pm_dec : null}
                 gaiaCatalog={gaiaForKnownAs}
+                showDetectionTrust={
+                  view.targetKey === "wise0855" ||
+                  (candidatesFile?.candidates.some((c) => c.kind === "moved") ?? false)
+                }
+                coldDetectionNote={view.targetKey === "wise0855"}
                 onPick={(index) => setActiveCandidate(index)}
                 onStudy={(index) => {
                   const c = candidatesFile?.candidates[index];

@@ -37,6 +37,14 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 20:05 ET — From: Nic — Kind: Shipped
+
+**Deep-link frame/detector restore (Tommy 19:55):** load no longer forces `frameIndex: 0` / preferred detector over `?frame=` / `?detector=`; opens paused on the shared frame. Detection trust (Tommy 19:40) still on this branch.
+
+### 2026-11-14 20:00 ET — From: Nic — Kind: Shipped
+
+**Detection trust (Tommy 19:40):** candidates panel shows the 2,560 synthetic-star line (marked synthetic); WISE 0855 also gets the cold 0.5 mJy note. #71 band-click lock merged.
+
 ### 2026-11-14 19:55 ET - From: Tommy - Kind: Need
 
 **A link does not bring back the frame it was copied on. Checked on production.**
