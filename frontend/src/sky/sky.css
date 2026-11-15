@@ -1,0 +1,260 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@600;700;800&display=swap");
+
+/* The sky map shares the colors of the explorer, and nothing else of its styles. */
+:root {
+  --bg: #070b12;
+  --ink: #e8eef6;
+  --muted: #8fa3bb;
+  --panel: #121c2a;
+  --line: #243247;
+  --accent: #e8a045;
+  --action: #2dd4bf;
+  --radius: 8px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+#sky-root {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+}
+
+.sky-bar {
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  padding: 10px 16px;
+}
+
+.sky-home {
+  color: var(--action);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sky-home::before {
+  content: "\2190\00a0";
+}
+
+.sky-home:hover,
+.sky-home:focus-visible {
+  text-decoration: underline;
+}
+
+.sky-title {
+  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.sky-lede {
+  color: var(--muted);
+  flex: 1 1 320px;
+  margin: 0;
+}
+
+.sky-stage {
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* The engine stacks its own layers inside the map. Kept to themselves, so that the pin,
+   the card and the notice, which come after the map, are drawn above all of them. */
+.sky-map {
+  cursor: crosshair;
+  height: 100%;
+  isolation: isolate;
+  width: 100%;
+}
+
+/* A ring around the selected place. It sits at the corner of the map and is moved by
+   the page: the ring is centered on that corner. */
+.sky-pin {
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7);
+  height: 22px;
+  left: -11px;
+  pointer-events: none;
+  position: absolute;
+  top: -11px;
+  width: 22px;
+  z-index: 1;
+}
+
+.sky-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
+  max-width: min(320px, calc(100% - 24px));
+  padding: 14px 16px;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2;
+}
+
+.sky-card[hidden],
+.sky-notice[hidden],
+.sky-waiting[hidden],
+.sky-pin[hidden],
+.sky-wave[hidden] {
+  display: none;
+}
+
+.sky-card-place {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sky-card-degrees,
+.sky-card-hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 2px 0 0;
+}
+
+.sky-card-open {
+  background: var(--accent);
+  border-radius: var(--radius);
+  color: #1a1206;
+  display: block;
+  font-weight: 600;
+  margin: 12px 0 8px;
+  padding: 9px 12px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.sky-card-open:hover,
+.sky-card-open:focus-visible {
+  filter: brightness(1.1);
+}
+
+.sky-card-close,
+.sky-notice-action {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  margin-top: 10px;
+  padding: 6px 12px;
+}
+
+.sky-card-close:hover,
+.sky-notice-action:hover {
+  border-color: var(--muted);
+}
+
+.sky-notice {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  left: 50%;
+  max-width: min(440px, calc(100% - 24px));
+  padding: 14px 18px;
+  position: absolute;
+  text-align: center;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.sky-waiting {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  bottom: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  left: 50%;
+  padding: 5px 14px;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.sky-notice-text {
+  margin: 0;
+}
+
+.sky-notice-link {
+  color: var(--action);
+  display: inline-block;
+  margin: 10px 0 0 14px;
+}
+
+.sky-controls {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  padding: 10px 16px;
+}
+
+.sky-field {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+}
+
+.sky-select {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font: inherit;
+  padding: 5px 8px;
+}
+
+.sky-slider {
+  accent-color: var(--accent);
+  width: min(260px, 40vw);
+}
+
+.sky-wave-said {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  min-width: 15ch;
+}
+
+.sky-center {
+  color: var(--action);
+}
+
+.sky-credit {
+  color: var(--muted);
+  flex: 1 1 100%;
+  font-size: 12px;
+  margin: 0;
+}
