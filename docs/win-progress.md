@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Locked molecule glow:** when the sky is Match-this-λ near H₂O/CH₄, that band lights up on the spectrum — spectrum and stage stay in lockstep.
+**Classic chrome (human):** Planet X eyebrow + always-on tagline; target pills/SOON; boxed FPS; FrameCaption under Play (frame · day · visit + phase-change flash).
 
 ## Backlog (phenomenal)
 

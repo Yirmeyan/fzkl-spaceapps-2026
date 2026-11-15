@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 20:35 ET — From: Nic — Kind: Shipped
+
+**Classic chrome (human):** Planet X eyebrow + tagline stay visible when ready; target pills + SOON; boxed FPS; FrameCaption under transport (frame · day · visit + “phase just changed” flash).
+
 ### 2026-11-14 20:15 ET — From: Nic — Kind: Shipped
 
 **Locked molecule glow:** Match-this-λ near H₂O/CH₄ lights that band gold (“· on”) on the spectrum. #74 This frame link merged.

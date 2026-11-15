@@ -9,7 +9,11 @@ interface FrameCaptionProps {
   hasCatalogMotion?: boolean;
 }
 
-/** Classic live readout under the sky: visit, date, frame, infrared color. */
+function shortDate(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+/** Classic live readout under the sky: frame, day, visit, infrared color. */
 export function FrameCaption({
   frames,
   frameIndex,
@@ -20,48 +24,47 @@ export function FrameCaption({
   const prevPass = useRef<number | null>(null);
   const cur = frames[frameIndex];
   const pass = cur?.exposure.pass ?? null;
+  const first = frames[0];
+  const last = frames[frames.length - 1];
 
   useEffect(() => {
     if (pass == null) return;
     if (prevPass.current != null && prevPass.current !== pass) {
       setPassFlash(true);
-      const t = window.setTimeout(() => setPassFlash(false), 900);
+      const t = window.setTimeout(() => setPassFlash(false), 1100);
       prevPass.current = pass;
       return () => window.clearTimeout(t);
     }
     prevPass.current = pass;
   }, [pass]);
 
-  if (!cur) return null;
+  if (!cur || !first || !last) return null;
 
-  const date = new Date(cur.frame.time_iso);
-  const dateLabel = date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const spanDays = Math.max(0, Math.round(last.frame.time_mjd - first.frame.time_mjd));
 
   return (
-    <div className="frame-caption">
+    <div className="frame-caption" aria-live="polite">
       <p className={`frame-caption-pass${passFlash ? " flash" : ""}`}>
         Visit {pass}
-        {passFlash ? " · just changed" : ""}
+        {passFlash ? " · phase just changed" : ""}
         {playing ? " · playing" : ""}
       </p>
       <p className="frame-caption-now">
-        {dateLabel}
-        <span className="frame-caption-sep">·</span>
         Frame {frameIndex + 1} of {frames.length}
         <span className="frame-caption-sep">·</span>
-        {cur.frame.wavelength_um.toFixed(2)} µm
+        <strong>{shortDate(cur.frame.time_iso)}</strong>
+        <span className="frame-caption-sep">·</span>
+        {cur.frame.wavelength_um.toFixed(3)} µm
         <span className="frame-caption-sep">·</span>
         Detector {cur.exposure.detector}
       </p>
       <p className="frame-caption-span">
-        Bright blob = the star (often too bright for the camera).
+        Sequence {shortDate(first.frame.time_iso)} → {shortDate(last.frame.time_iso)}
+        {spanDays > 0 ? ` (${spanDays} days)` : ""}
+        {" · "}
         {hasCatalogMotion
-          ? " Numbered dots = where the catalog puts it on each visit."
-          : " No catalog path is drawn for this place."}
+          ? "Bright blob = the star. Numbered dots = catalog path."
+          : "Bright blob = the star. No catalog path for this place."}
       </p>
     </div>
   );

@@ -2006,6 +2006,7 @@ export default function App() {
 
       <header className="top">
         <div className="brand-block">
+          <p className="eyebrow">Planet X · SPHEREx</p>
           <h1 className="brand">SPHEREx Explorer</h1>
           <p className="tagline">Watch the near-infrared sky move — NASA Space Apps 2026</p>
         </div>
@@ -2080,7 +2081,7 @@ export default function App() {
                 title={t.blurb}
               >
                 <span className="target-name">{t.label}</span>
-                {!ready && <span className="soon">soon</span>}
+                {!ready && <span className="soon">SOON</span>}
               </button>
             );
           })}
@@ -2657,23 +2658,6 @@ export default function App() {
                   Edge of the detector: no data in the hatched area.
                 </p>
               )}
-              {!overlayActive && (
-                <FrameCaption
-                  frames={filtered}
-                  frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                  playing={view.playing || blinkPasses}
-                  hasCatalogMotion={hasCatalogMotion}
-                />
-              )}
-              {candidatesFile && load.status === "ready" && !blinkPasses && (
-                <MatchVerdict
-                  candidates={candidatesFile.candidates}
-                  catalogPmRa={load.data.target.pm_ra}
-                  catalogPmDec={load.data.target.pm_dec}
-                  gaiaCatalog={gaiaForKnownAs}
-                  targetName={load.data.target.name ?? targetName}
-                />
-              )}
               <div className="transport">
                 <button
                   type="button"
@@ -2725,7 +2709,7 @@ export default function App() {
                   />
                 )}
                 {!overlayActive && !blinkPasses && (
-                  <label className="fps-field">
+                  <label className="fps-field" title="Playback speed">
                     FPS
                     <input
                       type="number"
@@ -2751,6 +2735,23 @@ export default function App() {
                   </button>
                 )}
               </div>
+              {!overlayActive && (
+                <FrameCaption
+                  frames={filtered}
+                  frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                  playing={view.playing || blinkPasses}
+                  hasCatalogMotion={hasCatalogMotion}
+                />
+              )}
+              {candidatesFile && load.status === "ready" && !blinkPasses && (
+                <MatchVerdict
+                  candidates={candidatesFile.candidates}
+                  catalogPmRa={load.data.target.pm_ra}
+                  catalogPmDec={load.data.target.pm_dec}
+                  gaiaCatalog={gaiaForKnownAs}
+                  targetName={load.data.target.name ?? targetName}
+                />
+              )}
               {eyepiece && <p className="app--eyepiece-hint">Eyepiece on · Esc or E to leave</p>}
               {/* After commands: short tip. Skip when candidates already tell the motion story. */}
               {!eyepiece && !candidatesFile && !candidatesWaiting && (
