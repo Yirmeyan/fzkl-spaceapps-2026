@@ -19,7 +19,7 @@ import {
 import { layerOf, SKY_LAYERS, SPHEREX_CUBE_URL } from "./layers";
 import { type Pin, pinLink, pinsFrom, statusLabel } from "./pins";
 import { explorerLink, inDegrees, sexagesimal } from "./place";
-import { type MapView, mapViewToSearch, readMapView } from "./view";
+import { type MapView, mapViewToSearch, NARROWEST_FOV, readMapView } from "./view";
 
 // Address of the explorer: the map is a page beside it.
 const HOME = import.meta.env.BASE_URL;
@@ -59,6 +59,7 @@ interface Page {
   pin: HTMLDivElement;
   notice: HTMLDivElement;
   waiting: HTMLDivElement;
+  closest: HTMLDivElement;
   pins: HTMLDivElement;
   showPins: HTMLInputElement;
   pinsField: HTMLLabelElement;
@@ -127,7 +128,14 @@ function buildPage(root: HTMLElement): Page {
   const waiting = make("div", "sky-waiting", "Loading the images from the archive...");
   waiting.setAttribute("role", "status");
   waiting.hidden = true;
-  stage.append(map, pins, pin, card, waiting, notice);
+  const closest = make(
+    "div",
+    "sky-closest",
+    "This is as close as the all-sky map goes. Click a place to see it in full detail.",
+  );
+  closest.setAttribute("role", "status");
+  closest.hidden = true;
+  stage.append(map, pins, pin, card, closest, waiting, notice);
 
   const controls = make("footer", "sky-controls");
   const layerLabel = make("label", "sky-field", "Sky ");
@@ -164,6 +172,7 @@ function buildPage(root: HTMLElement): Page {
     pin,
     notice,
     waiting,
+    closest,
     pins,
     showPins,
     pinsField,
@@ -330,6 +339,8 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
 
   let resting: ReturnType<typeof setTimeout> | undefined;
   function moved(): void {
+    // Said as soon as the map reaches the closest view it allows.
+    page.closest.hidden = map.fov() > NARROWEST_FOV * 1.02;
     clearTimeout(resting);
     resting = setTimeout(writeAddress, ADDRESS_DELAY_MS);
   }
