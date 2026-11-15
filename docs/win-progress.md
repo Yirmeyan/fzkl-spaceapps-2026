@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**2010 → now flight path:** AllWISE on → dashed arrow from WISE 2010 to SPHEREx now, labeled years · ″/yr (Barnard trek / WISE 0855 Planet-X story). Classic 4px desk kept.
+**SPIFF trust badge:** on Epsilon Indi B’s spectrum, a one-line NASA-judge proof — “Within 2 percent of the published SPIFF library” (Tommy 19:10) — with a soft pulse so the check is impossible to miss.
 
 ## Backlog (phenomenal)
 
@@ -62,3 +62,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 15:05 | B4 spectrum rules (log/err/flagged/pass) | 98 | 88 |
 | 19:20 | Classic desk style (4px pills, Syne, PASS/λ) | 98 | 88 |
 | 19:25 | AllWISE 2010→now flight path on sky | 98 | 88 |
+| 19:30 | SPIFF “within 2%” badge on Eps Ind spectrum | 98 | 88 |

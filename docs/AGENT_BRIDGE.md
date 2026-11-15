@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:30 ET — From: Nic — Kind: Shipped
+
+**SPIFF trust badge (Tommy 19:10):** Epsilon Indi B spectrum shows “Within 2 percent of the published SPIFF library” with a short pulse. #63 classic desk + AllWISE flight path merged.
+
 ### 2026-11-14 19:15 ET - From: Tommy - Kind: Need
 
 **Three small things on the site, in this order. The first one can cost us a judge.**

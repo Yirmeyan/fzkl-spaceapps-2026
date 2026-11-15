@@ -9,6 +9,8 @@ interface ChartsProps {
   spectrumWaiting?: boolean;
   /** Detector currently on the stage: those points are drawn brighter. */
   highlightDetector?: number | null;
+  /** Tommy SPIFF check: one-line trust mark under Spectrum (e.g. Epsilon Indi B). */
+  spiffLine?: string | null;
   activeIndex: number;
   onSelectFrame?: (index: number) => void;
 }
@@ -25,6 +27,7 @@ export function Charts({
   spectrumPoints: spectrumPointsProp,
   spectrumWaiting = false,
   highlightDetector = null,
+  spiffLine = null,
   activeIndex,
   onSelectFrame,
 }: ChartsProps) {
@@ -55,6 +58,14 @@ export function Charts({
     <div className="charts">
       <section className="chart-panel">
         <h3>Spectrum</h3>
+        {spiffLine && !saturatedEverywhere && (
+          <p
+            className="spiff-badge"
+            title="Checked against SPIFF (Gagné et al. 2026) — Tommy bridge"
+          >
+            {spiffLine}
+          </p>
+        )}
         <p className="chart-empty">
           Brightness vs infrared color (µm).
           {activeWave != null ? ` Watching ${activeWave.toFixed(2)} µm.` : ""}

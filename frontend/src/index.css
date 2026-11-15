@@ -2195,6 +2195,29 @@ select {
   line-height: 1.4;
 }
 
+.spiff-badge {
+  margin: 0 0 0.45rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--ok) 55%, var(--line));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ok) 14%, var(--panel));
+  color: #b6f5d4;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  animation: spiff-pulse 2.4s ease-in-out 2;
+}
+
+@keyframes spiff-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  40% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 35%, transparent);
+  }
+}
+
 .strip,
 .flux-svg {
   width: 100%;

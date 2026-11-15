@@ -3077,6 +3077,11 @@ export default function App() {
                 spectrumPoints={spectrumPoints ?? undefined}
                 spectrumWaiting={spectrumWaiting}
                 highlightDetector={view.detector}
+                spiffLine={
+                  view.targetKey === "epsindi"
+                    ? "Within 2 percent of the published SPIFF library"
+                    : null
+                }
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                 onSelectFrame={(index) => {
                   clearPresentationOverlays();
