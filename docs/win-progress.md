@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Catalog overlay F8 (Tommy):** Gaia DR3 + AllWISE rings on the sky (proper-motioned), Look switches, tap tip — Barnard follows Gaia; AllWISE sits in 2010.
+**2010 → now flight path:** AllWISE on → dashed arrow from WISE 2010 to SPHEREx now, labeled years · ″/yr (Barnard trek / WISE 0855 Planet-X story). Classic 4px desk kept.
 
 ## Backlog (phenomenal)
 
@@ -60,3 +60,5 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 16:05 | Fold storyboard + Copy hop link | 97 | 82 |
 | 16:15 | Cinema rebuild (giant square, Adjust fold) | 98 | 82 |
 | 15:05 | B4 spectrum rules (log/err/flagged/pass) | 98 | 88 |
+| 19:20 | Classic desk style (4px pills, Syne, PASS/λ) | 98 | 88 |
+| 19:25 | AllWISE 2010→now flight path on sky | 98 | 88 |

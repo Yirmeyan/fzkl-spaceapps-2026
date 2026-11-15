@@ -6,7 +6,9 @@ import type { DecodedFrame } from "../data/decode";
 import {
   drawCandidatesOverlay,
   drawCatalogOverlay,
+  drawFlightPath,
   drawTargetOverlay,
+  type FlightPath,
   type TrailPoint,
 } from "./overlays";
 
@@ -32,6 +34,7 @@ export interface SkyPlayerProps {
   catalogSlices?: CatalogSlice[];
   catalogEnabled?: Set<string>;
   catalogHighlightId?: string | null;
+  flightPath?: FlightPath | null;
   className?: string;
   onFrameIndexChange?: (index: number) => void;
 }
@@ -60,6 +63,7 @@ export function SkyPlayer({
   catalogSlices = [],
   catalogEnabled,
   catalogHighlightId = null,
+  flightPath = null,
   className,
   onFrameIndexChange,
 }: SkyPlayerProps) {
@@ -79,6 +83,7 @@ export function SkyPlayer({
     catalogSlices,
     catalogEnabled: catalogEnabled ?? new Set<string>(),
     catalogHighlightId,
+    flightPath,
   });
   candidatesRef.current = {
     candidates,
@@ -89,6 +94,7 @@ export function SkyPlayer({
     catalogSlices,
     catalogEnabled: catalogEnabled ?? new Set<string>(),
     catalogHighlightId,
+    flightPath,
   };
   const onChangeRef = useRef(onFrameIndexChange);
   onChangeRef.current = onFrameIndexChange;
@@ -168,6 +174,9 @@ export function SkyPlayer({
         overlay.catalogHighlightId,
       );
     }
+    if (overlay.flightPath) {
+      drawFlightPath(ctx, overlay.flightPath);
+    }
   }
 
   useEffect(() => {
@@ -189,6 +198,7 @@ export function SkyPlayer({
     catalogSlices,
     catalogEnabled,
     catalogHighlightId,
+    flightPath,
   ]);
 
   useEffect(() => {
