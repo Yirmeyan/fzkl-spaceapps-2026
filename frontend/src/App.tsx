@@ -86,17 +86,16 @@ import {
   viewToSearchParams,
   writeViewToUrl,
 } from "./state/url";
+import { browserStorage, rememberWelcome, welcomesAtOpening } from "./state/welcome";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
 import { CandidatesPanel } from "./ui/CandidatesPanel";
 import { type DetectorBand, DetectorDial } from "./ui/DetectorDial";
 import { FrameCaption } from "./ui/FrameCaption";
 import { GhostVisits } from "./ui/GhostVisits";
 import { HealthBadge } from "./ui/HealthBadge";
-import { HelpPanel } from "./ui/HelpPanel";
 import { type HopProofPick, HopProofStrip } from "./ui/HopProofStrip";
 import { JournalPanel } from "./ui/JournalPanel";
 import { MatchVerdict } from "./ui/MatchVerdict";
-import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
 import { PassStackMovie } from "./ui/PassStackMovie";
 import { ShareFinding } from "./ui/ShareFinding";
@@ -104,6 +103,7 @@ import { CHALLENGE_SKY_PINS, SkyContextGlobe } from "./ui/SkyContextGlobe";
 import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { type StoryboardCell, VisitStoryboard } from "./ui/VisitStoryboard";
+import { WelcomeWindow } from "./ui/WelcomeWindow";
 import { FrameCanvas } from "./viewer/FrameCanvas";
 import { allwiseFlightPath, type TrailPoint } from "./viewer/overlays";
 import { SkyPlayer } from "./viewer/SkyPlayer";
@@ -312,8 +312,11 @@ export default function App() {
   const [passMovie, setPassMovie] = useState(false);
   const [demoPhase, setDemoPhase] = useState<DemoPhase>("idle");
   const [demoLine, setDemoLine] = useState("");
-  // Classic desk: no interstitial briefing — sky + controls must be immediate.
-  const [showBriefing, setShowBriefing] = useState(false);
+  // Opens by itself at the first opening only. "How it works" opens it again through
+  // `view.showHelp`, which the address carries.
+  const [showWelcome, setShowWelcome] = useState(() =>
+    welcomesAtOpening(window.location.search, browserStorage()),
+  );
   const [linkCopied, setLinkCopied] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -331,14 +334,11 @@ export default function App() {
   const yearsAutoStarted = useRef(false);
   const [yearsLinkCopied, setYearsLinkCopied] = useState(false);
 
-  function dismissBriefing(startDemo: boolean) {
-    try {
-      sessionStorage.setItem("spx-briefing-done", "1");
-    } catch {
-      /* ignore */
-    }
-    setShowBriefing(false);
-    if (startDemo) {
+  function closeWelcome(startTour: boolean) {
+    rememberWelcome(browserStorage());
+    setShowWelcome(false);
+    if (view.showHelp) patchView({ showHelp: false });
+    if (startTour) {
       window.setTimeout(() => runAutoDemo(), 200);
     }
   }
@@ -1714,7 +1714,7 @@ export default function App() {
     patchView({ playing: false, pass: null, mode: "single" });
   }
 
-  // Judge deep-link: ?demo=1 skips briefing and launches the walkthrough once data is ready.
+  // Judge deep-link: ?demo=1 launches the walkthrough once data is ready.
   useEffect(() => {
     if (!demoFromUrl.current || demoAutoStarted.current) return;
     if (load.status !== "ready") return;
@@ -1723,7 +1723,6 @@ export default function App() {
       const u = new URL(window.location.href);
       u.searchParams.delete("demo");
       window.history.replaceState(null, "", `${u.pathname}${u.search}${u.hash}`);
-      sessionStorage.setItem("spx-briefing-done", "1");
     } catch {
       /* ignore */
     }
@@ -1735,12 +1734,6 @@ export default function App() {
   useEffect(() => {
     if (!yearsFromUrl.current) return;
     if (load.status !== "ready") return;
-    try {
-      sessionStorage.setItem("spx-briefing-done", "1");
-      setShowBriefing(false);
-    } catch {
-      /* ignore */
-    }
     setShowAllwise(true);
   }, [load.status]);
 
@@ -2256,11 +2249,11 @@ export default function App() {
     <div className={`app app--classic${eyepiece ? " app--eyepiece" : ""}`}>
       <div className="sky-wash" aria-hidden="true" />
 
-      {showBriefing && load.status === "ready" && !eyepiece && (
-        <MissionBriefing
-          targetName={targetName}
-          onEnter={() => dismissBriefing(true)}
-          onSkip={() => dismissBriefing(false)}
+      {(showWelcome || view.showHelp) && !eyepiece && demoPhase === "idle" && (
+        <WelcomeWindow
+          tourReady={load.status === "ready"}
+          onClose={() => closeWelcome(false)}
+          onTour={() => closeWelcome(true)}
         />
       )}
 
@@ -2333,8 +2326,6 @@ export default function App() {
       </header>
 
       {demoPhase !== "idle" && <AutoDemoBanner line={demoLine} onSkip={stopAutoDemo} />}
-
-      <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
 
       <JournalPanel
         open={journalOpen}
@@ -2431,10 +2422,10 @@ export default function App() {
         <button
           type="button"
           className="ghost"
-          title="Short how-to: play, blink, blend, difference"
-          onClick={() => patchView({ showHelp: !view.showHelp })}
+          title="Reopen the introduction"
+          onClick={() => patchView({ showHelp: true })}
         >
-          Help
+          How it works
         </button>
       </nav>
       <form className="search" onSubmit={onSearch}>
