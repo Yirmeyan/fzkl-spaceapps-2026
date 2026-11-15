@@ -173,7 +173,7 @@ export default function App() {
     targetXy: [number, number] | null;
     pass: number | null;
   } | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   /** Tommy item 6: tint non-zero mask pixels on the stage. */
   const [tintMask, setTintMask] = useState(false);
   /** Tommy F8: catalog overlay switches (off until first asked). */
@@ -2916,7 +2916,8 @@ export default function App() {
           )}
 
           {(candidatesFile || candidatesWaiting) && (
-            <div className="rail-card">
+            <details className="rail-card details rail-secondary">
+              <summary title="What moved or changed in this field">What moved</summary>
               <CandidatesPanel
                 data={candidatesFile}
                 waiting={candidatesWaiting}
@@ -2956,7 +2957,7 @@ export default function App() {
                   void loadFromService(target, ac.signal, "custom");
                 }}
               />
-            </div>
+            </details>
           )}
 
           <details className="rail-card details adjust-fold">
