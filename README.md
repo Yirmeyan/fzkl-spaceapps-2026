@@ -7,9 +7,15 @@ Project of team **Foxtrot Zulu Kilo Lima** for the 2026 NASA Space Apps Challeng
 | | |
 | --- | --- |
 | **The tool** | https://fzkl-spaceapps-2026.pages.dev |
+| **The sky map** | https://fzkl-spaceapps-2026.pages.dev/sky |
+| **The demo, seven slides** | https://fzkl-spaceapps-2026.pages.dev/demo.pdf |
 | **The service and its interactive documentation** | https://spherex-explorer-139331018511.us-east4.run.app/api/docs |
 | **How the two talk** | [`docs/api-contract.md`](docs/api-contract.md) |
 | **The plan and its reasons** | [`docs/architecture.md`](docs/architecture.md) |
+
+![Barnard's Star between August 2025 and August 2026, in SPHEREx images at 1.10 micrometers, as the tool shows them](frontend/public/barnard-blink.gif)
+
+The picture above is not a drawing: these are two SPHEREx images of Barnard's Star, one year apart, as the tool blinks them. The star moved by 10 arcseconds and the stars around it stayed put.
 
 ## Try it in one minute
 
@@ -31,14 +37,14 @@ These are the five test targets of the challenge. Any other place works the same
 | The five test targets | Done. They load at once from static files, even when the archive is slow |
 | Easy to update with new data releases | Done. Nothing is copied ahead of time for other places: the service asks the archive for the exposures of a position each time, and the releases it searches are one setting |
 | Use the 102 bands, the six detectors, and spectra on the fly | Done. One request measures an object in every exposure that covers it, from 0.75 to 5 micrometers: [`GET /api/spectrum`](docs/api-contract.md#get-apispectrum) |
-| Add or subtract images taken at different dates | Done in the browser: blink, blend and difference between visits, and the stack of the frames of a visit, which brings out an object as faint as WISE 0855 |
+| Add or subtract images taken at different dates | Done in the browser, with four buttons: Watch, Blink between two visits, Subtract one visit from another, and Average the frames of a visit, which brings out an object as faint as WISE 0855. Two visits can also be laid over each other or put side by side |
 | Find what moves or varies | Beyond what was asked: the service finds it by itself. It follows every source of a field from visit to visit and lists the ones that moved or changed, with their speed, their distance when it can be measured, and a confidence. See [Candidates](docs/api-contract.md#candidates). It works for any place of the sky, and a panel shows the list. It also looks for a body of the outer solar system: one that swings by tens of arcseconds with the seasons, too far to be followed as a source. See [a body that swings](docs/api-contract.md#a-body-of-the-outer-solar-system-swings-with-the-seasons). A sixth target, synthetic and labeled as such, shows it at work: a made-up body drawn on real frames, which the service finds at its distance |
 | A place to see what was found | Beyond what was asked: [a journal](docs/api-contract.md#the-journal) lists the 28 findings of our own checks. Each one says what the service measured, what catalogs say of it, and opens the tool there in one click. 2 of them are in no catalog we asked. A visitor who sees something odd frames it and shares it in one click: [a mark](docs/api-contract.md#marks-shared-by-visitors) is a place and a category, with nothing to write, so there is nothing to moderate |
 | A map to choose where to look | Beyond what was asked: [the whole sky as SPHEREx sees it](https://fzkl-spaceapps-2026.pages.dev/sky), in the wavelengths of the all-sky cube the mission published in November 2026. Drag to move, scroll to zoom, slide through 99 wavelengths from 0.77 to 5 micrometers. A click on any place opens the explorer there, and the Back button returns to the same sky. The findings of the journal and the marks of visitors are pinned on it: a pin opens the explorer on its target, with its name and its motion |
 | Coordinates in the URL, to embed the tool elsewhere | Done. The address of the page holds the target, a preset, a name or coordinates, and the view: detector, visit, mode |
-| Adjustable field of view | The service accepts any width from 0.02 to 0.5 degree. The interface shows 0.1 degree |
+| Adjustable field of view | Done. The service accepts any width from 0.02 to 0.5 degree, and the interface offers two: 0.1 and 0.3 degree |
 | Metadata such as the contamination flags | Done. Each image shows its date, its wavelength, its detector, its visit and the quality of its measurement, and a switch tints the flagged pixels. See [the frame](docs/api-contract.md#the-frame) |
-| Overlay catalogs of other telescopes | Done in the service: [`GET /api/catalog`](docs/api-contract.md#get-apicatalog) lists the sources of Gaia DR3 and of AllWISE inside a view, with their motion, so that a marker follows a fast star from frame to frame. The five test targets have that list in a static file. The switch that draws them over the image is being added to the interface |
+| Overlay catalogs of other telescopes | Done in the service: [`GET /api/catalog`](docs/api-contract.md#get-apicatalog) lists the sources of Gaia DR3 and of AllWISE inside a view, with their motion, so that a marker follows a fast star from frame to frame. The five test targets have that list in a static file. In the interface, the advanced tools draw the stars of Gaia over the image, where WISE saw them in 2010, and the path from then to now |
 
 ## What makes SPHEREx hard, and what we did about it
 
@@ -71,7 +77,7 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Can it follow a star too bright to be measured? | Through the halo of light around it. R Draconis saturates the six detectors, and its halo says it faded by half between June 2025 and June 2026: a Mira variable going from its maximum to its minimum. Checked blind on 16 saturated stars chosen before the run: five of eight known long-period variables were flagged, each change in the direction the AAVSO index predicts, and none of eight steady giants |
 | How often is it wrong? | The one blind round, 21 fields chosen before the run, gave one false alarm in 16 quiet fields: a source cut by the edge of the view. Such positions are now refused. Every rule, and what it cost to find it, is in [the contract](docs/api-contract.md#how-it-was-checked) |
 
-The service has 634 automated tests. Every pull request runs them, and checks the 55 static files against the contract. One of those checks is that the made-up body of the synthetic target is found at the distance it was drawn at.
+The service has 634 automated tests and the site 83. Every pull request runs them, and checks the 55 static files against the contract. One of those checks is that the made-up body of the synthetic target is found at the distance it was drawn at.
 
 ## How it works
 
@@ -136,10 +142,11 @@ Every source and dependency, with its license, is in [`docs/sources.md`](docs/so
 
 The Space Apps rules ask teams to say how they used AI. Here it is, plainly.
 
-- **Most of the code, the tests and the documentation of this repository were written by AI assistants directed by the team.** The service, the data pipeline, the static files and their checks were written with Claude, by Anthropic. The explorer page was written with Cursor Agent. The sky map page, the welcome window and the words of the interface were written with Claude.
+- **Most of the code, the tests and the documentation of this repository were written by AI assistants directed by the team.** The service, the data pipeline, the static files and their checks were written with Claude, by Anthropic. The explorer page was written with Cursor Agent. The sky map page, the welcome window, the words of the interface and the last simplifications of the first screen were written with Claude.
 - **The idea and the decisions are the team's.** The team chose the challenge and the idea, set the priorities (speed first, then a correct handling of SPHEREx, then the spectrum, then comfort), approved the architecture plan and every change to the contract, and decided what to build and what to drop.
 - **Every scientific claim above comes from a check we can rerun,** not from what a model remembers: the tests of this repository, and the comparisons listed under "What we checked".
-- **No image or video of the tool is generated.** Every picture it shows is SPHEREx data.
+- **No image or video of the tool is generated.** Every picture it shows is SPHEREx data. The pictures of the demo slides and the animation at the top of this page are captures of the tool.
+- **The demo slides and the texts of the submission were drafted with Claude and reviewed by the team.**
 - **The same statement travels with the code.** It is in the description of the Python package, in the description of the service at [`/api/docs`](https://spherex-explorer-139331018511.us-east4.run.app/api/docs), in the description and the topics of this repository, and at the foot of every page of the site.
 
 ## License
