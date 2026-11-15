@@ -6,6 +6,10 @@ a catalog file that of `catalog`, all saved in the formats of docs/api-contract.
 site shows the five test targets of the challenge from these files, at once, even when
 the service or the archive is asleep. The same code as the live service builds them, so
 both give the same frames, the same fluxes and the same candidates.
+
+A sixth target is not one of the challenge, and is not real: a quiet field of the sky
+with a made-up body of the outer solar system drawn on its frames. It shows what the
+search for such a body finds when there is one. Each of its files says it is made up.
 """
 
 import argparse
@@ -15,7 +19,7 @@ import json
 import logging
 import sys
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -46,6 +50,7 @@ from spherex_explorer.pipeline import (
     report_field,
     view_catalogs,
 )
+from spherex_explorer.synthetic import SyntheticBody, add_body
 from spherex_explorer.targets import SesameResolver, Target
 
 logger = logging.getLogger(__name__)
@@ -69,11 +74,16 @@ _FRAME_PAUSE_S = 3.0
 
 @dataclass(frozen=True, slots=True)
 class BundleTarget:
-    """A target to build files for: its key in file names, its name on screen, its catalog name."""
+    """A target to build files for: its key in file names, its name on screen, its catalog name.
+
+    With a `body`, the target is a made-up one: no catalog knows it. Its place is where
+    the Sun would see the body, and the body is drawn on every frame of its field.
+    """
 
     key: str
     name: str
     catalog_name: str
+    body: SyntheticBody | None = None
 
 
 # The five test targets of the challenge. Catalogs know designations, not nicknames.
@@ -84,6 +94,38 @@ TARGETS = (
     BundleTarget("rw-aurigae", "RW Aurigae", "RW Aur"),
     BundleTarget("r-draconis", "R Draconis", "R Dra"),
 )
+
+
+# A made-up body in a real field, to show the search for a swing at work. The field is a
+# quiet one, far from the Milky Way, and the body sits where no star is at either end
+# of its swing. It is cold, seen from 3.8 to 5 micrometers only as WISE 0855 is, three
+# times as bright, and it moves as a body on a round orbit at that distance would.
+SYNTHETIC_NOTE = (
+    "A made-up body added to real SPHEREx frames to test the search for a swing. It does not exist."
+)
+SYNTHETIC_TARGETS = (
+    BundleTarget(
+        "synthetic-planet-x",
+        "Synthetic Planet X",
+        "",
+        SyntheticBody(
+            Target(ra=199.990528, dec=29.994922, epoch=2025.94, pm_ra=-2000.0, pm_dec=1900.0),
+            distance_au=6000.0,
+            flux_mjy={5: 0.45, 6: 1.5},
+        ),
+    ),
+)
+EVERY_TARGET = TARGETS + SYNTHETIC_TARGETS
+
+
+def synthetic_out(body: SyntheticBody) -> dict:
+    """What a file built with a made-up body says of it."""
+    return {
+        "note": SYNTHETIC_NOTE,
+        "distance_au": body.distance_au,
+        "parallax_arcsec": round(body.parallax_arcsec, 2),
+        "flux_mjy": {str(detector): flux for detector, flux in sorted(body.flux_mjy.items())},
+    }
 
 
 def _now() -> str:
@@ -105,13 +147,20 @@ async def _frame_or_none(
     grid,
     slots: asyncio.Semaphore,
     sleep,
+    body: SyntheticBody | None = None,
 ) -> dict | None:
-    """Frame of one exposure as the contract writes it. None when the archive lost its file."""
+    """Frame of one exposure as the contract writes it. None when the archive lost its file.
+
+    A made-up body is drawn on the image where it would be at the date of the frame.
+    """
     exposure_id = listed.exposure.id
     for attempt in range(1, _FRAME_ATTEMPTS + 1):
         try:
             async with slots:
                 frame = await build_frame(frames, exposure_id, target, grid)
+            if body is not None:
+                drawn = add_body(frame.image, grid, listed.exposure.detector, frame.time_mjd, body)
+                frame = replace(frame, image=drawn)
             return frame_out(frame).model_dump()
         except NotFound:
             logger.warning("%s: no file in the archive, frame left out", exposure_id)
@@ -142,7 +191,8 @@ async def build_target(
     The files are one bundle per detector and one spectrum. Without the frames, only
     the spectrum is built, and the entry only holds what describes it.
     """
-    found = await resolver.resolve(wanted.catalog_name)
+    body = wanted.body
+    found = body.seen_from_the_sun if body else await resolver.resolve(wanted.catalog_name)
     # The numbers written in the file are the ones the frames are computed with, so that
     # a browser that redoes the arithmetic finds the same positions.
     target = Target(
@@ -173,7 +223,7 @@ async def build_target(
         chosen = [listed for listed in listing.exposures if listed.exposure.detector == detector]
         built = await asyncio.gather(
             *(
-                _frame_or_none(frames, listed, target, listing.grid, slots, sleep)
+                _frame_or_none(frames, listed, target, listing.grid, slots, sleep, body)
                 for listed in chosen
             )
         )
@@ -192,6 +242,7 @@ async def build_target(
                 "grid": grid,
                 "exposures": [exposure_out(listed).model_dump(by_alias=True) for listed, _ in kept],
                 "frames": [frame for _, frame in kept],
+                **({"synthetic": synthetic_out(body)} if body else {}),
             },
         )
         detectors.append(
@@ -214,6 +265,7 @@ async def build_target(
         "passes": len(passes),
         "detectors": detectors,
         "spectrum": spectrum,
+        **({"synthetic": synthetic_out(body)} if body else {}),
     }
     candidates = write_candidates(wanted.key, output, [d["file"] for d in detectors])
     if candidates is not None:
@@ -253,10 +305,12 @@ def write_candidates(key: str, output: Path, bundles: Sequence[str]) -> dict | N
     """
     target_out: dict = {}
     grid: dict = {}
+    synthetic: dict | None = None
     frames: list[FieldFrame] = []
     for name in bundles:
         bundle = json.loads((output / name).read_text(encoding="utf-8"))
         target_out, grid = bundle["target"], bundle["grid"]
+        synthetic = bundle.get("synthetic", synthetic)
         frames += _bundle_frames(bundle)
     if not frames:
         return None
@@ -278,6 +332,8 @@ def write_candidates(key: str, output: Path, bundles: Sequence[str]) -> dict | N
             **report,
             # As in the other files of a target, its name comes with its position.
             "target": target_out,
+            # Frames with a made-up body give a made-up candidate: the file says so.
+            **({"synthetic": synthetic} if synthetic else {}),
         },
     )
     found = report["candidates"]
@@ -422,7 +478,7 @@ def write_index(output: Path, entries: Sequence[dict]) -> None:
     for entry in entries:
         # An entry built in part, such as a spectrum alone, completes the one already there.
         known[entry["key"]] = {**known.get(entry["key"], {}), **entry}
-    order = {wanted.key: rank for rank, wanted in enumerate(TARGETS)}
+    order = {wanted.key: rank for rank, wanted in enumerate(EVERY_TARGET)}
     targets = sorted(known.values(), key=lambda entry: order.get(entry["key"], len(order)))
     _write(
         path,
@@ -442,7 +498,7 @@ async def run(
     parallel: int,
     with_frames: bool = True,
 ) -> None:
-    wanted = [target for target in TARGETS if not keys or target.key in keys]
+    wanted = [target for target in EVERY_TARGET if not keys or target.key in keys]
     limits = httpx2.Limits(
         max_connections=settings.storage_concurrency + 8,
         max_keepalive_connections=settings.storage_concurrency,
@@ -506,7 +562,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--target",
         action="append",
         default=[],
-        choices=[target.key for target in TARGETS],
+        choices=[target.key for target in EVERY_TARGET],
         help="Target to build. Repeat it for several. All of them when left out.",
     )
     parser.add_argument("--parallel", type=int, default=16, help="Frames built at once.")

@@ -576,7 +576,31 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
 - An exposure whose file is gone from the archive is left out of both `exposures` and `frames`, so the two lists of a bundle always have the same length.
 - The bundles are built by the code of the service, with `python -m spherex_explorer.precompute`: a frame of a bundle is the frame the service returns for the same target and grid.
 - The candidates of a test target are measured on the frames of its bundles, the very ones the site shows. `python -m spherex_explorer.precompute --output samples --candidates-only` writes them again without any download.
+- A sixth key, `synthetic-planet-x`, is not a test target and is not real: see [below](#a-sixth-target-that-is-not-real).
 - The catalog file of a test target, `<key>-catalog.json`, is the object `GET /api/catalog` returns, after three fields that open it: `format`, which is `spherex-explorer/catalog`, `version` and `generated`. The overlay of a test target then works when the catalog service does not answer. `--catalogs-only` writes these files again: it asks the catalog service alone.
+
+### A sixth target that is not real
+
+`synthetic-planet-x` is a quiet field of the sky, at right ascension 199.99 and declination +29.99, with a made-up body of the outer solar system drawn on its frames. It shows what the search for [a body that swings](#a-body-of-the-outer-solar-system-swings-with-the-seasons) finds when there is one, since the real sky has given none.
+
+```json
+"synthetic": {
+  "note": "A made-up body added to real SPHEREx frames to test the search for a swing. It does not exist.",
+  "distance_au": 6000.0,
+  "parallax_arcsec": 34.38,
+  "flux_mjy": {"5": 0.45, "6": 1.5}
+}
+```
+
+- **Three places say it.** The entry of the target in the index, each of its six bundles and its candidates file carry this object, as their last field. A target without it is real.
+- **The frames are real, the body is not.** They are the frames of that field, as the service returns them. The body is added to the image of each frame of detectors 5 and 6, where it would be at the date of the frame, with the shape of a star and the flux of `flux_mjy`, in millijanskys for each detector. Nothing else is touched: the flags, the dates, `background`, `noise` and `photometry` are those of the real frame.
+- **The body.** It is cold, seen from 3.8 to 5 micrometers only, as WISE 0855 is, and three times as bright. It is 6,000 astronomical units from the Sun and moves by 2.76 arcseconds per year on its own, as a body on a round orbit there would.
+- **`target` is where the Sun would see it,** with its own motion. No frame shows the body there: it is 34 arcseconds to one side during the first and the third visit, and to the other side during the second.
+- **The candidates file is what the search finds, with no hint:** one `swung` candidate, 6,148 astronomical units away, between 6,048 and 6,252. The check of the static files fails if the body is not found at the distance it was drawn at.
+- **The spectrum file holds the sky.** It is measured in the files of the archive at the place of `target`, where the body is not. It is of no use on screen.
+- **On screen, say that it is synthetic wherever it shows:** on the control that opens it, on the image, in the panel of the candidates, and on anything saved or shared from it.
+
+`python -m spherex_explorer.precompute --output samples --target synthetic-planet-x` builds it again, from the archive.
 
 ## Candidates
 
@@ -725,24 +749,24 @@ A star a few light-years away swings by a fraction of an arcsecond as the Earth 
   "kind": "swung",
   "method": "source",
   "confidence": "high",
-  "significance": 79.2,
-  "is_target": false,
-  "ra": 199.985356,
-  "dec": 29.980124,
+  "significance": 27.0,
+  "is_target": true,
+  "ra": 199.990463,
+  "dec": 29.995123,
   "epoch": 2025.94,
-  "xy": [79.74, 88.94],
-  "detectors": [1, 2, 3, 4, 5, 6],
+  "xy": [63.57, 63.24],
+  "detectors": [5, 6],
   "track": [
-    {"pass": 1, "time_mjd": 60831.330614, "time_iso": "2025-06-05T07:56:05Z", "ra": 199.976713, "dec": 29.986119, "xy": [89.32, 81.27], "error_arcsec": 0.847, "detectors": [1, 2, 3, 4, 5, 6]},
-    {"pass": 2, "time_mjd": 61034.548843, "time_iso": "2025-12-25T13:10:20Z", "ra": 199.994897, "dec": 29.97571, "xy": [69.16, 94.59], "error_arcsec": 0.847, "detectors": [1, 2, 3, 4, 5, 6]}
+    {"pass": 1, "time_mjd": 60831.562228, "time_iso": "2025-06-05T13:29:37Z", "ra": 199.982791, "dec": 30.000581, "xy": [72.08, 56.25], "error_arcsec": 0.861, "detectors": [5, 6]},
+    {"pass": 2, "time_mjd": 61034.541972, "time_iso": "2025-12-25T13:00:26Z", "ra": 199.999764, "dec": 29.990875, "xy": [53.26, 68.68], "error_arcsec": 0.874, "detectors": [5, 6]}
   ],
-  "motion": {"shift_arcsec": 3.2, "days": 359.6, "rate_arcsec_per_year": 3.25, "rate_error_arcsec_per_year": 1.22, "angle_deg": 115.3, "pm_ra": 2936.0, "pm_dec": -1387.0, "parallax_arcsec": 34.288, "parallax_error_arcsec": 0.543, "distance_ly": 0.1, "distance_ly_range": [0.1, 0.1]},
-  "swing": {"parallax_arcsec": 34.29, "parallax_error_arcsec": 0.54, "distance_au": 6016, "distance_au_range": [5922, 6112], "swing_arcsec": 68.0},
+  "motion": {"shift_arcsec": 2.4, "days": 359.4, "rate_arcsec_per_year": 2.44, "rate_error_arcsec_per_year": 1.23, "angle_deg": 301.3, "pm_ra": -2085.0, "pm_dec": 1268.0, "parallax_arcsec": 33.55, "parallax_error_arcsec": 0.557, "distance_ly": 0.1, "distance_ly_range": [0.1, 0.1]},
+  "swing": {"parallax_arcsec": 33.55, "parallax_error_arcsec": 0.56, "distance_au": 6148, "distance_au_range": [6048, 6252], "swing_arcsec": 64.9},
   "changes": []
 }
 ```
 
-**This body does not exist.** It is a made-up one, added to the real frames of a quiet field to test the search: 1 millijansky in every detector, 6,000 astronomical units away, moving by 3.05 arcseconds per year on its own. The third sighting of its track is left out here. No real field gave a `swung` candidate.
+**This body does not exist.** It is the one of the [synthetic target](#a-sixth-target-that-is-not-real): a made-up body, cold, 6,000 astronomical units away, drawn on the real frames of a quiet field. The third sighting of its track is left out here. No real field gave a `swung` candidate.
 
 - **The body is followed, not the place.** For a parallax that is tried, the place of a body on every frame is known, but for where the Sun would see it. Each frame is read with that shift: the body stays where it is and adds up, while the stars slide. 44 parallaxes are tried, from 8.4 to 129 arcseconds, then the best one more finely.
 - **It must be there in every visit,** at 6 sigma or more near the place and at 5 sigma or more at one same place, all the detectors together or the two reddest alone. A cold body shows in those two only. A visit with less than a third of the frames of the richest one is not asked that much: it must only not contradict the others.

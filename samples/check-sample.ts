@@ -130,6 +130,8 @@ const CANDIDATES_KEYS = ["format", "version", "generated", "target", "grid", "fr
 const CANDIDATE_KEYS = ["kind", "method", "confidence", "significance", "is_target", "ra", "dec", "epoch", "xy", "detectors", "track", "motion", "swing", "changes"];
 const SWING_KEYS = ["parallax_arcsec", "parallax_error_arcsec", "distance_au", "distance_au_range", "swing_arcsec"];
 const LIMITS_KEYS = ["significance", "shift_arcsec", "change", "swing_distance_au"];
+// What a file built with a made-up body says of it.
+const SYNTHETIC_KEYS = ["note", "distance_au", "parallax_arcsec", "flux_mjy"];
 // Astronomical units to an object whose parallax is one arcsecond.
 const AU_AT_ONE_ARCSECOND = 206264.806;
 const SIGHTING_KEYS = ["pass", "time_mjd", "time_iso", "ra", "dec", "xy", "error_arcsec", "detectors"];
@@ -380,7 +382,8 @@ function samePlace(grid: Grid, place: any): boolean {
 function checkCandidates(file: any): CandidatesSummary {
   const lines: string[] = [];
   check(file.format === CANDIDATES_FORMAT && file.version === 1, "format or version");
-  check(sameKeys(file, CANDIDATES_KEYS), "fields of the file");
+  // Frames with a made-up body give a made-up candidate, and the file says so last.
+  check(sameKeys(file, file.synthetic === undefined ? CANDIDATES_KEYS : [...CANDIDATES_KEYS, "synthetic"]), "fields of the file");
   check(sameKeys(file.target, TARGET_KEYS), "fields of the target");
   check(sameKeys(file.grid, GRID_KEYS), "fields of the grid");
   const grid: Grid = file.grid;
@@ -579,6 +582,34 @@ function sameFields(a: any, b: any, keys: string[]): boolean {
   return a != null && b != null && keys.every((key) => a[key] === b[key]);
 }
 
+// A target with a made-up body: a real field, with a body of the outer solar system
+// drawn on its frames to show the search at work. The index says what was drawn.
+function checkSynthetic(entry: any): void {
+  context = `${entry.key}: `;
+  const body = entry.synthetic;
+  check(sameKeys(body, SYNTHETIC_KEYS), "fields of the made-up body");
+  check(typeof body.note === "string" && /does not exist/.test(body.note), "the note must say that the body does not exist");
+  check(/synthetic/i.test(entry.name), "the name of the target must say that it is synthetic");
+  check(body.distance_au > 0 && Math.abs(body.parallax_arcsec - AU_AT_ONE_ARCSECOND / body.distance_au) <= 0.01, "distance and parallax of the made-up body");
+  const shown = Object.entries(body.flux_mjy ?? {});
+  check(shown.length > 0 && shown.every(([detector, flux]) => /^[1-6]$/.test(detector) && (flux as number) > 0), "flux of the made-up body, by detector");
+}
+
+// The candidates of a field with a made-up body: the search must find that body, and
+// nothing else. The distance found must be the distance it was drawn at.
+function checkSyntheticFound(entry: any, file: any): void {
+  const body = entry.synthetic;
+  const found: any[] = file.candidates ?? [];
+  check(JSON.stringify(file.synthetic) === JSON.stringify(body), "a made-up body must be told by the file and by the index alike");
+  check(found.length === 1 && found[0].kind === "swung" && found[0].is_target === true, "the made-up body is not the one candidate of its field");
+  const swing = found[0]?.swing;
+  if (!swing) return;
+  const [near, far] = swing.distance_au_range;
+  check(Math.abs(swing.distance_au - body.distance_au) <= 3 * Math.max(swing.distance_au - near, far - swing.distance_au), "the made-up body is not found at its distance");
+  check(found[0].detectors.every((detector: number) => String(detector) in body.flux_mjy), "the made-up body is found in a detector that does not show it");
+  console.log(`  made-up body drawn at ${body.distance_au} astronomical units: found at ${swing.distance_au} (${near} to ${far})`);
+}
+
 function checkIndex(index: any, folder: string): void {
   check(index.version === 1, "version of the index");
   check(Array.isArray(index.targets) && index.targets.length > 0, "the index lists no target");
@@ -602,6 +633,7 @@ function checkIndex(index: any, folder: string): void {
       }
       const bundle = JSON.parse(text);
       const summary = checkBundle(bundle, false);
+      check(JSON.stringify(bundle.synthetic) === JSON.stringify(entry.synthetic), "a made-up body must be told by the file and by the index alike");
       check(Buffer.byteLength(text, "utf8") === listed.bytes, "size differs from the index");
       check(sameFields(bundle.target, entry.target, TARGET_KEYS), "target differs from the index");
       check(sameFields(bundle.grid, entry.grid, GRID_KEYS), "grid differs from the index");
@@ -615,6 +647,7 @@ function checkIndex(index: any, folder: string): void {
       for (const [id, value] of summary.measured) measured.set(id, value);
       console.log(`${listed.file}: ${summary.frames} frames, ${summary.wavelengths[0]} to ${summary.wavelengths[1]} micrometers`);
     }
+    if (entry.synthetic !== undefined) checkSynthetic(entry);
     if (entry.spectrum) checkListedSpectrum(entry, folder, measured);
     if (entry.candidates) checkListedCandidates(entry, folder, total);
     if (entry.catalog) checkListedCatalog(entry, folder);
@@ -761,6 +794,8 @@ function checkListedCandidates(entry: any, folder: string, frames: number): void
   }
   const file = JSON.parse(text);
   const summary = checkCandidates(file);
+  if (entry.synthetic !== undefined) checkSyntheticFound(entry, file);
+  else check(file.synthetic === undefined, "a real field must not be told as made up");
   check(Buffer.byteLength(text, "utf8") === listed.bytes, "size differs from the index");
   check(sameFields(file.target, entry.target, TARGET_KEYS), "target differs from the index");
   check(sameFields(file.grid, entry.grid, GRID_KEYS), "grid differs from the index");

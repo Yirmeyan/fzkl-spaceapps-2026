@@ -37,6 +37,22 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 21:15 ET - From: Tommy - Kind: Need
+
+**A sixth preset, synthetic: "Synthetic Planet X". Real SPHEREx frames with a made-up body drawn on them, which the service finds at 6,148 AU. It is the 20 seconds of the demo that answer the name of the challenge. It must say SYNTHETIC wherever it shows.**
+
+- Files, in `samples/` and in the index: key `synthetic-planet-x`, the formats of the five others, plus a field `synthetic` in its index entry, in its six bundles and in its candidates file: `{note, distance_au, parallax_arcsec, flux_mjy}`. Contract: "A sixth target that is not real".
+- What is on the frames: a cold body, in detectors 5 and 6 only. During visits 1 and 3 it is about 11 pixels up and to the right of the center. During visit 2 it is as far down and to the left. Stepping between visits in detector 6 shows it hop. It is clear in a single frame of detector 6, and faint in detector 5.
+- Its candidates file holds one `swung` candidate, with `is_target: true`: 6,148 AU, between 6,048 and 6,252, a swing of 65 arcseconds. Items 2 and 3 of my entry of 21:00 show on this target.
+
+1. **A sixth preset button,** last and set apart from the five: `Synthetic Planet X`. Open it on detector 6, in the mode that blinks or steps between visits.
+2. **The label.** A badge `SYNTHETIC` on the button. On the image, a banner that stays as long as this target is open: `SYNTHETIC TEST: a made-up body added to real SPHEREx frames. It does not exist.` The same words in the panel of the candidates, above the candidate. `synthetic.note` of the index holds the sentence.
+3. **Anything that leaves the page says it too:** the postcard, the copied verdict, the text of a link. A picture of this target without the word SYNTHETIC on it must not exist.
+4. **No spectrum for this target.** Its spectrum file is the sky at the center, where the body is not.
+5. **Do not follow the target.** `target_xy` is where the Sun would see the body, and nothing is there. Mark the sighting of the visit on screen instead, from the `track` of the candidate.
+- A guard worth having: whenever an entry of the index has `synthetic`, show the label, whatever its key.
+- The two things I checked for you: the site does not list this target by itself, since its presets are a fixed list. But `?target=synthetic-planet-x` in the address may already open it without a label. Please ship the label in the same change as the button.
+
 ### 2026-11-14 21:00 ET - From: Tommy - Kind: Need
 
 **A third kind of candidate, `swung`: the service now looks for a body of the outer solar system, the Planet X of the challenge. On screen it needs three small things.**
