@@ -380,9 +380,13 @@ def _find(
             together = np.nanmean(stacks, axis=0)
         seen = _refined(together, peaks(signal_to_noise(together), DETECTION_THRESHOLD))
         by_detector[detector] = seen
-        found += seen
+        in_sight = list(seen)
         for stack in stacks:
-            found += _refined(stack, peaks(signal_to_noise(stack), _VISIT_THRESHOLD))
+            in_sight += _refined(stack, peaks(signal_to_noise(stack), _VISIT_THRESHOLD))
+        # Around a heart a detector shows the ring of a halo, not sources. A star that
+        # saturates this detector is placed by the detectors it does not saturate: a peak
+        # of the ring taken for a source would split a fast star between two places.
+        found += [peak for peak in in_sight if not _near_heart(peak[0], peak[1], hearts[detector])]
     sources: list[_Peak] = []
     for x, y, snr in sorted(found, key=lambda peak: -peak[2]):
         if all(np.hypot(x - sx, y - sy) >= _SAME_SOURCE for sx, sy, _ in sources):
