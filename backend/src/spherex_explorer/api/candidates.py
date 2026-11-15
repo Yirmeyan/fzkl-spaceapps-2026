@@ -1,4 +1,4 @@
-"""Route that tells what moved or changed around a target, as described in docs/api-contract.md."""
+"""Route that tells what moved, swung or changed around a target: see docs/api-contract.md."""
 
 import asyncio
 import math
@@ -20,11 +20,15 @@ from spherex_explorer.api.numbers import TIME_DECIMALS
 from spherex_explorer.api.params import Dec, Epoch, PmDec, PmRa, Ra
 from spherex_explorer.detection import (
     CLAIM,
+    LARGEST_PARALLAX,
     MOVED,
     SMALLEST_CHANGE,
+    SMALLEST_PARALLAX,
     SMALLEST_SHIFT,
+    SWUNG,
     Candidate,
     Change,
+    FieldSource,
     Motion,
     Sighting,
 )
@@ -51,6 +55,10 @@ _ARCSEC_PER_DEGREE = 3600.0
 _MAS_PER_ARCSEC = 1000.0
 _DAYS_PER_YEAR = 365.25
 _MJD_J2000 = 51544.5
+# Astronomical units to an object whose parallax is one arcsecond: a parsec.
+_AU_AT_ONE_ARCSECOND = 206264.806
+# The distances a body that swings is looked for at are told to the nearest hundred.
+_ROUND_AU = 100
 # What a candidate was measured on: the source itself, or the halo of a saturated star.
 _ON_THE_SOURCE = "source"
 _ON_THE_HALO = "halo"
@@ -77,6 +85,7 @@ class LimitsOut(BaseModel):
     significance: float
     shift_arcsec: float
     change: float
+    swing_distance_au: tuple[int, int] | None
 
 
 class SaturatedOut(BaseModel):
@@ -112,6 +121,14 @@ class MotionOut(BaseModel):
     distance_ly_range: tuple[float, float] | None
 
 
+class SwingOut(BaseModel):
+    parallax_arcsec: float
+    parallax_error_arcsec: float
+    distance_au: int
+    distance_au_range: tuple[int, int]
+    swing_arcsec: float
+
+
 class ChangeOut(BaseModel):
     detector: int
     from_pass: int
@@ -135,6 +152,7 @@ class CandidateOut(BaseModel):
     detectors: list[int]
     track: list[SightingOut]
     motion: MotionOut | None
+    swing: SwingOut | None
     changes: list[ChangeOut]
 
 
@@ -206,6 +224,49 @@ def _motion_out(grid: Grid, motion: Motion) -> MotionOut:
     )
 
 
+def _swing_out(grid: Grid, source: FieldSource) -> SwingOut | None:
+    """The swing of a body with the seasons, and the distance it gives."""
+    motion = source.motion
+    if motion is None or motion.parallax is None or motion.parallax_error is None:
+        return None
+    arcsec = grid.scale_deg * _ARCSEC_PER_DEGREE
+    parallax = motion.parallax * arcsec
+    error = motion.parallax_error * arcsec
+    # The search stops at a parallax well above its uncertainty: the far side is closed.
+    least = max(parallax - error, parallax / 2)
+    widest = max(
+        math.hypot(one.x - other.x, one.y - other.y)
+        for one in source.sightings
+        for other in source.sightings
+    )
+    return SwingOut(
+        parallax_arcsec=round(parallax, _ARCSEC_DECIMALS),
+        parallax_error_arcsec=round(error, _ARCSEC_DECIMALS),
+        distance_au=round(_AU_AT_ONE_ARCSECOND / parallax),
+        distance_au_range=(
+            round(_AU_AT_ONE_ARCSECOND / (parallax + error)),
+            round(_AU_AT_ONE_ARCSECOND / least),
+        ),
+        swing_arcsec=round(widest * arcsec, 1),
+    )
+
+
+def _swing_reach(grid: Grid, visits: int) -> tuple[int, int] | None:
+    """Distances, in astronomical units, between which a body that swings was looked for.
+
+    None when the field has fewer than two visits: a swing takes two to show.
+    """
+    if visits < 2:
+        return None
+    arcsec = grid.scale_deg * _ARCSEC_PER_DEGREE
+    nearest = _AU_AT_ONE_ARCSECOND / (LARGEST_PARALLAX * arcsec)
+    farthest = _AU_AT_ONE_ARCSECOND / (SMALLEST_PARALLAX * arcsec)
+    return (
+        round(nearest / _ROUND_AU) * _ROUND_AU,
+        round(farthest / _ROUND_AU) * _ROUND_AU,
+    )
+
+
 def _change_out(change: Change) -> ChangeOut:
     return ChangeOut(
         detector=change.detector,
@@ -234,7 +295,11 @@ def _is_target(target: Target, grid: Grid, sightings: tuple[Sighting, ...]) -> b
 def _candidate_out(target: Target, grid: Grid, candidate: Candidate) -> CandidateOut:
     source = candidate.source
     ra, dec = _place(grid, source.x, source.y)
-    moved = candidate.kind == MOVED and source.motion is not None
+    swung = candidate.kind == SWUNG
+    # The own motion of a body that swings is known when a third visit checked it.
+    moved = source.motion is not None and (
+        candidate.kind == MOVED or (swung and source.motion.checked)
+    )
     return CandidateOut(
         kind=candidate.kind,
         method=_ON_THE_HALO if candidate.halo else _ON_THE_SOURCE,
@@ -253,6 +318,7 @@ def _candidate_out(target: Target, grid: Grid, candidate: Candidate) -> Candidat
         detectors=sorted({d for sighting in source.sightings for d in sighting.detectors}),
         track=[_sighting_out(grid, sighting) for sighting in source.sightings],
         motion=_motion_out(grid, source.motion) if moved and source.motion else None,
+        swing=_swing_out(grid, source) if swung else None,
         changes=[_change_out(change) for change in candidate.changes],
     )
 
@@ -297,6 +363,7 @@ def candidates_out(report: FieldReport) -> CandidatesOut:
             significance=CLAIM,
             shift_arcsec=round(SMALLEST_SHIFT * arcsec, _ARCSEC_DECIMALS),
             change=SMALLEST_CHANGE,
+            swing_distance_au=_swing_reach(grid, len(report.field.visits)),
         ),
         saturated=saturated,
         candidates=[_candidate_out(target, grid, candidate) for candidate in report.candidates],

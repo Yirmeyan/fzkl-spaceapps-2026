@@ -1,4 +1,4 @@
-"""Candidates: the sources of a field that moved, or whose light changed.
+"""Candidates: the sources of a field that moved, swung, or whose light changed.
 
 A candidate is a measurement that stands out, not a discovery. What is asked of it is
 written here, with the reason for each demand.
@@ -18,6 +18,7 @@ from spherex_explorer.detection.field import (
 
 MOVED = "moved"
 CHANGED = "changed"
+SWUNG = "swung"
 HIGH = "high"
 MEDIUM = "medium"
 
@@ -42,6 +43,9 @@ _VISITS_TO_BE_FIRM = 3
 # A source that both moved by less than this and changed is reported as changed: the
 # center of light of a close pair shifts when one of the two fades.
 _SHIFT_OF_A_PAIR = 3.0 / 2.8125
+# A body that swings with the seasons is, around each of its places, a source that comes
+# and goes. A source this close to one of those places, in pixels, is the body itself.
+_PLACE_OF_A_SWING = 5.0
 # A star that saturates some detectors only is followed as a source in the others. A
 # candidate this close to its heart, in pixels beyond the radius of the heart, is the
 # same star: its halo is not reported a second time.
@@ -100,14 +104,43 @@ def _as_source(star: SaturatedStar, field: Field) -> FieldSource:
     return FieldSource(star.x, star.y, 0.0, seen, None, star.changes)
 
 
+def _swung(field: Field) -> list[Candidate]:
+    """The bodies that swing with the seasons, when sure enough to be claimed.
+
+    Three visits show a body going and coming back: the third one checks what the
+    first two drew. With two visits there is no such check. The body then needs twice
+    the evidence, and the claim is never firm.
+    """
+    candidates = []
+    for body in field.swung:
+        motion = body.motion
+        if motion is None or motion.significance < (CLAIM if motion.checked else _FIRM):
+            continue
+        confidence = HIGH if motion.checked and motion.significance >= _FIRM else MEDIUM
+        candidates.append(Candidate(SWUNG, confidence, motion.significance, body, ()))
+    return candidates
+
+
+def _place_of_a_swing(source: FieldSource, swung: list[Candidate]) -> bool:
+    """Is the source one of the places of a body that swings?"""
+    return any(
+        np.hypot(source.x - sighting.x, source.y - sighting.y) <= _PLACE_OF_A_SWING
+        for candidate in swung
+        for sighting in candidate.source.sightings
+    )
+
+
 def find_candidates(field: Field) -> tuple[Candidate, ...]:
-    """The sources of a field that moved or changed, the surest first.
+    """The sources of a field that moved, swung or changed, the surest first.
 
     A saturated star has no source to follow in the detectors it saturates. It is a
     candidate when its halo changed, under the rule every change is held to.
     """
-    candidates = []
+    candidates = _swung(field)
+    swung = list(candidates)
     for source in field.sources:
+        if _place_of_a_swing(source, swung):
+            continue
         motion = source.motion
         shift = float(np.hypot(motion.shift_x, motion.shift_y)) if motion else 0.0
         checked = motion is not None and motion.checked

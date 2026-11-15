@@ -74,7 +74,12 @@ def test_the_answer_carries_the_view_and_what_was_looked_at(nearby):
     assert [visit["pass"] for visit in nearby["visits"]] == [1, 2, 3, 4]
     assert nearby["visits"][0]["frames"] == 16
     assert nearby["visits"][0]["time_iso"].startswith("2025-05-0")
-    assert nearby["limits"] == {"significance": 5.0, "shift_arcsec": 1.0, "change": 0.1}
+    assert nearby["limits"] == {
+        "significance": 5.0,
+        "shift_arcsec": 1.0,
+        "change": 0.1,
+        "swing_distance_au": (1600, 24400),
+    }
     assert nearby["saturated"] == []
 
 
@@ -94,9 +99,11 @@ def test_a_motion_is_told_in_the_words_of_the_sky(nearby):
         "detectors",
         "track",
         "motion",
+        "swing",
         "changes",
     ]
     assert (found["kind"], found["confidence"], found["is_target"]) == ("moved", "high", True)
+    assert found["swing"] is None
     assert found["method"] == "source"
     assert found["significance"] > 10
     assert found["detectors"] == [2, 5]
@@ -156,6 +163,63 @@ def test_another_object_of_the_field_is_not_the_target():
     assert out["candidates"][0]["motion"]["parallax_arcsec"] is None
     assert out["candidates"][0]["motion"]["distance_ly"] is None
     assert out["candidates"][0]["motion"]["distance_ly_range"] is None
+
+
+def swinging(visit: int, parallax_arcsec: float = 30.0) -> tuple[float, float]:
+    """A body of the outer solar system: no motion of its own, and a parallax of 30 arcseconds."""
+    date = FIRST_DAY + 182.6 * (visit - 1) + 1.5
+    east, north = parallax_shift(GRID.ra, GRID.dec, np.array(date))
+    return (
+        48.0 - parallax_arcsec * float(east) / SCALE,
+        50.0 - parallax_arcsec * float(north) / SCALE,
+    )
+
+
+def swung(**options):
+    def scene(detector, visit, wavelength):
+        return [*steady_stars(), (*swinging(visit), 6.0)]
+
+    ra, dec = place(48.0, 50.0)
+    return answer(scene, Target(ra=ra, dec=dec), **options)
+
+
+def test_a_body_that_swings_comes_with_its_distance():
+    out = swung()
+
+    assert len(out["candidates"]) == 1
+    found = out["candidates"][0]
+    assert (found["kind"], found["method"], found["confidence"]) == ("swung", "source", "high")
+    # The place is where the Sun would see the body, and each sighting where a visit does.
+    assert found["xy"] == pytest.approx((48.0, 50.0), abs=0.3)
+    assert [sighting["pass"] for sighting in found["track"]] == [1, 2, 3]
+    for sighting in found["track"]:
+        assert sighting["xy"] == pytest.approx(swinging(sighting["pass"]), abs=0.4)
+    swing = found["swing"]
+    assert list(swing) == [
+        "parallax_arcsec",
+        "parallax_error_arcsec",
+        "distance_au",
+        "distance_au_range",
+        "swing_arcsec",
+    ]
+    assert swing["parallax_arcsec"] == pytest.approx(30.0, abs=1.0)
+    assert 0 < swing["parallax_error_arcsec"] < 1.5
+    # A parallax of 30 arcseconds is 206,265 / 30 astronomical units.
+    assert swing["distance_au"] == pytest.approx(6875, abs=250)
+    near, far = swing["distance_au_range"]
+    assert near < swing["distance_au"] < far
+    first, second = (np.array(swinging(visit)) for visit in (1, 2))
+    assert swing["swing_arcsec"] == pytest.approx(np.hypot(*(first - second)) * SCALE, abs=1.5)
+    # Its own motion was checked by the third visit: next to nothing.
+    assert found["motion"]["rate_arcsec_per_year"] < 1.0
+    assert found["motion"]["parallax_arcsec"] == pytest.approx(swing["parallax_arcsec"], abs=0.1)
+
+
+def test_two_visits_give_the_swing_of_a_body_and_not_its_motion():
+    found = swung(visits=(1, 2))["candidates"][0]
+
+    assert (found["kind"], found["confidence"], found["motion"]) == ("swung", "medium", None)
+    assert found["swing"]["distance_au"] == pytest.approx(6875, abs=250)
 
 
 def test_a_change_names_its_detectors_and_carries_no_motion():
@@ -299,7 +363,12 @@ def test_the_route_answers_as_the_contract_writes_it(source):
     assert body["frames"] == len(IDS)
     assert [(visit["pass"], visit["frames"]) for visit in body["visits"]] == [(1, 6), (2, 6)]
     assert list(body["visits"][0]) == ["pass", "time_mjd", "time_iso", "frames"]
-    assert body["limits"] == {"significance": 5.0, "shift_arcsec": 1.0, "change": 0.1}
+    assert body["limits"] == {
+        "significance": 5.0,
+        "shift_arcsec": 1.0,
+        "change": 0.1,
+        "swing_distance_au": [1600, 24400],
+    }
     # The same file stands for every exposure: nothing moves and nothing changes.
     assert body["candidates"] == []
     assert response.headers["cache-control"] == "public, max-age=3600"
@@ -326,6 +395,8 @@ def test_a_place_never_observed_has_no_candidate_and_no_visit(source):
     body = make_client(source, archive=Nothing()).get("/api/candidates", params=HERE).json()
 
     assert (body["frames"], body["sources"], body["visits"], body["candidates"]) == (0, 0, [], [])
+    # With no visit there was nothing to look for a swing in.
+    assert body["limits"]["swing_distance_au"] is None
 
 
 @pytest.mark.parametrize("params", [{}, {"ra": 400, "dec": 4}, {"ra": 10}, {**HERE, "pm_ra": "x"}])
