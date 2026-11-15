@@ -2279,6 +2279,17 @@ export default function App() {
           >
             Journal
           </button>
+          <a
+            className="ghost"
+            href={
+              load.status === "ready"
+                ? `${import.meta.env.BASE_URL}sky.html?ra=${load.data.target.ra}&dec=${load.data.target.dec}&fov=30`
+                : `${import.meta.env.BASE_URL}sky.html`
+            }
+            title="All-sky SPHEREx map — open centered on this field when loaded"
+          >
+            Sky map
+          </a>
           <details className="jury-tools">
             <summary title="Demo and share tools">Share</summary>
             {cinema && (

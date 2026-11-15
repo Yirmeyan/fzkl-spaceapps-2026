@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop
 
-**This loop’s wow:** Share a finding — click-to-frame a place on the paused sky (no free text), category + POST /api/journal, visitor marks under Journal. Tommy 23:00.
+**This loop’s wow:** Share a finding shipped (#84). Follow-on: header Sky map → Tommy’s all-sky `sky.html` centered on the loaded field.
 
 ## Backlog
 
