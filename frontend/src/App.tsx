@@ -2843,6 +2843,106 @@ export default function App() {
               </button>
             </fieldset>
 
+            <fieldset>
+              <legend>Field of view</legend>
+              <button
+                type="button"
+                className={fieldPreset === "default" ? "active" : ""}
+                title="Tight cutout 0.1° · 128² (sample + archive)"
+                onClick={() => {
+                  if (fieldPreset === "default") return;
+                  setFieldPreset("default");
+                  fieldPresetRef.current = "default";
+                  if (load.status !== "ready") return;
+                  const t = load.data.target;
+                  const ac = new AbortController();
+                  void loadFromService(
+                    t,
+                    ac.signal,
+                    view.targetKey === "custom" ? "custom" : view.targetKey,
+                  );
+                }}
+              >
+                0.1° · 128²
+              </button>
+              <button
+                type="button"
+                className={fieldPreset === "wide" ? "active" : ""}
+                title="Wider archive cutout 0.3° · 256² — more real pixels"
+                onClick={() => {
+                  if (fieldPreset === "wide") return;
+                  setFieldPreset("wide");
+                  fieldPresetRef.current = "wide";
+                  if (load.status !== "ready") return;
+                  const t = load.data.target;
+                  const ac = new AbortController();
+                  void loadFromService(
+                    t,
+                    ac.signal,
+                    view.targetKey === "custom" ? "custom" : view.targetKey,
+                  );
+                }}
+              >
+                0.3° · 256²
+              </button>
+              <span className="wave-chip">
+                {fieldPreset === "wide"
+                  ? "Wider = sharper from the live archive"
+                  : "Default sample size · try Wider for detail"}
+              </span>
+            </fieldset>
+
+            <fieldset>
+              <legend>Other telescopes</legend>
+              <button
+                type="button"
+                className={showGaia ? "active" : ""}
+                disabled={catalogError != null && !catalogFile}
+                title="Overlay Gaia DR3 stars in this view"
+                onClick={() => setShowGaia((v) => !v)}
+              >
+                Gaia DR3
+              </button>
+              <button
+                type="button"
+                className={showAllwise ? "active" : ""}
+                disabled={catalogError != null && !catalogFile}
+                title="AllWISE infrared sky from ~2010"
+                onClick={() => setShowAllwise((v) => !v)}
+              >
+                AllWISE 2010
+              </button>
+              <button
+                type="button"
+                className={showAllwise && flightPath ? "active" : ""}
+                disabled={catalogError != null && !catalogFile}
+                title="Path from WISE 2010 to SPHEREx now"
+                onClick={() => {
+                  setShowAllwise(true);
+                  setShowPathTrail(true);
+                  setFlightScrub(1);
+                }}
+              >
+                2010 → now
+              </button>
+              <button
+                type="button"
+                className={flightPlaying ? "active" : ""}
+                disabled={(catalogError != null && !catalogFile) || flightPlaying}
+                title="Animate decades along the AllWISE path"
+                onClick={() => {
+                  setShowAllwise(true);
+                  setShowPathTrail(true);
+                  playFlightYears();
+                }}
+              >
+                Play years
+              </button>
+              {catalogWaiting && <span className="wave-chip">Asking catalogs…</span>}
+              {catalogError && <span className="wave-chip catalog-unavail">{catalogError}</span>}
+              {catalogTip && <span className="wave-chip catalog-tip">{catalogTip}</span>}
+            </fieldset>
+
             {view.mode === "difference" && (
               <fieldset className="diff-picks">
                 <legend>Passes A − B</legend>
@@ -3179,35 +3279,6 @@ export default function App() {
               )}
 
               <div className="control-block soft">
-                <p className="control-label">Contrast</p>
-                <label className="slider-row">
-                  <span>{view.contrast.toFixed(1)}×</span>
-                  <input
-                    type="range"
-                    min={0.4}
-                    max={3}
-                    step={0.1}
-                    value={view.contrast}
-                    onChange={(e) => patchView({ contrast: Number(e.target.value) })}
-                  />
-                </label>
-                <p className="control-label">Color</p>
-                <div className="chip-row">
-                  <button
-                    type="button"
-                    className={view.colorMap === "heat" ? "active" : ""}
-                    onClick={() => patchView({ colorMap: "heat" })}
-                  >
-                    IR heat
-                  </button>
-                  <button
-                    type="button"
-                    className={view.colorMap === "gray" ? "active" : ""}
-                    onClick={() => patchView({ colorMap: "gray" })}
-                  >
-                    Gray
-                  </button>
-                </div>
                 <label className="tint-mask-row">
                   <input
                     type="checkbox"
@@ -3216,116 +3287,23 @@ export default function App() {
                   />
                   <span>Tint flagged pixels</span>
                 </label>
-                <p className="control-label">Other telescopes</p>
-                <label className="tint-mask-row">
-                  <input
-                    type="checkbox"
-                    checked={showGaia}
-                    disabled={catalogError != null && !catalogFile}
-                    onChange={(e) => setShowGaia(e.target.checked)}
-                  />
-                  <span>Gaia DR3</span>
-                </label>
-                <label className="tint-mask-row">
-                  <input
-                    type="checkbox"
-                    checked={showAllwise}
-                    disabled={catalogError != null && !catalogFile}
-                    onChange={(e) => setShowAllwise(e.target.checked)}
-                  />
-                  <span>AllWISE (the infrared sky in 2010)</span>
-                </label>
-                <div className="chip-row" style={{ marginTop: "0.35rem" }}>
-                  <button
-                    type="button"
-                    className={showAllwise && flightPath ? "active" : ""}
-                    disabled={catalogError != null && !catalogFile}
-                    title="Draw the path from where WISE saw this object in 2010 to where SPHEREx sees it now"
-                    onClick={() => {
-                      setShowAllwise(true);
-                      setFlightScrub(1);
-                    }}
-                  >
-                    2010 → now
-                  </button>
-                  <button
-                    type="button"
-                    className={flightPlaying ? "active" : ""}
-                    disabled={(catalogError != null && !catalogFile) || flightPlaying}
-                    title="Animate decades of motion along the AllWISE path"
-                    onClick={() => playFlightYears()}
-                  >
-                    Play years
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost"
-                    title="Copy a link that auto-plays 2010→now for this target"
-                    onClick={() => copyYearsLink()}
-                  >
-                    {yearsLinkCopied ? "Copied" : "Years link"}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="ghost"
+                  title="Copy a link that auto-plays 2010→now for this target"
+                  onClick={() => copyYearsLink()}
+                >
+                  {yearsLinkCopied ? "Copied" : "Years link"}
+                </button>
                 {showAllwise && flightPath && (
                   <p className="micro flight-path-note">
                     Flight path {flightPath.label}
                     {flightPath.sourceId ? ` · ${flightPath.sourceId}` : ""} · scrub or Play years
                   </p>
                 )}
-                {catalogWaiting && <p className="micro">Asking the catalogs…</p>}
-                {catalogError && <p className="micro catalog-unavail">{catalogError}</p>}
                 {catalogFile?.catalogs.some((c) => c.truncated) && (
                   <p className="micro">Showing the 300 brightest</p>
                 )}
-                {catalogTip && <p className="micro catalog-tip">{catalogTip}</p>}
-                <p className="control-label">Field of view</p>
-                <div className="chip-row">
-                  <button
-                    type="button"
-                    className={fieldPreset === "default" ? "active" : ""}
-                    title="Default SPHEREx explorer cutout"
-                    onClick={() => {
-                      if (fieldPreset === "default") return;
-                      setFieldPreset("default");
-                      fieldPresetRef.current = "default";
-                      if (load.status !== "ready") return;
-                      const t = load.data.target;
-                      const ac = new AbortController();
-                      void loadFromService(
-                        t,
-                        ac.signal,
-                        view.targetKey === "custom" ? "custom" : view.targetKey,
-                      );
-                    }}
-                  >
-                    Default
-                  </button>
-                  <button
-                    type="button"
-                    className={fieldPreset === "wide" ? "active" : ""}
-                    title="Wider live cutout: fov=0.3° size=256 (Tommy item 7)"
-                    onClick={() => {
-                      if (fieldPreset === "wide") return;
-                      setFieldPreset("wide");
-                      fieldPresetRef.current = "wide";
-                      if (load.status !== "ready") return;
-                      const t = load.data.target;
-                      const ac = new AbortController();
-                      void loadFromService(
-                        t,
-                        ac.signal,
-                        view.targetKey === "custom" ? "custom" : view.targetKey,
-                      );
-                    }}
-                  >
-                    Wider
-                  </button>
-                </div>
-                <p className="micro">
-                  {fieldPreset === "wide"
-                    ? `Live archive ${FIELD_PRESETS.wide.label}. Sample movies stay at 0.1°.`
-                    : `Default cutout ${FIELD_PRESETS.default.label}. Wider reloads from the live archive.`}
-                </p>
               </div>
             </div>
           </details>
