@@ -29,7 +29,7 @@ export const DEFAULT_VIEW: ViewState = {
   detector: null,
   frameIndex: 0,
   playing: false,
-  fps: 4,
+  fps: 24,
   mode: "single",
   diffPassA: 1,
   diffPassB: 3,

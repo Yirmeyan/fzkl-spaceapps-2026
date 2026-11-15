@@ -135,7 +135,7 @@ export function allwiseFlightPath(
   };
 }
 
-/** Catalogue marker + pass trail (big numbered beads, not stick-figure crosses). */
+/** Optional pass trail beads (off by default — sky stays cross-only). */
 
 export interface TrailPoint {
   pass: number;
@@ -184,6 +184,7 @@ export function drawTargetOverlay(
     ctx.restore();
   }
 
+  // Cross only — no ring around the star (human preference).
   const [tx, ty] = targetXy;
   ctx.save();
   ctx.strokeStyle = "rgba(255, 196, 80, 0.95)";
@@ -194,9 +195,6 @@ export function drawTargetOverlay(
   ctx.lineTo(tx + arm, ty);
   ctx.moveTo(tx, ty - arm);
   ctx.lineTo(tx, ty + arm);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(tx, ty, 2, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
 }
@@ -240,9 +238,46 @@ export function drawCandidatesOverlay(
 
   candidates.forEach((c, i) => {
     const active = activeIndex === i;
+    const color = c.kind === "changed" ? "#38bdf8" : c.kind === "swung" ? "#f472b6" : "#fbbf24";
+
+    // Swung: ring the visit sighting (track), never the mean Sun-view xy; dashed path.
+    if (c.kind === "swung" && c.track.length > 0) {
+      const pts = c.track.map((t) => (sameGrid ? t.xy : skyToPixel(viewGrid, t.ra, t.dec)));
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = active ? 1.6 : 1.1;
+      ctx.globalAlpha = active ? 0.95 : 0.7;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      pts.forEach(([x, y], j) => {
+        if (j === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const sight = candidateXyForPass(c, currentPass);
+      const [sx, sy] = sameGrid ? sight : skyToPixel(viewGrid, c.ra, c.dec);
+      // Prefer track projection when grids differ
+      const [rx, ry] =
+        currentPass != null
+          ? (() => {
+              const hit = c.track.find((t) => t.pass === currentPass);
+              return hit ? (sameGrid ? hit.xy : skyToPixel(viewGrid, hit.ra, hit.dec)) : [sx, sy];
+            })()
+          : pts[0]!;
+      ctx.lineWidth = active ? 2.2 : 1.5;
+      ctx.beginPath();
+      ctx.arc(rx, ry, active ? 9 : 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(rx, ry, active ? 5 : 3.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
     const xy = candidateXyForPass(c, currentPass);
     const [cx, cy] = sameGrid ? xy : skyToPixel(viewGrid, c.ra, c.dec);
-    const color = c.kind === "changed" ? "#38bdf8" : "#fbbf24";
 
     ctx.save();
     ctx.strokeStyle = color;

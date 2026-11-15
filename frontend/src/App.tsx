@@ -24,12 +24,7 @@ import {
   stackPassClean,
   stackTrackingTarget,
 } from "./compose/stack";
-import {
-  type CandidatesFile,
-  discoveryFlashLine,
-  fetchCandidatesFile,
-  knownAs,
-} from "./data/candidates";
+import { type CandidatesFile, fetchCandidatesFile, knownAs } from "./data/candidates";
 import {
   type CatalogKey,
   type CatalogResponse,
@@ -96,6 +91,7 @@ import { MatchVerdict } from "./ui/MatchVerdict";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
 import { PassStackMovie } from "./ui/PassStackMovie";
+import { CHALLENGE_SKY_PINS, SkyContextGlobe } from "./ui/SkyContextGlobe";
 import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { type StoryboardCell, VisitStoryboard } from "./ui/VisitStoryboard";
@@ -111,6 +107,16 @@ const FIELD_PRESETS = {
   wide: { fov: 0.3, size: 256, label: "0.3° · 256²" },
 } as const;
 type FieldPreset = keyof typeof FIELD_PRESETS;
+
+type FieldCacheEntry = { data: DecodedBundle; source: "sample" | "live" };
+
+function fieldCacheKey(targetKey: string, target: Target, preset: FieldPreset): string {
+  const tk = normalizeTargetKey(targetKey);
+  if (!tk || tk === "custom") {
+    return `c:${target.ra.toFixed(5)},${target.dec.toFixed(5)}|${preset}`;
+  }
+  return `${tk}|${preset}`;
+}
 
 function meanPassTrail(frames: DecodedFrame[]): TrailPoint[] {
   const map = new Map<number, { sx: number; sy: number; n: number }>();
@@ -173,12 +179,16 @@ export default function App() {
     targetXy: [number, number] | null;
     pass: number | null;
   } | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   /** Tommy item 6: tint non-zero mask pixels on the stage. */
   const [tintMask, setTintMask] = useState(false);
   /** Tommy F8: catalog overlay switches (off until first asked). */
   const [showGaia, setShowGaia] = useState(false);
   const [showAllwise, setShowAllwise] = useState(false);
+  /** Soft upscale of 128² cutouts (default). Sharp = nearest-neighbor blocks. */
+  const [smoothScale, setSmoothScale] = useState(true);
+  /** Numbered visit beads on the sky — off by default (cross only). */
+  const [showPathTrail, setShowPathTrail] = useState(false);
   /** 0 = AllWISE epoch, 1 = SPHEREx now — scrub bead on the flight path. */
   const [flightScrub, setFlightScrub] = useState(1);
   const [flightPlaying, setFlightPlaying] = useState(false);
@@ -193,7 +203,32 @@ export default function App() {
   const [fieldPreset, setFieldPreset] = useState<FieldPreset>("default");
   const fieldPresetRef = useRef<FieldPreset>("default");
   fieldPresetRef.current = fieldPreset;
-  const [timelineOpen, setTimelineOpen] = useState(false);
+  /** Allow emptying the FPS field while typing; commit on blur. */
+  const [fpsDraft, setFpsDraft] = useState(() => String(view.fps));
+  useEffect(() => {
+    setFpsDraft(String(view.fps));
+  }, [view.fps]);
+  /** Live contrast for the slider/sky; URL + heavy overlays commit on pointer up. */
+  const [contrastLive, setContrastLive] = useState(view.contrast);
+  useEffect(() => {
+    setContrastLive(view.contrast);
+  }, [view.contrast]);
+  /** Sky context globe: open on desk, collapsed on narrow phones. */
+  const [skyContextOpen, setSkyContextOpen] = useState(
+    () => typeof window === "undefined" || !window.matchMedia("(max-width: 720px)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 720px)");
+    const sync = () => setSkyContextOpen(!mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  /** Instant FOV switch: both cutouts stay warm after first fetch (~2 slots / target). */
+  const fieldCacheRef = useRef<Map<string, FieldCacheEntry>>(new Map());
+  /** In-flight FOV fetches — switch joins these instead of starting a second download. */
+  const fieldWarmRef = useRef<Map<string, Promise<FieldCacheEntry | null>>>(new Map());
+  const [timelineOpen, setTimelineOpen] = useState(true);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [spectrumWaiting, setSpectrumWaiting] = useState(false);
   const [candidatesFile, setCandidatesFile] = useState<CandidatesFile | null>(null);
@@ -212,7 +247,7 @@ export default function App() {
   const [skyTarget, setSkyTarget] = useState<TargetExtras | null>(() => readSkyFromUrl());
   const skyTargetRef = useRef(skyTarget);
   skyTargetRef.current = skyTarget;
-  const [displayPx, setDisplayPx] = useState(400);
+  const [displayPx, setDisplayPx] = useState(512);
   const [splitVisits, setSplitVisits] = useState(false);
   /** Which visits the Split panels show (defaults: first / last). */
   const [splitPassA, setSplitPassA] = useState<number | null>(null);
@@ -223,15 +258,8 @@ export default function App() {
   const [passMovie, setPassMovie] = useState(false);
   const [demoPhase, setDemoPhase] = useState<DemoPhase>("idle");
   const [demoLine, setDemoLine] = useState("");
-  const [showBriefing, setShowBriefing] = useState(() => {
-    try {
-      const q = new URLSearchParams(window.location.search);
-      if (q.get("demo") === "1" || q.get("years") === "1") return false;
-      return sessionStorage.getItem("spx-briefing-done") !== "1";
-    } catch {
-      return true;
-    }
-  });
+  // Classic desk: no interstitial briefing — sky + controls must be immediate.
+  const [showBriefing, setShowBriefing] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -284,14 +312,18 @@ export default function App() {
     const url = new URL(window.location.href);
     url.search = `?${viewToSearchParams(view, skyTargetRef.current).toString()}`;
     const href = url.toString();
-    void navigator.clipboard.writeText(href).then(() => {
+    const synthetic = targetByKey(view.targetKey)?.synthetic === true;
+    const text = synthetic
+      ? `${href}\nSYNTHETIC TEST: a made-up body added to real SPHEREx frames. It does not exist.`
+      : href;
+    void navigator.clipboard.writeText(text).then(() => {
       setFrameLinkCopied(true);
       window.setTimeout(() => setFrameLinkCopied(false), 2000);
       setDiscoveryIsHalo(false);
       setDiscoveryFlash(
         `Frame link copied · frame ${view.frameIndex + 1}${
           view.detector != null ? ` · D${view.detector}` : ""
-        }`,
+        }${synthetic ? " · SYNTHETIC" : ""}`,
       );
       window.setTimeout(() => setDiscoveryFlash(null), 2400);
     });
@@ -322,18 +354,22 @@ export default function App() {
     const el = measureRef.current;
     if (!el) return;
     const update = () => {
-      // Classic desk: square fits the viewport with chrome. no page scroll.
-      // Eyepiece / Split: grow so the sky stays readable.
+      // Classic #8 desk: 128² data × 4 = 512 CSS px (star readable, not crushed).
+      const gridSize = load.status === "ready" ? load.data.grid.size : 128;
+      const classic = gridSize * 4;
       const colW = el.clientWidth;
       const maxByWidth = Math.floor(colW - 12);
-      const maxByHeight = Math.floor(
-        window.innerHeight * (eyepiece ? 0.78 : splitVisits ? 0.64 : 0.52),
-      );
-      // Split: size one tile; stage will hold two side by side.
-      const cap = eyepiece ? 720 : splitVisits ? 420 : 440;
-      const floor = eyepiece ? 360 : splitVisits ? 300 : 280;
-      const px = Math.max(floor, Math.min(cap, maxByWidth, maxByHeight));
-      setDisplayPx(px);
+      if (eyepiece) {
+        const maxByHeight = Math.floor(window.innerHeight * 0.78);
+        setDisplayPx(Math.max(480, Math.min(720, maxByWidth, maxByHeight)));
+        return;
+      }
+      if (splitVisits) {
+        setDisplayPx(Math.max(300, Math.min(420, Math.floor(maxByWidth / 2) - 24)));
+        return;
+      }
+      // Prefer classic 512; only shrink if the column is truly narrower.
+      setDisplayPx(Math.max(400, Math.min(classic, maxByWidth || classic)));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -343,16 +379,31 @@ export default function App() {
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [eyepiece, splitVisits]);
+  }, [eyepiece, splitVisits, load]);
 
   const loadFromService = useCallback(
-    async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
-      setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
-      setSpectrumPoints(null);
-      setCandidatesFile(null);
-      setActiveCandidate(null);
-      setSpectrumWaiting(true);
-      setCandidatesWaiting(true);
+    async (
+      target: Target,
+      signal: AbortSignal,
+      targetKey: string = "custom",
+      opts?: { keepFieldCache?: boolean },
+    ) => {
+      const fovOnly = opts?.keepFieldCache === true;
+      if (!fovOnly) {
+        fieldCacheRef.current.clear();
+        fieldWarmRef.current.clear();
+        setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
+        setSpectrumPoints(null);
+        setCandidatesFile(null);
+        setActiveCandidate(null);
+        setSpectrumWaiting(true);
+        setCandidatesWaiting(true);
+      } else {
+        // Keep current sky on screen while the other FOV loads (or use cache).
+        setLoad((prev) =>
+          prev.status === "ready" ? prev : { status: "loading", message: "Loading field of view…" },
+        );
+      }
       if (targetKey === "custom") {
         const extras: TargetExtras = {
           ra: target.ra,
@@ -367,31 +418,34 @@ export default function App() {
         skyTargetRef.current = null;
         setSkyTarget(null);
       }
-      // Spectrum in parallel with exposures/frames (chart waits separately, images do not).
-      const spectrumTask = fetchSpectrum(target, {}, signal)
-        .then((res) => {
-          if (!signal.aborted) setSpectrumPoints(res.points);
-        })
-        .catch(() => {
-          if (!signal.aborted) setSpectrumPoints(null);
-        })
-        .finally(() => {
-          if (!signal.aborted) setSpectrumWaiting(false);
-        });
-      // Candidates after first paint is fine; start now so cache warms (Tommy #44).
-      void fetchCandidates(target, signal)
-        .then((file) => {
-          if (!signal.aborted) {
-            setCandidatesFile(file);
-            setActiveCandidate(file.candidates.length > 0 ? 0 : null);
-          }
-        })
-        .catch(() => {
-          if (!signal.aborted) setCandidatesFile(null);
-        })
-        .finally(() => {
-          if (!signal.aborted) setCandidatesWaiting(false);
-        });
+      // Spectrum / candidates: skip on FOV-only swaps (same target, cutout size changes).
+      const spectrumTask = fovOnly
+        ? Promise.resolve()
+        : fetchSpectrum(target, {}, signal)
+            .then((res) => {
+              if (!signal.aborted) setSpectrumPoints(res.points);
+            })
+            .catch(() => {
+              if (!signal.aborted) setSpectrumPoints(null);
+            })
+            .finally(() => {
+              if (!signal.aborted) setSpectrumWaiting(false);
+            });
+      if (!fovOnly) {
+        void fetchCandidates(target, signal)
+          .then((file) => {
+            if (!signal.aborted) {
+              setCandidatesFile(file);
+              setActiveCandidate(file.candidates.length > 0 ? 0 : null);
+            }
+          })
+          .catch(() => {
+            if (!signal.aborted) setCandidatesFile(null);
+          })
+          .finally(() => {
+            if (!signal.aborted) setCandidatesWaiting(false);
+          });
+      }
 
       const field = FIELD_PRESETS[fieldPresetRef.current];
       const {
@@ -515,17 +569,23 @@ export default function App() {
         }
       }
 
+      const readyData = decodeBundle({
+        format: "spherex-explorer/bundle",
+        version: 1,
+        generated: new Date().toISOString(),
+        target: t,
+        grid,
+        exposures: priorExposures,
+        frames: priorFrames,
+      });
+      const preset = fieldPresetRef.current;
+      fieldCacheRef.current.set(fieldCacheKey(targetKey, t, preset), {
+        data: readyData,
+        source: "live",
+      });
       setLoad({
         status: "ready",
-        data: decodeBundle({
-          format: "spherex-explorer/bundle",
-          version: 1,
-          generated: new Date().toISOString(),
-          target: t,
-          grid,
-          exposures: priorExposures,
-          frames: priorFrames,
-        }),
+        data: readyData,
         source: "live",
       });
       await spectrumTask;
@@ -538,6 +598,134 @@ export default function App() {
     },
     [patchView],
   );
+
+  const applyFieldPreset = useCallback(
+    (next: FieldPreset) => {
+      if (fieldPreset === next) return;
+      setFieldPreset(next);
+      fieldPresetRef.current = next;
+      if (load.status !== "ready") return;
+      const t = load.data.target;
+      const tk = view.targetKey === "custom" ? "custom" : view.targetKey || "custom";
+      const key = fieldCacheKey(tk, t, next);
+      const hit = fieldCacheRef.current.get(key);
+      if (hit) {
+        setLoad({ status: "ready", data: hit.data, source: hit.source });
+        patchView({ frameIndex: 0, pass: null, playing: false, detector: null });
+        return;
+      }
+      // Join in-flight warm fetch (no second download) when possible.
+      const pending = fieldWarmRef.current.get(key);
+      if (pending) {
+        void pending.then((entry) => {
+          if (!entry) {
+            const ac = new AbortController();
+            void loadFromService(t, ac.signal, tk, { keepFieldCache: true });
+            return;
+          }
+          if (fieldPresetRef.current !== next) return;
+          setLoad({ status: "ready", data: entry.data, source: entry.source });
+          patchView({ frameIndex: 0, pass: null, playing: false, detector: null });
+        });
+        return;
+      }
+      const ac = new AbortController();
+      void loadFromService(t, ac.signal, tk, { keepFieldCache: true });
+    },
+    [fieldPreset, load, view.targetKey, loadFromService, patchView],
+  );
+
+  // Warm the other FOV in the background. Two cutouts in RAM — switch is free after warm.
+  // Target-id deps only: progressive sample merges must not abort the warm fetch.
+  const loadReadyRef = useRef(load);
+  loadReadyRef.current = load;
+  const fovWarmTargetId =
+    load.status === "ready"
+      ? `${view.targetKey ?? "custom"}|${load.data.target.ra.toFixed(5)}|${load.data.target.dec.toFixed(5)}`
+      : null;
+
+  useEffect(() => {
+    if (!fovWarmTargetId) return;
+    const cur = loadReadyRef.current;
+    if (cur.status !== "ready") return;
+    const tk = view.targetKey === "custom" ? "custom" : view.targetKey || "custom";
+    const t = cur.data.target;
+    const activePreset = fieldPresetRef.current;
+    const activeKey = fieldCacheKey(tk, t, activePreset);
+    if (!fieldCacheRef.current.has(activeKey)) {
+      fieldCacheRef.current.set(activeKey, { data: cur.data, source: cur.source });
+    }
+
+    const other: FieldPreset = activePreset === "default" ? "wide" : "default";
+    const key = fieldCacheKey(tk, t, other);
+    if (fieldCacheRef.current.has(key) || fieldWarmRef.current.has(key)) return;
+
+    const ac = new AbortController();
+    const field = FIELD_PRESETS[other];
+    const warm = (async (): Promise<FieldCacheEntry | null> => {
+      try {
+        const {
+          target: tt,
+          grid,
+          exposures,
+        } = await fetchExposures(t, { fov: field.fov, size: field.size }, ac.signal);
+        if (ac.signal.aborted || exposures.length === 0) return null;
+        const preferDet = tk === "wise0855" || /wise\s*0855/i.test(tt.name ?? "") ? 6 : 2;
+        const byDet = new Map<number, typeof exposures>();
+        for (const e of exposures) {
+          const list = byDet.get(e.detector) ?? [];
+          list.push(e);
+          byDet.set(e.detector, list);
+        }
+        const detOrder = [...byDet.keys()].sort((a, b) => {
+          if (a === preferDet) return -1;
+          if (b === preferDet) return 1;
+          return a - b;
+        });
+        const priorExposures: typeof exposures = [];
+        const priorFrames: Frame[] = [];
+        for (const det of detOrder) {
+          if (ac.signal.aborted) return null;
+          const queue = byDet.get(det)!;
+          const batchFrames: (Frame | undefined)[] = new Array(queue.length);
+          await loadFramesProgressive(
+            queue,
+            tt,
+            grid,
+            (frame, index) => {
+              batchFrames[index] = frame;
+            },
+            { concurrency: 12, signal: ac.signal },
+          );
+          const finalized = batchFrames.filter(Boolean) as Frame[];
+          const got = new Set(finalized.map((f) => f.id));
+          priorExposures.push(...queue.filter((e) => got.has(e.id)));
+          priorFrames.push(...finalized);
+        }
+        if (ac.signal.aborted) return null;
+        const entry: FieldCacheEntry = {
+          data: decodeBundle({
+            format: "spherex-explorer/bundle",
+            version: 1,
+            generated: new Date().toISOString(),
+            target: tt,
+            grid,
+            exposures: priorExposures,
+            frames: priorFrames,
+          }),
+          source: "live",
+        };
+        fieldCacheRef.current.set(key, entry);
+        return entry;
+      } catch {
+        return null;
+      } finally {
+        fieldWarmRef.current.delete(key);
+      }
+    })();
+    fieldWarmRef.current.set(key, warm);
+    return () => ac.abort();
+  }, [fovWarmTargetId, view.targetKey]);
 
   const loadKnownTarget = useCallback(
     async (key: string, signal: AbortSignal, preferLive = false) => {
@@ -592,7 +780,8 @@ export default function App() {
         if (entry && entry.detectors.length > 0) {
           // Spectrum file in parallel with first bundle (tens of kB): chart can paint
           // before multi-MB detector JSON finishes (Tommy Need item 2).
-          if (entry.spectrum) {
+          // Synthetic Planet X: spectrum file is empty sky at center — do not chart it (Tommy #79).
+          if (entry.spectrum && !entry.synthetic && !known.synthetic) {
             void (async () => {
               try {
                 const pts = await fetchSpectrumFile(spectrumFileUrl(entry.spectrum!.file), signal);
@@ -635,6 +824,10 @@ export default function App() {
           const firstBundle = await fetchBundle(detectorBundleUrl(first.file), signal);
           if (signal.aborted) return;
           let merged = decodeBundle(firstBundle);
+          fieldCacheRef.current.set(fieldCacheKey(key, merged.target, "default"), {
+            data: merged,
+            source: "sample",
+          });
           setLoad({ status: "ready", data: merged, source: "sample" });
           // Honor deep-link frame/detector once; otherwise preferred detector at frame 0.
           const boot = deepLinkBootRef.current;
@@ -679,6 +872,10 @@ export default function App() {
               ]),
             };
             startTransition(() => {
+              fieldCacheRef.current.set(fieldCacheKey(key, merged.target, "default"), {
+                data: merged,
+                source: "sample",
+              });
               setLoad({ status: "ready", data: merged, source: "sample" });
             });
           }
@@ -705,6 +902,10 @@ export default function App() {
       const bundle = await fetchBundle(known.bundleUrl, signal);
       if (signal.aborted) return;
       const data = decodeBundle(bundle);
+      fieldCacheRef.current.set(fieldCacheKey(key, data.target, "default"), {
+        data,
+        source: "sample",
+      });
       setLoad({ status: "ready", data, source: "sample" });
       applyPresetDefaults(key, known.label);
     },
@@ -903,7 +1104,7 @@ export default function App() {
         };
       }
       const diff = differencePasses(pool, view.diffPassA, view.diffPassB);
-      const limits = applyContrast(computeDisplayLimits([diff]), view.contrast);
+      const limits = applyContrast(computeDisplayLimits([diff]), contrastLive);
       const meta = pool.find((f) => f.exposure.pass === view.diffPassA) ?? pool[0]!;
       return {
         kind: "difference" as const,
@@ -926,7 +1127,7 @@ export default function App() {
     if (view.mode === "stack") {
       // Tommy item 5: clean mean (mask === 0 only) when stacking a locked visit.
       const stacked = view.pass != null ? stackPassClean(filtered) : stackFrames(filtered);
-      const limits = applyContrast(computeDisplayLimits([stacked]), view.contrast);
+      const limits = applyContrast(computeDisplayLimits([stacked]), contrastLive);
       return {
         kind: "compose" as const,
         pixels: stacked.pixels,
@@ -941,7 +1142,7 @@ export default function App() {
     }
     if (view.mode === "track") {
       const tracked = stackTrackingTarget(filtered);
-      const limits = applyContrast(computeDisplayLimits([tracked]), view.contrast);
+      const limits = applyContrast(computeDisplayLimits([tracked]), contrastLive);
       return {
         kind: "compose" as const,
         pixels: tracked.pixels,
@@ -955,7 +1156,7 @@ export default function App() {
       };
     }
 
-    const limits = applyContrast(load.data.limits, view.contrast);
+    const limits = applyContrast(load.data.limits, contrastLive);
     return {
       kind: "single" as const,
       pixels: active.pixels,
@@ -975,7 +1176,7 @@ export default function App() {
     view.mode,
     view.diffPassA,
     view.diffPassB,
-    view.contrast,
+    contrastLive,
   ]);
 
   const passes = useMemo(
@@ -1141,6 +1342,22 @@ export default function App() {
       setTimelineOpen(false);
       return;
     }
+    if (key === "synthx") {
+      // Made-up body: hop between visits on detector 6 (Tommy #79).
+      patchView({
+        targetKey: key,
+        query: label,
+        frameIndex: 0,
+        pass: null,
+        detector: 6,
+        mode: "single",
+        playing: false,
+        waveUm: null,
+      });
+      setBlinkPasses(true);
+      setTimelineOpen(false);
+      return;
+    }
     if (key === "epsindi" || key === "rwaur") {
       // Spectrum / variable. show the infrared timeline.
       patchView({
@@ -1205,51 +1422,33 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blinkPasses, view.mode, blinkA, blinkB, load, view.detector, patchView]);
 
-  // Cinematic arrival when the service first reports a target mover or changer.
+  // Halo pulse only (R Dra) — no "Found a mover" popup on every load (MatchVerdict covers it).
   useEffect(() => {
     if (!candidatesFile) {
       discoverySeenRef.current = null;
       setHaloPulse(null);
       setDiscoveryIsHalo(false);
+      setDiscoveryFlash(null);
       return;
     }
     const hit = candidatesFile.candidates.find(
-      (c) =>
-        c.is_target &&
-        ((c.kind === "moved" && c.motion) || (c.kind === "changed" && c.changes.length > 0)),
+      (c) => c.is_target && c.kind === "moved" && c.motion && c.method === "halo",
     );
     if (!hit) return;
-    const line = discoveryFlashLine(hit);
-    if (!line) return;
-    const key = `${hit.ra.toFixed(5)},${hit.dec.toFixed(5)},${hit.kind},${line}`;
+    const key = `halo:${hit.ra.toFixed(5)},${hit.dec.toFixed(5)}`;
     if (discoverySeenRef.current === key) return;
     discoverySeenRef.current = key;
-    const isHalo = hit.method === "halo";
-    setDiscoveryIsHalo(isHalo);
-    setDiscoveryFlash(line);
-
-    let pulseTimer: number | undefined;
-    if (isHalo) {
-      const grid = candidatesFile.grid;
-      const heart = hit.track[0];
-      const rArc = heart?.error_arcsec ?? 20;
-      const rGrid = (rArc / 3600 / grid.fov_deg) * grid.size;
-      setHaloPulse({
-        xFrac: hit.xy[0] / grid.size,
-        yFrac: hit.xy[1] / grid.size,
-        rPx: Math.max(28, rGrid * (displayPx / grid.size)),
-      });
-      pulseTimer = window.setTimeout(() => setHaloPulse(null), 2800);
-    }
-
-    const t = window.setTimeout(() => {
-      setDiscoveryFlash(null);
-      setDiscoveryIsHalo(false);
-    }, 3000);
-    return () => {
-      window.clearTimeout(t);
-      if (pulseTimer != null) window.clearTimeout(pulseTimer);
-    };
+    const grid = candidatesFile.grid;
+    const heart = hit.track[0];
+    const rArc = heart?.error_arcsec ?? 20;
+    const rGrid = (rArc / 3600 / grid.fov_deg) * grid.size;
+    setHaloPulse({
+      xFrac: hit.xy[0] / grid.size,
+      yFrac: hit.xy[1] / grid.size,
+      rPx: Math.max(28, rGrid * (displayPx / grid.size)),
+    });
+    const pulseTimer = window.setTimeout(() => setHaloPulse(null), 2800);
+    return () => window.clearTimeout(pulseTimer);
   }, [candidatesFile, displayPx]);
 
   // Capture the previous visit for a short afterimage so the hop is visible as a double exposure.
@@ -1287,14 +1486,16 @@ export default function App() {
       return;
     }
     if (next === "compare") {
+      // Lock λ first (navigator advice): blink at the same band, not the spectrum.
       const cur = filtered[Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))];
-      blinkWaveRef.current = view.waveUm ?? cur?.frame.wavelength_um ?? null;
+      const wave = view.waveUm ?? cur?.frame.wavelength_um ?? null;
+      blinkWaveRef.current = wave;
       patchView({
         mode: "single",
         pass: blinkA,
         playing: false,
         frameIndex: 0,
-        waveUm: null,
+        waveUm: wave != null ? Number(Number(wave).toFixed(4)) : null,
       });
       setBlinkPasses(true);
       return;
@@ -1991,9 +2192,7 @@ export default function App() {
   const cinema = load.status === "ready";
 
   return (
-    <div
-      className={`app app--fit${cinema ? " app--ready" : ""}${eyepiece ? " app--eyepiece" : ""}`}
-    >
+    <div className={`app app--classic${eyepiece ? " app--eyepiece" : ""}`}>
       <div className="sky-wash" aria-hidden="true" />
 
       {showBriefing && load.status === "ready" && !eyepiece && (
@@ -2006,47 +2205,50 @@ export default function App() {
 
       <header className="top">
         <div className="brand-block">
-          <h1 className="brand">SPHEREx Explorer</h1>
+          <p className="brand">SPHEREx Explorer</p>
           <p className="tagline">Watch the near-infrared sky move — NASA Space Apps 2026</p>
         </div>
         <div className="top-actions">
           <HealthBadge />
-          {cinema && (
+          <details className="jury-tools">
+            <summary title="Demo and share tools">Share</summary>
+            {cinema && (
+              <button
+                type="button"
+                className={eyepiece ? "primary" : "ghost"}
+                onClick={() => setEyepiece((v) => !v)}
+                title={eyepiece ? "Leave eyepiece (Esc or E)" : "Eyepiece: sky only (E)"}
+              >
+                {eyepiece ? "Leave eyepiece" : "Eyepiece"}
+              </button>
+            )}
             <button
               type="button"
-              className={eyepiece ? "primary" : "ghost"}
-              onClick={() => setEyepiece((v) => !v)}
-              title={eyepiece ? "Leave eyepiece (Esc or E)" : "Eyepiece: sky only (E)"}
+              className="ghost"
+              disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
+              onClick={() => runAutoDemo()}
+              title="Timed walkthrough (J)"
             >
-              {eyepiece ? "Leave eyepiece" : "Eyepiece"}
+              Demo
             </button>
-          )}
-          <button
-            type="button"
-            className="ghost"
-            disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
-            onClick={() => runAutoDemo()}
-            title="Timed walkthrough for judges (J)"
-          >
-            Demo
-          </button>
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => copyJudgeLink()}
-            title="Copy a link that auto-starts the jury demo"
-          >
-            {linkCopied ? "Copied" : "Demo link"}
-          </button>
-          <button
-            type="button"
-            className={frameLinkCopied ? "active" : "ghost"}
-            disabled={load.status !== "ready"}
-            onClick={() => copyFrameLink()}
-            title="Copy a link to this exact frame (target, frame, detector, wavelength)"
-          >
-            {frameLinkCopied ? "Copied" : "This frame"}
-          </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => copyJudgeLink()}
+              title="Copy a link that auto-starts the demo"
+            >
+              {linkCopied ? "Copied" : "Demo link"}
+            </button>
+            <button
+              type="button"
+              className={frameLinkCopied ? "active" : "ghost"}
+              disabled={load.status !== "ready"}
+              onClick={() => copyFrameLink()}
+              title="Copy a link to this exact frame"
+            >
+              {frameLinkCopied ? "Copied" : "This frame"}
+            </button>
+          </details>
         </div>
       </header>
 
@@ -2054,73 +2256,77 @@ export default function App() {
 
       <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
 
-      <section
-        className={`picker${load.status === "ready" ? " picker-compact" : ""}`}
-        aria-label="Choose a star"
-      >
-        <div className="picker-head">
-          {load.status !== "ready" && <h2>Pick a star</h2>}
-          {load.status !== "ready" && (
-            <p>Start with Barnard's Star. or type any name; live resolve finds the sky position.</p>
-          )}
-        </div>
-        <div className="target-row">
-          {KNOWN_TARGETS.map((t) => {
-            const ready = t.inSampleIndex || !!t.bundleUrl || (t.ra != null && t.dec != null);
-            return (
-              <button
-                key={t.key}
-                type="button"
-                className={`target-btn${view.targetKey === t.key ? " active" : ""}`}
-                onClick={() => {
-                  setBlinkPasses(false);
-                  patchView({ targetKey: t.key, mode: "single", pass: null });
-                }}
-                disabled={!ready}
-                title={t.blurb}
-              >
-                <span className="target-name">{t.label}</span>
-                {!ready && <span className="soon">soon</span>}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            className="ghost"
-            title="Short how-to: play, blink, blend, difference"
-            onClick={() => patchView({ showHelp: !view.showHelp })}
-          >
-            Help
-          </button>
-        </div>
-        <form className="search" onSubmit={onSearch}>
-          <label className="sr-only" htmlFor="sky-query">
-            Search by name or coordinates
-          </label>
-          <input
-            id="sky-query"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Name or RA, Dec"
-            autoComplete="off"
-            title="Type a star name or sky coordinates (degrees or sexagesimal)"
-          />
-          <button
-            type="submit"
-            className="primary"
-            title="Resolve the name and load SPHEREx images for that sky position"
-          >
-            Go
-          </button>
-        </form>
-        <p className="search-hint">Try: Luhman 16 · 133.7951, -7.2451 · 08h55m10.8s -07d14m43s</p>
-      </section>
+      <nav className="targets" aria-label="Challenge test targets">
+        {KNOWN_TARGETS.filter((t) => !t.synthetic).map((t) => {
+          const ready = t.inSampleIndex || !!t.bundleUrl || (t.ra != null && t.dec != null);
+          return (
+            <button
+              key={t.key}
+              type="button"
+              className={`target-btn${view.targetKey === t.key ? " active" : ""}`}
+              onClick={() => {
+                setBlinkPasses(false);
+                patchView({ targetKey: t.key, mode: "single", pass: null });
+              }}
+              disabled={!ready}
+              title={t.blurb}
+            >
+              {t.label}
+              {!ready && <span className="soon">SOON</span>}
+            </button>
+          );
+        })}
+        {KNOWN_TARGETS.filter((t) => t.synthetic).map((t) => {
+          const ready = t.inSampleIndex || !!t.bundleUrl || (t.ra != null && t.dec != null);
+          return (
+            <button
+              key={t.key}
+              type="button"
+              className={`target-btn target-btn--synthetic${view.targetKey === t.key ? " active" : ""}`}
+              onClick={() => {
+                setBlinkPasses(false);
+                patchView({ targetKey: t.key, mode: "single", pass: null });
+              }}
+              disabled={!ready}
+              title={t.blurb}
+            >
+              {t.label}
+              <span className="synthetic-badge">SYNTHETIC</span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          className="ghost"
+          title="Short how-to: play, blink, blend, difference"
+          onClick={() => patchView({ showHelp: !view.showHelp })}
+        >
+          Help
+        </button>
+      </nav>
+      <form className="search" onSubmit={onSearch}>
+        <label className="sr-only" htmlFor="sky-query">
+          Object name or RA Dec
+        </label>
+        <input
+          id="sky-query"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Name or RA Dec (e.g. 269.45 4.69)"
+          autoComplete="off"
+          title="Type a star name or sky coordinates (degrees or sexagesimal)"
+        />
+        <button type="submit" title="Resolve the name and load SPHEREx images">
+          Go
+        </button>
+      </form>
+      <p className="search-hint">Try: Luhman 16 · 133.7951, -7.2451 · 08h55m10.8s -07d14m43s</p>
 
       <nav className="mode-tabs" aria-label="What do you want to do?">
         {(
           [
-            ["watch", "Watch", "Play infrared frames. each frame is a slightly different color"],
-            ["compare", "Blink", "Flip early ↔ late visits so the hop is obvious"],
+            ["watch", "Watch", "Play infrared frames — each frame is a slightly different color"],
+            ["compare", "Blink", "Flip early ↔ late visits at the same λ so the hop is obvious"],
             ["difference", "Move", "Subtract two visits: bright/dark pair = motion"],
             ["more", "More", "Average stack, tracking, and filters"],
           ] as [UiMode, string, string][]
@@ -2137,63 +2343,8 @@ export default function App() {
         ))}
       </nav>
 
-      <main className={`workspace${cinema ? " workspace--fit" : ""}`}>
-        <section className="stage" ref={stageRef}>
-          <div className="stage-bar">
-            <div>
-              <h2 className="stage-title">
-                {targetName}
-                {load.status === "ready" && (
-                  <span
-                    className={`source-pill ${load.source === "live" ? "archive" : "sample"}`}
-                    title={
-                      load.source === "live"
-                        ? "Loaded from the SPHEREx archive API (past survey visits, not a live telescope stream)"
-                        : "Offline sample file bundled with the site"
-                    }
-                  >
-                    {load.source === "live" ? "ARCHIVE" : "SAMPLE"}
-                  </span>
-                )}
-              </h2>
-            </div>
-            <div className="stage-actions">
-              {(() => {
-                const known = targetByKey(view.targetKey);
-                const showArchive =
-                  known != null &&
-                  (known.inSampleIndex
-                    ? load.status === "ready" && load.source === "live"
-                    : known.ra != null);
-                if (!showArchive) return null;
-                return (
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={load.status === "loading"}
-                    title="Load cutouts from the SPHEREx survey archive (past visits)."
-                    onClick={() => {
-                      const ac = new AbortController();
-                      void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
-                        (err) => {
-                          const message =
-                            err instanceof ApiError
-                              ? err.message
-                              : err instanceof Error
-                                ? err.message
-                                : "Could not load from the SPHEREx archive";
-                          setLoad({ status: "error", message });
-                        },
-                      );
-                    }}
-                  >
-                    Archive
-                  </button>
-                );
-              })()}
-            </div>
-          </div>
-
+      <main className="main workspace">
+        <section className="viewer-pane stage" ref={stageRef}>
           {/* Invisible width probe: column width, not the square box (avoids circular sizing). */}
           <div className="stage-width-probe" ref={measureRef} aria-hidden="true" />
           <div
@@ -2219,6 +2370,11 @@ export default function App() {
                 : undefined
             }
           >
+            {(targetByKey(view.targetKey)?.synthetic || candidatesFile?.synthetic) && (
+              <p className="synthetic-banner" role="status">
+                SYNTHETIC TEST: a made-up body added to real SPHEREx frames. It does not exist.
+              </p>
+            )}
             {display?.meta?.frame.wavelength_um != null && (
               <p className="wave-aurora-chip" aria-live="polite">
                 Infrared color · {display.meta.frame.wavelength_um.toFixed(2)} µm
@@ -2411,12 +2567,13 @@ export default function App() {
                     colorMap={view.colorMap}
                     tintMask={tintMask}
                     displayPx={displayPx}
-                    trail={trail}
-                    candidates={candidatesFile?.candidates ?? []}
+                    smoothScale={smoothScale}
+                    trail={showPathTrail ? trail : []}
+                    candidates={showPathTrail ? (candidatesFile?.candidates ?? []) : []}
                     candidatesGrid={candidatesFile?.grid ?? null}
                     viewGrid={load.status === "ready" ? load.data.grid : null}
                     activeCandidate={activeCandidate}
-                    saturated={candidatesFile?.saturated ?? []}
+                    saturated={showPathTrail ? (candidatesFile?.saturated ?? []) : []}
                     catalogSlices={catalogFile?.catalogs ?? []}
                     catalogEnabled={
                       new Set(
@@ -2426,7 +2583,7 @@ export default function App() {
                       )
                     }
                     catalogHighlightId={catalogHighlightId ?? flightPath?.sourceId ?? null}
-                    flightPath={flightPath}
+                    flightPath={showPathTrail ? flightPath : null}
                     flightScrub={flightScrub}
                     onFrameIndexChange={onPlayerFrame}
                   />
@@ -2657,23 +2814,6 @@ export default function App() {
                   Edge of the detector: no data in the hatched area.
                 </p>
               )}
-              {!overlayActive && (
-                <FrameCaption
-                  frames={filtered}
-                  frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                  playing={view.playing || blinkPasses}
-                  hasCatalogMotion={hasCatalogMotion}
-                />
-              )}
-              {candidatesFile && load.status === "ready" && !blinkPasses && (
-                <MatchVerdict
-                  candidates={candidatesFile.candidates}
-                  catalogPmRa={load.data.target.pm_ra}
-                  catalogPmDec={load.data.target.pm_dec}
-                  gaiaCatalog={gaiaForKnownAs}
-                  targetName={load.data.target.name ?? targetName}
-                />
-              )}
               <div className="transport">
                 <button
                   type="button"
@@ -2686,9 +2826,75 @@ export default function App() {
                 >
                   {view.playing ? "Pause" : "Play"}
                 </button>
+                {!overlayActive && !blinkPasses && (
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.max(filtered.length - 1, 0)}
+                    value={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                    onChange={(e) =>
+                      patchView({ frameIndex: Number(e.target.value), playing: false })
+                    }
+                    disabled={filtered.length === 0}
+                    aria-label="Frame"
+                    title="Drag to pick a frame by hand"
+                  />
+                )}
+                {!overlayActive && !blinkPasses && (
+                  <label className="fps-field" title="Playback speed (1–30)">
+                    FPS
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={fpsDraft}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, "");
+                        setFpsDraft(raw);
+                        if (raw === "") return;
+                        const n = Number(raw);
+                        if (n >= 1 && n <= 30) patchView({ fps: n });
+                      }}
+                      onBlur={() => {
+                        const n = Number(fpsDraft);
+                        const next =
+                          Number.isFinite(n) && n >= 1 ? Math.min(30, Math.floor(n)) : 24;
+                        setFpsDraft(String(next));
+                        if (next !== view.fps) patchView({ fps: next });
+                      }}
+                      aria-label="Frames per second"
+                    />
+                  </label>
+                )}
                 <button
                   type="button"
-                  className={ghostVisits ? "active" : ""}
+                  className={blinkPasses ? "active" : "ghost"}
+                  disabled={passes.length < 2}
+                  title="Blink early ↔ late visits at the same infrared color (B)"
+                  onClick={() => {
+                    if (blinkPasses) {
+                      setBlinkPasses(false);
+                      blinkWaveRef.current = null;
+                      patchView({ pass: null, mode: "single", waveUm: null });
+                    } else {
+                      setUiMode("compare");
+                    }
+                  }}
+                >
+                  {blinkPasses ? "Stop blink" : "Blink"}
+                </button>
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={passes.length < 2}
+                  title="Difference two visits — bright/dark pair = motion"
+                  onClick={() => setUiMode("difference")}
+                >
+                  Move
+                </button>
+                <button
+                  type="button"
+                  className={ghostVisits ? "active" : "ghost"}
                   disabled={passes.length < 2}
                   title="Overlay early and late visits (G)"
                   onClick={() => {
@@ -2700,7 +2906,7 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  className={splitVisits ? "active" : ""}
+                  className={splitVisits ? "active" : "ghost"}
                   disabled={passes.length < 2}
                   title="Compare two visits side by side (S)"
                   onClick={() => {
@@ -2710,52 +2916,31 @@ export default function App() {
                 >
                   Split
                 </button>
-                {!overlayActive && !blinkPasses && (
-                  <input
-                    type="range"
-                    min={0}
-                    max={Math.max(filtered.length - 1, 0)}
-                    value={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                    onChange={(e) =>
-                      patchView({ frameIndex: Number(e.target.value), playing: false })
-                    }
-                    disabled={filtered.length === 0}
-                    aria-label="Scrub through frames"
-                    title="Drag to pick a frame by hand"
-                  />
-                )}
-                {!overlayActive && !blinkPasses && (
-                  <label className="fps-field">
-                    FPS
-                    <input
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={view.fps}
-                      onChange={(e) => patchView({ fps: Number(e.target.value) || 4 })}
-                      aria-label="Frames per second"
-                    />
-                  </label>
-                )}
-                {blinkPasses && (
-                  <button
-                    type="button"
-                    className="active"
-                    onClick={() => {
-                      setBlinkPasses(false);
-                      blinkWaveRef.current = null;
-                      patchView({ pass: null, mode: "single" });
-                    }}
-                  >
-                    Stop blink
-                  </button>
-                )}
               </div>
-              {eyepiece && <p className="app--eyepiece-hint">Eyepiece on · Esc or E to leave</p>}
-              {/* After commands: short tip. Skip when candidates already tell the motion story. */}
-              {!eyepiece && !candidatesFile && !candidatesWaiting && (
-                <ViewerGuide targetName={targetName} mode={guideMode} />
+              {!overlayActive && (
+                <FrameCaption
+                  frames={filtered}
+                  frameIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                  playing={view.playing || blinkPasses}
+                  hasCatalogMotion={hasCatalogMotion}
+                />
               )}
+              {!eyepiece && (
+                <details className="viewer-guide-fold" open>
+                  <summary>What you are looking at</summary>
+                  <ViewerGuide targetName={targetName} pass={view.pass} mode={guideMode} />
+                </details>
+              )}
+              {candidatesFile && load.status === "ready" && !blinkPasses && (
+                <MatchVerdict
+                  candidates={candidatesFile.candidates}
+                  catalogPmRa={load.data.target.pm_ra}
+                  catalogPmDec={load.data.target.pm_dec}
+                  gaiaCatalog={gaiaForKnownAs}
+                  targetName={load.data.target.name ?? targetName}
+                />
+              )}
+              {eyepiece && <p className="app--eyepiece-hint">Eyepiece on · Esc or E to leave</p>}
             </>
           )}
 
@@ -2769,18 +2954,375 @@ export default function App() {
             )}
         </section>
 
-        <aside className={`rail${cinema ? " rail--fit" : ""}`}>
-          {load.status === "ready" && (
-            <MotionInsight
-              grid={load.data.grid}
-              trail={trail}
-              targetName={load.data.target.name ?? targetName}
-              hasCatalogMotion={hasCatalogMotion}
-            />
+        <aside className="side rail">
+          <div className="controls">
+            <fieldset>
+              <legend>Pass</legend>
+              <button
+                type="button"
+                className={view.pass == null ? "active" : ""}
+                title="Include frames from every SPHEREx visit of this field"
+                onClick={() => {
+                  clearPresentationOverlays();
+                  patchView({ pass: null, frameIndex: 0, playing: false });
+                }}
+              >
+                All
+              </button>
+              {passes.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={view.pass === p ? "active" : ""}
+                  title={`Show only Visit ${p} frames`}
+                  onClick={() => {
+                    clearPresentationOverlays();
+                    patchView({ pass: p, frameIndex: 0, playing: false, mode: "single" });
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </fieldset>
+
+            <fieldset>
+              <legend>Mode</legend>
+              {(
+                [
+                  ["single", "Single"],
+                  ["stack", "Stack"],
+                  ["difference", "Difference"],
+                  ["track", "Track"],
+                ] as const
+              ).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={view.mode === mode && !passMovie ? "active" : ""}
+                  onClick={() => {
+                    clearPresentationOverlays();
+                    setBlinkPasses(false);
+                    setPassMovie(false);
+                    setUiMode(
+                      mode === "difference" ? "difference" : mode === "single" ? "watch" : "more",
+                    );
+                    patchView({
+                      mode,
+                      playing: mode === "single" ? view.playing : false,
+                    });
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </fieldset>
+
+            <fieldset>
+              <legend>Wavelength</legend>
+              <button
+                type="button"
+                className={view.waveUm == null ? "active" : ""}
+                title="Use every infrared wavelength in the movie"
+                onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
+              >
+                All λ
+              </button>
+              <button
+                type="button"
+                className={view.waveUm != null ? "active" : ""}
+                disabled={!display || !("meta" in display) || !display.meta}
+                title="Keep only frames near this frame’s wavelength"
+                onClick={() => {
+                  if (!display || !("meta" in display) || !display.meta) return;
+                  patchView({
+                    waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
+                    frameIndex: 0,
+                    playing: false,
+                  });
+                }}
+              >
+                Match this λ
+              </button>
+              {view.waveUm != null && (
+                <span className="wave-chip">
+                  {view.waveUm.toFixed(3)} ± {view.waveTolUm.toFixed(3)} µm · {filtered.length}{" "}
+                  frames
+                </span>
+              )}
+            </fieldset>
+
+            <fieldset className="contrast-field">
+              <legend>Contrast</legend>
+              <label>
+                <span className="sr-only">Contrast</span>
+                <input
+                  type="range"
+                  min={0.4}
+                  max={3}
+                  step={0.1}
+                  value={contrastLive}
+                  onChange={(e) => setContrastLive(Number(e.target.value))}
+                  onPointerUp={() => {
+                    if (contrastLive !== view.contrast) patchView({ contrast: contrastLive });
+                  }}
+                  onKeyUp={() => {
+                    if (contrastLive !== view.contrast) patchView({ contrast: contrastLive });
+                  }}
+                  aria-label="Contrast"
+                />
+                <span>{contrastLive.toFixed(1)}×</span>
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Color</legend>
+              <button
+                type="button"
+                className={view.colorMap === "heat" ? "active" : ""}
+                onClick={() => patchView({ colorMap: "heat" })}
+              >
+                IR heat
+              </button>
+              <button
+                type="button"
+                className={view.colorMap === "gray" ? "active" : ""}
+                onClick={() => patchView({ colorMap: "gray" })}
+              >
+                Gray
+              </button>
+            </fieldset>
+
+            <fieldset>
+              <legend>Look</legend>
+              <button
+                type="button"
+                className={smoothScale ? "active" : ""}
+                title="Smooth upscale — softer star, less blocky (default)"
+                onClick={() => setSmoothScale(true)}
+              >
+                Soft
+              </button>
+              <button
+                type="button"
+                className={!smoothScale ? "active" : ""}
+                title="Nearest-neighbor pixels — each detector pixel is a sharp block"
+                onClick={() => setSmoothScale(false)}
+              >
+                Sharp
+              </button>
+              <button
+                type="button"
+                className={showPathTrail ? "active" : ""}
+                title="Show visit beads / catalog path on the sky"
+                onClick={() => setShowPathTrail((v) => !v)}
+              >
+                {showPathTrail ? "Path on" : "Path off"}
+              </button>
+            </fieldset>
+
+            <fieldset>
+              <legend>Field of view</legend>
+              <button
+                type="button"
+                className={fieldPreset === "default" ? "active" : ""}
+                title="Tight cutout 0.1° · 128² — instant once cached"
+                onClick={() => applyFieldPreset("default")}
+              >
+                0.1° · 128²
+              </button>
+              <button
+                type="button"
+                className={fieldPreset === "wide" ? "active" : ""}
+                title="Wider archive cutout 0.3° · 256² — prefetched in the background"
+                onClick={() => applyFieldPreset("wide")}
+              >
+                0.3° · 256²
+              </button>
+              <span className="wave-chip">
+                {fieldPreset === "wide"
+                  ? "Wider · 256² from archive (cached after first load)"
+                  : "Default · other FOV warms in the background"}
+              </span>
+            </fieldset>
+
+            <fieldset>
+              <legend>Other telescopes</legend>
+              <button
+                type="button"
+                className={showGaia ? "active" : ""}
+                disabled={catalogError != null && !catalogFile}
+                title="Overlay Gaia DR3 stars in this view"
+                onClick={() => setShowGaia((v) => !v)}
+              >
+                Gaia DR3
+              </button>
+              <button
+                type="button"
+                className={showAllwise ? "active" : ""}
+                disabled={catalogError != null && !catalogFile}
+                title="AllWISE infrared sky from ~2010"
+                onClick={() => setShowAllwise((v) => !v)}
+              >
+                AllWISE 2010
+              </button>
+              <button
+                type="button"
+                className={showAllwise && flightPath ? "active" : ""}
+                disabled={catalogError != null && !catalogFile}
+                title="Path from WISE 2010 to SPHEREx now"
+                onClick={() => {
+                  setShowAllwise(true);
+                  setShowPathTrail(true);
+                  setFlightScrub(1);
+                }}
+              >
+                2010 → now
+              </button>
+              <button
+                type="button"
+                className={flightPlaying ? "active" : ""}
+                disabled={(catalogError != null && !catalogFile) || flightPlaying}
+                title="Animate decades along the AllWISE path"
+                onClick={() => {
+                  setShowAllwise(true);
+                  setShowPathTrail(true);
+                  playFlightYears();
+                }}
+              >
+                Play years
+              </button>
+              {catalogWaiting && <span className="wave-chip">Asking catalogs…</span>}
+              {catalogError && <span className="wave-chip catalog-unavail">{catalogError}</span>}
+              {catalogTip && <span className="wave-chip catalog-tip">{catalogTip}</span>}
+            </fieldset>
+
+            {view.mode === "difference" && (
+              <fieldset className="diff-picks">
+                <legend>Passes A − B</legend>
+                <label>
+                  A
+                  <select
+                    value={view.diffPassA}
+                    onChange={(e) => patchView({ diffPassA: Number(e.target.value) })}
+                  >
+                    {passes.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  B
+                  <select
+                    value={view.diffPassB}
+                    onChange={(e) => patchView({ diffPassB: Number(e.target.value) })}
+                  >
+                    {passes.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </fieldset>
+            )}
+          </div>
+
+          {display && load.status === "ready" && display.meta && (
+            <dl className="meta">
+              <div>
+                <dt>Target</dt>
+                <dd>{load.data.target.name ?? targetName}</dd>
+              </div>
+              <div>
+                <dt>Date</dt>
+                <dd>{display.meta.frame.time_iso}</dd>
+              </div>
+              <div>
+                <dt>Wavelength</dt>
+                <dd>
+                  {display.meta.frame.wavelength_um.toFixed(4)} µm ±{" "}
+                  {(display.meta.frame.bandwidth_um / 2).toFixed(4)}
+                </dd>
+              </div>
+              <div>
+                <dt>Pass / detector</dt>
+                <dd>
+                  {display.meta.exposure.pass} / {display.meta.exposure.detector} ·{" "}
+                  {display.meta.exposure.collection}
+                </dd>
+              </div>
+              <div>
+                <dt>Target pixel</dt>
+                <dd>
+                  ({display.meta.frame.target_xy[0].toFixed(2)},{" "}
+                  {display.meta.frame.target_xy[1].toFixed(2)})
+                </dd>
+              </div>
+              <div>
+                <dt>Photometry</dt>
+                <dd className="meta-value-row">
+                  <span className="meta-value-text">
+                    {display.meta.frame.photometry.flux_mjy != null
+                      ? `${display.meta.frame.photometry.flux_mjy.toFixed(3)} ± ${display.meta.frame.photometry.error_mjy?.toFixed(3)} mJy`
+                      : "—"}
+                  </span>
+                  <span className="quality">{display.meta.frame.photometry.quality}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Bg / noise</dt>
+                <dd className="meta-value-nowrap">
+                  {display.meta.frame.background?.toFixed(3) ?? "—"} /{" "}
+                  {display.meta.frame.noise?.toFixed(3) ?? "—"} MJy/sr
+                </dd>
+              </div>
+              <div>
+                <dt>Valid</dt>
+                <dd>{(display.meta.frame.valid_fraction * 100).toFixed(0)}%</dd>
+              </div>
+              <div>
+                <dt>Grid</dt>
+                <dd className="meta-value-nowrap">
+                  {load.data.grid.size}² · {load.data.grid.fov_deg}° · {view.mode} ·{" "}
+                  {filtered.length} frames
+                </dd>
+              </div>
+              <div>
+                <dt>Frame</dt>
+                <dd>
+                  {Math.min(view.frameIndex, Math.max(filtered.length - 1, 0)) + 1} of{" "}
+                  {filtered.length || "—"}
+                </dd>
+              </div>
+            </dl>
           )}
 
+          <details
+            className="rail-card details sky-context-card"
+            open={skyContextOpen}
+            onToggle={(e) => setSkyContextOpen(e.currentTarget.open)}
+          >
+            <summary title="Where this cutout sits among the five challenge targets">
+              Sky context
+            </summary>
+            <SkyContextGlobe
+              pins={CHALLENGE_SKY_PINS}
+              activeKey={view.targetKey && view.targetKey !== "custom" ? view.targetKey : null}
+              activeRa={load.status === "ready" ? load.data.target.ra : null}
+              activeDec={load.status === "ready" ? load.data.target.dec : null}
+              fovDeg={FIELD_PRESETS[fieldPreset].fov}
+              onSelect={(key) => {
+                setBlinkPasses(false);
+                patchView({ targetKey: key, mode: "single", pass: null });
+              }}
+            />
+          </details>
+
           {(candidatesFile || candidatesWaiting) && (
-            <div className="rail-card">
+            <details className="rail-card details rail-secondary" open>
+              <summary title="What moved or changed in this field">What moved</summary>
               <CandidatesPanel
                 data={candidatesFile}
                 waiting={candidatesWaiting}
@@ -2820,50 +3362,23 @@ export default function App() {
                   void loadFromService(target, ac.signal, "custom");
                 }}
               />
-            </div>
+            </details>
           )}
 
-          {display && load.status === "ready" && display.meta && (
-            <div className="rail-card frame-facts">
-              <p className="control-label">This frame</p>
-              <dl className="meta meta--compact">
-                <div>
-                  <dt>Date</dt>
-                  <dd>{display.meta.frame.time_iso}</dd>
-                </div>
-                <div>
-                  <dt>Visit / detector</dt>
-                  <dd>
-                    {display.meta.exposure.pass} / {display.meta.exposure.detector} ·{" "}
-                    {display.meta.exposure.collection}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Wavelength</dt>
-                  <dd>
-                    {display.meta.frame.wavelength_um.toFixed(4)} µm ±{" "}
-                    {(display.meta.frame.bandwidth_um / 2).toFixed(4)}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Frame</dt>
-                  <dd>
-                    {Math.min(view.frameIndex, Math.max(filtered.length - 1, 0)) + 1} of{" "}
-                    {filtered.length || "—"}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Photometry</dt>
-                  <dd>
-                    <span className="quality">{display.meta.frame.photometry.quality}</span>
-                  </dd>
-                </div>
-              </dl>
-            </div>
+          {load.status === "ready" && (
+            <details className="rail-card details rail-secondary" open>
+              <summary title="How far the catalog says the star hops">Catalog hop</summary>
+              <MotionInsight
+                grid={load.data.grid}
+                trail={trail}
+                targetName={load.data.target.name ?? targetName}
+                hasCatalogMotion={hasCatalogMotion}
+              />
+            </details>
           )}
 
-          <details className="rail-card details adjust-fold" open>
-            <summary title="Visits, colors, cameras, contrast">Controls</summary>
+          <details className="rail-card details adjust-fold">
+            <summary title="Extra tools">More tools</summary>
 
             {load.status === "ready" && storyboard && (
               <div className="storyboard-fold-inner">
@@ -2884,20 +3399,11 @@ export default function App() {
             )}
 
             <div className="control-panel">
-              <p className="rail-hint">Only the controls for the selected step apply.</p>
-
-              {uiMode === "watch" && (
+              {false && uiMode === "watch" && (
                 <div className="control-block">
                   {overlayActive ? (
                     <>
-                      <p className="lead">
-                        {ghostVisits
-                          ? "Blend visits is on. early and late visits are overlaid."
-                          : splitVisits
-                            ? "Side-by-side is on. early and late visits are shown together."
-                            : "Challenge overlay is on."}{" "}
-                        Visit and color filters do not apply until you leave this view.
-                      </p>
+                      <p className="lead">Overlay on.</p>
                       <button
                         type="button"
                         className="primary"
@@ -2909,64 +3415,7 @@ export default function App() {
                         Back to movie
                       </button>
                     </>
-                  ) : (
-                    <>
-                      <p className="control-label">Pass</p>
-                      <div className="chip-row">
-                        <button
-                          type="button"
-                          className={view.pass == null ? "active" : ""}
-                          title="Include frames from every SPHEREx visit of this field"
-                          onClick={() => patchView({ pass: null, frameIndex: 0 })}
-                        >
-                          All
-                        </button>
-                        {passes.map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            className={view.pass === p ? "active" : ""}
-                            title={`Show only Visit ${p} frames`}
-                            onClick={() => patchView({ pass: p, frameIndex: 0 })}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="control-label">Wavelength</p>
-                      <div className="chip-row">
-                        <button
-                          type="button"
-                          className={view.waveUm == null ? "active" : ""}
-                          title="Use every infrared wavelength in the movie"
-                          onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
-                        >
-                          All λ
-                        </button>
-                        <button
-                          type="button"
-                          className={view.waveUm != null ? "active" : ""}
-                          disabled={!display || !("meta" in display) || !display.meta}
-                          title="Keep only frames near this frame’s wavelength"
-                          onClick={() => {
-                            if (!display || !("meta" in display) || !display.meta) return;
-                            patchView({
-                              waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
-                              frameIndex: 0,
-                              playing: false,
-                            });
-                          }}
-                        >
-                          Match this λ
-                        </button>
-                      </div>
-                      <p className="micro">
-                        {view.waveUm == null
-                          ? `Playing ${filtered.length} frames across many infrared colors.`
-                          : `Locked near ${view.waveUm.toFixed(2)} µm · ${filtered.length} frames.`}
-                      </p>
-                    </>
-                  )}
+                  ) : null}
                 </div>
               )}
 
@@ -3109,35 +3558,6 @@ export default function App() {
               )}
 
               <div className="control-block soft">
-                <p className="control-label">Contrast</p>
-                <label className="slider-row">
-                  <span>{view.contrast.toFixed(1)}×</span>
-                  <input
-                    type="range"
-                    min={0.4}
-                    max={3}
-                    step={0.1}
-                    value={view.contrast}
-                    onChange={(e) => patchView({ contrast: Number(e.target.value) })}
-                  />
-                </label>
-                <p className="control-label">Color</p>
-                <div className="chip-row">
-                  <button
-                    type="button"
-                    className={view.colorMap === "heat" ? "active" : ""}
-                    onClick={() => patchView({ colorMap: "heat" })}
-                  >
-                    IR heat
-                  </button>
-                  <button
-                    type="button"
-                    className={view.colorMap === "gray" ? "active" : ""}
-                    onClick={() => patchView({ colorMap: "gray" })}
-                  >
-                    Gray
-                  </button>
-                </div>
                 <label className="tint-mask-row">
                   <input
                     type="checkbox"
@@ -3146,116 +3566,23 @@ export default function App() {
                   />
                   <span>Tint flagged pixels</span>
                 </label>
-                <p className="control-label">Other telescopes</p>
-                <label className="tint-mask-row">
-                  <input
-                    type="checkbox"
-                    checked={showGaia}
-                    disabled={catalogError != null && !catalogFile}
-                    onChange={(e) => setShowGaia(e.target.checked)}
-                  />
-                  <span>Gaia DR3</span>
-                </label>
-                <label className="tint-mask-row">
-                  <input
-                    type="checkbox"
-                    checked={showAllwise}
-                    disabled={catalogError != null && !catalogFile}
-                    onChange={(e) => setShowAllwise(e.target.checked)}
-                  />
-                  <span>AllWISE (the infrared sky in 2010)</span>
-                </label>
-                <div className="chip-row" style={{ marginTop: "0.35rem" }}>
-                  <button
-                    type="button"
-                    className={showAllwise && flightPath ? "active" : ""}
-                    disabled={catalogError != null && !catalogFile}
-                    title="Draw the path from where WISE saw this object in 2010 to where SPHEREx sees it now"
-                    onClick={() => {
-                      setShowAllwise(true);
-                      setFlightScrub(1);
-                    }}
-                  >
-                    2010 → now
-                  </button>
-                  <button
-                    type="button"
-                    className={flightPlaying ? "active" : ""}
-                    disabled={(catalogError != null && !catalogFile) || flightPlaying}
-                    title="Animate decades of motion along the AllWISE path"
-                    onClick={() => playFlightYears()}
-                  >
-                    Play years
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost"
-                    title="Copy a link that auto-plays 2010→now for this target"
-                    onClick={() => copyYearsLink()}
-                  >
-                    {yearsLinkCopied ? "Copied" : "Years link"}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="ghost"
+                  title="Copy a link that auto-plays 2010→now for this target"
+                  onClick={() => copyYearsLink()}
+                >
+                  {yearsLinkCopied ? "Copied" : "Years link"}
+                </button>
                 {showAllwise && flightPath && (
                   <p className="micro flight-path-note">
                     Flight path {flightPath.label}
                     {flightPath.sourceId ? ` · ${flightPath.sourceId}` : ""} · scrub or Play years
                   </p>
                 )}
-                {catalogWaiting && <p className="micro">Asking the catalogs…</p>}
-                {catalogError && <p className="micro catalog-unavail">{catalogError}</p>}
                 {catalogFile?.catalogs.some((c) => c.truncated) && (
                   <p className="micro">Showing the 300 brightest</p>
                 )}
-                {catalogTip && <p className="micro catalog-tip">{catalogTip}</p>}
-                <p className="control-label">Field of view</p>
-                <div className="chip-row">
-                  <button
-                    type="button"
-                    className={fieldPreset === "default" ? "active" : ""}
-                    title="Default SPHEREx explorer cutout"
-                    onClick={() => {
-                      if (fieldPreset === "default") return;
-                      setFieldPreset("default");
-                      fieldPresetRef.current = "default";
-                      if (load.status !== "ready") return;
-                      const t = load.data.target;
-                      const ac = new AbortController();
-                      void loadFromService(
-                        t,
-                        ac.signal,
-                        view.targetKey === "custom" ? "custom" : view.targetKey,
-                      );
-                    }}
-                  >
-                    Default
-                  </button>
-                  <button
-                    type="button"
-                    className={fieldPreset === "wide" ? "active" : ""}
-                    title="Wider live cutout: fov=0.3° size=256 (Tommy item 7)"
-                    onClick={() => {
-                      if (fieldPreset === "wide") return;
-                      setFieldPreset("wide");
-                      fieldPresetRef.current = "wide";
-                      if (load.status !== "ready") return;
-                      const t = load.data.target;
-                      const ac = new AbortController();
-                      void loadFromService(
-                        t,
-                        ac.signal,
-                        view.targetKey === "custom" ? "custom" : view.targetKey,
-                      );
-                    }}
-                  >
-                    Wider
-                  </button>
-                </div>
-                <p className="micro">
-                  {fieldPreset === "wide"
-                    ? `Live archive ${FIELD_PRESETS.wide.label}. Sample movies stay at 0.1°.`
-                    : `Default cutout ${FIELD_PRESETS.default.label}. Wider reloads from the live archive.`}
-                </p>
               </div>
             </div>
           </details>
@@ -3342,10 +3669,7 @@ export default function App() {
         </aside>
       </main>
 
-      <footer className="foot">
-        Foxtrot Zulu Kilo Lima · Planet X and SPHEREx · AGPL-3.0 · AI-assisted build disclosed in
-        README
-      </footer>
+      <footer className="foot">Foxtrot Zulu Kilo Lima · Planet X and SPHEREx · AGPL-3.0</footer>
     </div>
   );
 }
@@ -3400,11 +3724,13 @@ function AdvancedDetails({
         </div>
         <div>
           <dt>Quality</dt>
-          <dd>
+          <dd className="meta-value-row">
             <span className="quality">{f.photometry.quality}</span>
-            {f.photometry.flux_mjy != null
-              ? ` · ${f.photometry.flux_mjy.toFixed(3)} ± ${f.photometry.error_mjy?.toFixed(3)} mJy`
-              : " · flux unavailable"}
+            <span className="meta-value-text">
+              {f.photometry.flux_mjy != null
+                ? `${f.photometry.flux_mjy.toFixed(3)} ± ${f.photometry.error_mjy?.toFixed(3)} mJy`
+                : "flux unavailable"}
+            </span>
           </dd>
         </div>
         <div>

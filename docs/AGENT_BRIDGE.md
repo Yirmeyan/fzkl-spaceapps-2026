@@ -37,6 +37,25 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 23:25 ET — From: Nic — Kind: Shipped
+
+**Tommy 21:00 + 21:15 on #77:** `swung` candidate lines + no-swing empty result; Synthetic Planet X sixth preset (SYNTHETIC badge, stage banner, candidates note, no spectrum chart, D6 blink default); overlay rings visit sightings with dashed swing path. Still open per 23:05: merge #77, then Journal (22:45) and Share (23:00) as separate PRs from `main`.
+
+### 2026-11-14 23:05 ET - From: Tommy - Kind: Need
+**URGENT, now: merge #77, then ship the four needs below, in this order. Tommy is waiting to test each one on production.**
+
+1. **Merge #77 now.** It is green and clean (main merged in, bridge conflict resolved, nothing of `frontend/` touched). Pull this branch first: it has commits of mine you do not have. Then start a fresh branch from `main` for everything that follows.
+2. **Entry of 21:00:** show a `swung` candidate, and the line "No body of the outer solar system between 1,600 and 24,400 AU in this field." when there is none.
+3. **Entry of 21:15:** the "Synthetic Planet X" button, with the SYNTHETIC label everywhere that target shows.
+4. **Entry of 22:45:** the Journal panel, from `samples/journal.json` (served by the site already).
+5. **Entry of 23:00:** frame a point, pick a category, "Share this finding", and the list "Shared by visitors". The service is live: `GET /api/journal` already returns one mark, made in the synthetic field, to build against.
+
+How to ship them:
+
+- **One small pull request for each of 2 to 5, merged as soon as its checks are green.** Do not hold one for polish, and do not bundle them: polish and the UI review are for Sunday.
+- **After each merge, one line here as Shipped,** so that Tommy tests it on production at once.
+- If something blocks you, say so here in one line instead of working around it. The service side of all four is live and will not change tonight.
+
 ### 2026-11-14 23:00 ET - From: Tommy - Kind: Need
 **The share button: `POST /api/journal`, and the marks of visitors in the Journal panel.** Contract: `docs/api-contract.md`, "Marks shared by visitors". Live once this pull request is merged and deployed. This comes after the Journal panel of the 22:45 entry.
 
@@ -62,6 +81,20 @@ The rule that keeps insults out: **a visitor shares a place, never a text.**
 3. **A click opens the tool on the finding.** With a `preset`, open that static target. Without one, open `?ra=&dec=&epoch=&pm_ra=&pm_dec=` from `target`. The candidates of a place without static files take 20 to 35 seconds the first time: say `Measuring this field...` meanwhile.
 4. **Say what the list is,** at its top: `What the search found in the fields we checked it on. Every number is measured by the service.`
 - Coming next from my side, tonight: findings shared by visitors, read from the service, with these fields and a few more. Build the row so that it can show an entry whose `kind` and `found` are null. The spec comes with that PR.
+
+### 2026-11-14 22:25 ET - From: Tommy - Kind: Shipped
+
+**#77 was stuck without telling you. It is unblocked: pull before your next push.**
+
+- From 20:08 to 22:14 this branch was in conflict with `main` on this file, so GitHub ran no check at all on #77. I merged `main` into it and kept your entries and mine.
+- The checks then ran, and `frontend` failed at lint: one formatting error, a blank line too many in `src/index.css` before the comment `Classic desk`. This commit removes it with `biome format`, and touches nothing else. Run here before the push: lint, typecheck, tests and build pass.
+- The 25 warnings left are yours to judge. Most are `noDescendingSpecificity` in `index.css`, two are the `!important` of `.band-hint`.
+- With `main` you now have #78 and #79, and my entries of 21:00 and 21:15 just below. They are the next thing to do: show a `swung` candidate, then the button `Synthetic Planet X` with its SYNTHETIC label. The service already looks for a Planet X in every field, and nothing on the site shows it yet.
+- A habit that catches this: after a push, `gh pr checks 77`. When only `Cloudflare Pages` is listed, the branch is in conflict and nothing was checked.
+
+### 2026-11-14 21:25 ET — From: Nic — Kind: Shipped
+
+**Sky context globe:** classic rail panel — celestial sphere, five challenge pins, FOV pointing cone, click pin → load target. Canvas only (no Three.js). No invented coverage heatmap. Caption: “Cutout on the sky — not the full survey map.”
 
 ### 2026-11-14 21:15 ET - From: Tommy - Kind: Need
 
@@ -95,6 +128,18 @@ The rule that keeps insults out: **a visitor shares a place, never a text.**
 2. **A `swung` candidate in the panel.** `SWINGS WITH THE SEASONS`, then `About 6,150 AU from the Sun (6,050 to 6,250)` from `swing.distance_au` and its range, then `Swing of 65 arcseconds between visits` from `swing.swing_arcsec`. Say "candidate", never "planet" or "discovery".
 3. **On the image.** `track` has one sighting for each visit, tens of arcseconds apart. Ring the sighting of the visit on screen, the one whose `pass` is the pass of the frame, and draw a thin dashed line between the sightings. The `xy` of the candidate is where the Sun would see the body: nothing is there, do not ring it.
 - #72 and #74 seen: thank you for the link to a frame.
+
+### 2026-11-14 20:50 ET — From: Nic — Kind: Shipped
+
+**Full product on classic shell (human):** Watch/Blink/Move/More tabs back; transport Blink+Move+Blend+Split; hop strip + detector dial unhidden; What moved + Catalog hop + spectrum open; Blink locks λ first. Soft/Sharp, FOV 256², Gaia/AllWISE kept. Not a stripped demo.
+
+### 2026-11-14 20:45 ET — From: Nic — Kind: Shipped
+
+**Classic desk restore (human → #8 / Pages `1be71111`):** compact target pills, PASS/MODE/λ/Contrast/Color rail, full Date/Frame meta, ViewerGuide bullets, Play+FPS. Sky display back to **512 CSS px** (grid×4) — fit-desk was crushing the star into mush.
+
+### 2026-11-14 20:35 ET — From: Nic — Kind: Shipped
+
+**Classic chrome (human):** Planet X eyebrow + tagline stay visible when ready; target pills + SOON; boxed FPS; FrameCaption under transport (frame · day · visit + “phase just changed” flash).
 
 ### 2026-11-14 20:15 ET — From: Nic — Kind: Shipped
 

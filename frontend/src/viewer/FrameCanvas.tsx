@@ -37,6 +37,8 @@ export interface FrameCanvasProps {
   flightScrub?: number;
   className?: string;
   displayPx?: number;
+  /** Soft upscale (default) vs crisp nearest-neighbor blocks. */
+  smoothScale?: boolean;
 }
 
 export function FrameCanvas({
@@ -64,6 +66,7 @@ export function FrameCanvas({
   flightScrub = 1,
   className,
   displayPx,
+  smoothScale = true,
 }: FrameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const css = displayPx ?? size * 4;
@@ -152,7 +155,7 @@ export function FrameCanvas({
         // When the parent picked an explicit display size (Split tiles), do not
         // let max-width shrink the canvas back into a tiny square.
         ...(displayPx == null ? { maxWidth: "100%" } : {}),
-        imageRendering: "pixelated",
+        imageRendering: smoothScale ? "auto" : "pixelated",
       }}
       aria-label="SPHEREx image frame"
     />
