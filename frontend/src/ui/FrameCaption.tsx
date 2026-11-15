@@ -63,8 +63,8 @@ export function FrameCaption({
         {spanDays > 0 ? ` (${spanDays} days)` : ""}
         {" · "}
         {hasCatalogMotion
-          ? "Bright blob = the star. Numbered dots = catalog path."
-          : "Bright blob = the star. No catalog path for this place."}
+          ? "Bright blob = the star under the cross. Turn Path on to see visit beads."
+          : "Bright blob = the star under the cross."}
       </p>
     </div>
   );

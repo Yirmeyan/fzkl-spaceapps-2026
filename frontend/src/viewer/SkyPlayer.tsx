@@ -25,6 +25,8 @@ export interface SkyPlayerProps {
   tintMask?: boolean;
   /** CSS display size in px (square). */
   displayPx?: number;
+  /** Soft upscale (default) vs crisp nearest-neighbor blocks. */
+  smoothScale?: boolean;
   trail?: TrailPoint[];
   candidates?: Candidate[];
   candidatesGrid?: Grid | null;
@@ -56,6 +58,7 @@ export function SkyPlayer({
   colorMap = "heat",
   tintMask = false,
   displayPx,
+  smoothScale = true,
   trail = [],
   candidates = [],
   candidatesGrid = null,
@@ -233,8 +236,8 @@ export function SkyPlayer({
       style={{
         width: css,
         height: css,
-        // Classic #8: keep the chosen CSS size — maxWidth:100% was crushing the star.
-        imageRendering: "pixelated",
+        // Soft by default — 128² data looks less blocky when upscaled.
+        imageRendering: smoothScale ? "auto" : "pixelated",
         background: "#05080e",
       }}
       aria-label="SPHEREx image frame"

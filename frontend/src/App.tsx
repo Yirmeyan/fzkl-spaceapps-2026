@@ -179,6 +179,10 @@ export default function App() {
   /** Tommy F8: catalog overlay switches (off until first asked). */
   const [showGaia, setShowGaia] = useState(false);
   const [showAllwise, setShowAllwise] = useState(false);
+  /** Soft upscale of 128² cutouts (default). Sharp = nearest-neighbor blocks. */
+  const [smoothScale, setSmoothScale] = useState(true);
+  /** Numbered visit beads on the sky — off by default (cross only). */
+  const [showPathTrail, setShowPathTrail] = useState(false);
   /** 0 = AllWISE epoch, 1 = SPHEREx now — scrub bead on the flight path. */
   const [flightScrub, setFlightScrub] = useState(1);
   const [flightPlaying, setFlightPlaying] = useState(false);
@@ -2318,12 +2322,13 @@ export default function App() {
                     colorMap={view.colorMap}
                     tintMask={tintMask}
                     displayPx={displayPx}
-                    trail={trail}
-                    candidates={candidatesFile?.candidates ?? []}
+                    smoothScale={smoothScale}
+                    trail={showPathTrail ? trail : []}
+                    candidates={showPathTrail ? (candidatesFile?.candidates ?? []) : []}
                     candidatesGrid={candidatesFile?.grid ?? null}
                     viewGrid={load.status === "ready" ? load.data.grid : null}
                     activeCandidate={activeCandidate}
-                    saturated={candidatesFile?.saturated ?? []}
+                    saturated={showPathTrail ? (candidatesFile?.saturated ?? []) : []}
                     catalogSlices={catalogFile?.catalogs ?? []}
                     catalogEnabled={
                       new Set(
@@ -2333,7 +2338,7 @@ export default function App() {
                       )
                     }
                     catalogHighlightId={catalogHighlightId ?? flightPath?.sourceId ?? null}
-                    flightPath={flightPath}
+                    flightPath={showPathTrail ? flightPath : null}
                     flightScrub={flightScrub}
                     onFrameIndexChange={onPlayerFrame}
                   />
@@ -2807,6 +2812,34 @@ export default function App() {
                 onClick={() => patchView({ colorMap: "gray" })}
               >
                 Gray
+              </button>
+            </fieldset>
+
+            <fieldset>
+              <legend>Look</legend>
+              <button
+                type="button"
+                className={smoothScale ? "active" : ""}
+                title="Smooth upscale — softer star, less blocky (default)"
+                onClick={() => setSmoothScale(true)}
+              >
+                Soft
+              </button>
+              <button
+                type="button"
+                className={!smoothScale ? "active" : ""}
+                title="Nearest-neighbor pixels — each detector pixel is a sharp block"
+                onClick={() => setSmoothScale(false)}
+              >
+                Sharp
+              </button>
+              <button
+                type="button"
+                className={showPathTrail ? "active" : ""}
+                title="Show visit beads / catalog path on the sky"
+                onClick={() => setShowPathTrail((v) => !v)}
+              >
+                {showPathTrail ? "Path on" : "Path off"}
               </button>
             </fieldset>
 

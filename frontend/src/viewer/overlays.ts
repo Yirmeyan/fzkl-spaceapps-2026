@@ -135,7 +135,7 @@ export function allwiseFlightPath(
   };
 }
 
-/** Catalogue marker + pass trail (big numbered beads, not stick-figure crosses). */
+/** Optional pass trail beads (off by default — sky stays cross-only). */
 
 export interface TrailPoint {
   pass: number;
@@ -184,6 +184,7 @@ export function drawTargetOverlay(
     ctx.restore();
   }
 
+  // Cross only — no ring around the star (human preference).
   const [tx, ty] = targetXy;
   ctx.save();
   ctx.strokeStyle = "rgba(255, 196, 80, 0.95)";
@@ -194,9 +195,6 @@ export function drawTargetOverlay(
   ctx.lineTo(tx + arm, ty);
   ctx.moveTo(tx, ty - arm);
   ctx.lineTo(tx, ty + arm);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(tx, ty, 2, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
 }
