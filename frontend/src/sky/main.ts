@@ -17,11 +17,18 @@ import {
   wavelengthOf,
 } from "./frames";
 import { layerOf, SKY_LAYERS, SPHEREX_CUBE_URL } from "./layers";
+import { type Pin, pinLink, pinsFrom, statusLabel } from "./pins";
 import { explorerLink, inDegrees, sexagesimal } from "./place";
 import { type MapView, mapViewToSearch, readMapView } from "./view";
 
 // Address of the explorer: the map is a page beside it.
 const HOME = import.meta.env.BASE_URL;
+// Address of the service, as the explorer is given it. Empty when the site and the
+// service share an address, as on a developer's machine.
+const SERVICE = ((import.meta.env.VITE_API_BASE as string | undefined) ?? "").replace(/\/$/, "");
+const JOURNAL_TIMEOUT_MS = 10_000;
+// A pin this far outside the map, in pixels, is not drawn.
+const OUT_OF_SIGHT = 40;
 const PROPERTIES_TIMEOUT_MS = 15_000;
 // A press that moved less than this many pixels is a click, more is a drag of the map.
 const CLICK_SLOP = 5;
@@ -52,9 +59,15 @@ interface Page {
   pin: HTMLDivElement;
   notice: HTMLDivElement;
   waiting: HTMLDivElement;
+  pins: HTMLDivElement;
+  showPins: HTMLInputElement;
+  pinsField: HTMLLabelElement;
   card: HTMLElement;
+  cardBadge: HTMLParagraphElement;
   cardPlace: HTMLParagraphElement;
   cardDegrees: HTMLParagraphElement;
+  cardSaid: HTMLParagraphElement;
+  cardKnown: HTMLParagraphElement;
   cardOpen: HTMLAnchorElement;
   cardClose: HTMLButtonElement;
   layer: HTMLSelectElement;
@@ -87,8 +100,11 @@ function buildPage(root: HTMLElement): Page {
   const card = make("aside", "sky-card");
   card.hidden = true;
   card.setAttribute("aria-label", "Selected place");
+  const cardBadge = make("p", "sky-card-badge");
   const cardPlace = make("p", "sky-card-place");
   const cardDegrees = make("p", "sky-card-degrees");
+  const cardSaid = make("p", "sky-card-said");
+  const cardKnown = make("p", "sky-card-known");
   const cardOpen = make("a", "sky-card-open", "Watch this place over time");
   const cardHint = make(
     "p",
@@ -97,11 +113,21 @@ function buildPage(root: HTMLElement): Page {
   );
   const cardClose = make("button", "sky-card-close", "Close");
   cardClose.type = "button";
-  card.append(cardPlace, cardDegrees, cardOpen, cardHint, cardClose);
+  card.append(
+    cardBadge,
+    cardPlace,
+    cardDegrees,
+    cardSaid,
+    cardKnown,
+    cardOpen,
+    cardHint,
+    cardClose,
+  );
+  const pins = make("div", "sky-pins");
   const waiting = make("div", "sky-waiting", "Loading the images from the archive...");
   waiting.setAttribute("role", "status");
   waiting.hidden = true;
-  stage.append(map, pin, card, waiting, notice);
+  stage.append(map, pins, pin, card, waiting, notice);
 
   const controls = make("footer", "sky-controls");
   const layerLabel = make("label", "sky-field", "Sky ");
@@ -121,9 +147,16 @@ function buildPage(root: HTMLElement): Page {
   const waveSaid = make("output", "sky-wave-said");
   wave.append(slider, waveSaid);
 
+  const pinsField = make("label", "sky-field sky-pins-field");
+  const showPins = make("input", "sky-check");
+  showPins.type = "checkbox";
+  showPins.checked = true;
+  pinsField.append(showPins, " Findings of the journal");
+  pinsField.hidden = true;
+
   const center = make("a", "sky-center", "Open the explorer at the center of the map");
   const credit = make("p", "sky-credit");
-  controls.append(layerLabel, wave, center, credit);
+  controls.append(layerLabel, wave, pinsField, center, credit);
 
   root.replaceChildren(bar, stage, controls);
   return {
@@ -131,9 +164,15 @@ function buildPage(root: HTMLElement): Page {
     pin,
     notice,
     waiting,
+    pins,
+    showPins,
+    pinsField,
     card,
+    cardBadge,
     cardPlace,
     cardDegrees,
+    cardSaid,
+    cardKnown,
     cardOpen,
     cardClose,
     layer,
@@ -143,6 +182,46 @@ function buildPage(root: HTMLElement): Page {
     center,
     credit,
   };
+}
+
+/** A JSON document from an address, or null when it does not arrive or is not JSON. */
+async function fetchJson(url: string): Promise<unknown> {
+  const stop = new AbortController();
+  const timer = setTimeout(() => stop.abort(), JOURNAL_TIMEOUT_MS);
+  try {
+    const answer = await fetch(url, { signal: stop.signal });
+    return answer.ok ? await answer.json() : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function entriesOf(document: unknown): unknown {
+  return typeof document === "object" && document !== null && "entries" in document
+    ? document.entries
+    : null;
+}
+
+/**
+ * The pins of the journal: what our checks found, then what visitors shared.
+ *
+ * The map works without them. A list that does not arrive is said in the console and
+ * gives no pin.
+ */
+async function loadPins(): Promise<Pin[]> {
+  const [checks, marks] = await Promise.all([
+    fetchJson(`${HOME}samples/journal.json`),
+    fetchJson(`${SERVICE}/api/journal`),
+  ]);
+  if (checks === null) {
+    console.warn("The sky map could not read the journal of our checks.");
+  }
+  if (marks === null) {
+    console.warn("The sky map could not read the marks of visitors.");
+  }
+  return pinsFrom(entriesOf(checks), entriesOf(marks));
 }
 
 /** What the archive says of the cube, or null when it does not answer. */
@@ -274,7 +353,7 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
     sayFrame();
   }
 
-  // The pin follows its place while the map moves: one look at the map for each frame
+  // The ring follows its place while the map moves: one look at the map for each frame
   // the browser draws, and none when nothing is selected.
   function followPin(): void {
     if (selected === null) {
@@ -289,7 +368,8 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
     requestAnimationFrame(followPin);
   }
 
-  function select(place: Place | null): void {
+  /** Show the card of a place, with what is known of it when it is a pin. */
+  function select(place: Place | null, pin: Pin | null = null): void {
     const wasFollowing = selected !== null;
     selected = place;
     page.card.hidden = place === null;
@@ -297,13 +377,77 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
       page.pin.hidden = true;
       return;
     }
-    page.cardPlace.textContent = sexagesimal(place.ra, place.dec);
-    page.cardDegrees.textContent = `${inDegrees(place.ra, place.dec)} degrees`;
-    page.cardOpen.href = explorerLink(place.ra, place.dec, HOME);
+    const where = sexagesimal(place.ra, place.dec);
+    page.cardBadge.hidden = pin === null;
+    page.cardSaid.hidden = pin === null || pin.said === "";
+    page.cardKnown.hidden = pin === null || pin.known === null;
+    if (pin === null) {
+      page.cardPlace.textContent = where;
+      page.cardDegrees.textContent = `${inDegrees(place.ra, place.dec)} degrees`;
+      page.cardOpen.href = explorerLink(place.ra, place.dec, HOME);
+    } else {
+      page.cardBadge.textContent = statusLabel(pin);
+      page.cardBadge.dataset.status = pin.shared ? "shared" : pin.status;
+      page.cardPlace.textContent = pin.name;
+      page.cardDegrees.textContent = where;
+      page.cardSaid.textContent = pin.said;
+      page.cardKnown.textContent = pin.known ?? "";
+      page.cardOpen.href = pinLink(pin, HOME);
+    }
     if (!wasFollowing) {
       requestAnimationFrame(followPin);
     }
   }
+
+  // The pins of the journal are buttons laid over the map. They follow the sky the same
+  // way the ring does, for as long as they are shown.
+  const drawn: { pin: Pin; button: HTMLButtonElement }[] = [];
+  function followPins(): void {
+    if (page.pins.hidden || drawn.length === 0) {
+      return;
+    }
+    const width = page.map.clientWidth;
+    const height = page.map.clientHeight;
+    for (const { pin, button } of drawn) {
+      const at = map.pixelOf(pin);
+      const inSight =
+        at !== null &&
+        at.x > -OUT_OF_SIGHT &&
+        at.y > -OUT_OF_SIGHT &&
+        at.x < width + OUT_OF_SIGHT &&
+        at.y < height + OUT_OF_SIGHT;
+      button.hidden = !inSight;
+      if (at !== null && inSight) {
+        button.style.transform = `translate(${at.x}px, ${at.y}px)`;
+      }
+    }
+    requestAnimationFrame(followPins);
+  }
+
+  function drawPins(pins: Pin[]): void {
+    for (const pin of pins) {
+      const button = make("button", "sky-mark");
+      button.type = "button";
+      button.dataset.status = pin.shared ? "shared" : pin.status;
+      button.title = `${pin.name}. ${statusLabel(pin)}.`;
+      button.setAttribute("aria-label", button.title);
+      // The targets of the challenge and the synthetic one carry their name on the map.
+      if (pin.preset !== null && !pin.shared) {
+        button.append(make("span", "sky-mark-name", pin.name));
+      }
+      button.addEventListener("click", () => select(pin, pin));
+      page.pins.append(button);
+      drawn.push({ pin, button });
+    }
+    page.pinsField.hidden = drawn.length === 0;
+    requestAnimationFrame(followPins);
+  }
+
+  page.showPins.addEventListener("change", () => {
+    page.pins.hidden = !page.showPins.checked;
+    requestAnimationFrame(followPins);
+  });
+  void loadPins().then(drawPins);
 
   for (const option of Array.from(page.layer.options)) {
     option.disabled = axis === null && layerOf(option.value).cube;

@@ -9,6 +9,7 @@
   --line: #243247;
   --accent: #e8a045;
   --action: #2dd4bf;
+  --synthetic: #b79cff;
   --radius: 8px;
   color-scheme: dark;
 }
@@ -118,11 +119,46 @@ body {
 }
 
 .sky-card[hidden],
+.sky-card p[hidden],
+.sky-pins[hidden],
+.sky-mark[hidden],
+.sky-pins-field[hidden],
 .sky-notice[hidden],
 .sky-waiting[hidden],
 .sky-pin[hidden],
 .sky-wave[hidden] {
   display: none;
+}
+
+.sky-card-badge {
+  color: var(--action);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+.sky-card-badge[data-status="unconfirmed"] {
+  color: var(--accent);
+}
+
+.sky-card-badge[data-status="synthetic"] {
+  color: var(--synthetic);
+}
+
+.sky-card-badge[data-status="shared"] {
+  color: var(--ink);
+}
+
+.sky-card-said,
+.sky-card-known {
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.sky-card-known {
+  color: var(--muted);
 }
 
 .sky-card-place {
@@ -185,6 +221,78 @@ body {
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 2;
+}
+
+/* The pins of the journal. The layer lets the map take the mouse: only the pins do not. */
+.sky-pins {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+/* A pin sits at the corner of the map and is moved by the page. Its dot is centered on
+   that corner, inside a wider area that is easier to hit. */
+.sky-mark {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  height: 26px;
+  left: -13px;
+  padding: 0;
+  pointer-events: auto;
+  position: absolute;
+  top: -13px;
+  width: 26px;
+}
+
+.sky-mark::before {
+  background: var(--action);
+  border: 2px solid rgba(7, 11, 18, 0.85);
+  border-radius: 50%;
+  content: "";
+  height: 12px;
+  left: 7px;
+  position: absolute;
+  top: 7px;
+  width: 12px;
+}
+
+.sky-mark[data-status="unconfirmed"]::before {
+  background: var(--accent);
+}
+
+.sky-mark[data-status="synthetic"]::before {
+  background: var(--synthetic);
+}
+
+.sky-mark[data-status="shared"]::before {
+  background: transparent;
+  border-color: var(--ink);
+}
+
+.sky-mark:hover::before,
+.sky-mark:focus-visible::before {
+  box-shadow: 0 0 0 3px rgba(232, 238, 246, 0.45);
+}
+
+.sky-mark-name {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  left: 24px;
+  pointer-events: none;
+  position: absolute;
+  text-shadow:
+    0 0 3px #000,
+    0 0 6px #000;
+  top: 5px;
+  white-space: nowrap;
+}
+
+.sky-check {
+  accent-color: var(--accent);
 }
 
 .sky-waiting {

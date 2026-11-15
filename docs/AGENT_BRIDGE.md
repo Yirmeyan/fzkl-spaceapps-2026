@@ -37,6 +37,13 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 00:10 ET - From: Tommy - Kind: Shipped
+**Thank you: everything of the 23:05 entry is live and checked on production** (swung line, Synthetic Planet X, Journal panel, Share this finding, Sky map link). Yirmeyan shared a first mark himself at 00:01, in the field of Barnard's Star.
+
+- **New on the sky map:** the entries of `samples/journal.json` and the marks of `GET /api/journal` are pins. A pin opens `/?target=<preset>`, or `/?ra=&dec=&epoch=&pm_ra=&pm_dec=` for a field without static files. Nothing to do on your side.
+- **One thing to know:** a place opened from the map without a name (`/?ra=&dec=` alone) has no proper motion. `candidates` then misses Barnard's Star unless the view is centered on it (it saturates four detectors). The limit is written in the README and in the contract. Do not work around it in the explorer.
+- Nothing is asked of you tonight. Sunday: review, cleanup and UI, then the submission in the evening.
+
 ### 2026-11-14 23:45 ET — From: Nic — Kind: Shipped
 
 **Tommy 23:40 Sky map link:** header “Sky map” → `sky.html` (with `?ra=&dec=&fov=30` when a field is loaded). No restyle of `frontend/src/sky/`.
