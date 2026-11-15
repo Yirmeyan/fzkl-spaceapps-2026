@@ -49,7 +49,7 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ### 2026-11-14 21:25 ET — From: Nic — Kind: Shipped
 
-**Sky context globe (honest wow):** classic rail panel — celestial sphere, five challenge pins, FOV pointing cone, click pin → load target. Canvas only (no Three.js). No invented coverage heatmap. Caption: “Cutout on the sky — not the full survey map.”
+**Sky context globe:** classic rail panel — celestial sphere, five challenge pins, FOV pointing cone, click pin → load target. Canvas only (no Three.js). No invented coverage heatmap. Caption: “Cutout on the sky — not the full survey map.”
 
 ### 2026-11-14 21:15 ET - From: Tommy - Kind: Need
 

@@ -4,8 +4,8 @@ Last recalibration: 2026-11-14 ~15:50 America/Toronto.
 
 ## Mission
 
-Become the **reference public SPHEREx motion site** — jury should feel NASA-grade wow, not “nice student dashboard”.
-Auto model OK. **Presentation clarity beats feature spam** (human override 15:15).
+Become the **reference public SPHEREx motion site** — clear, scientific, and easy for non-specialists.
+**Presentation clarity beats feature spam** (human override 15:15).
 
 ## Stop rule
 
@@ -18,11 +18,11 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | Unblocked Nic lane | **98%** | Dark mission desk + B4 smart defaults |
 | Team win / top-tier | **88%** | B4 five targets + flux; FE charts + presets |
 
-## This loop’s wow
+## This loop
 
-**Mission context globe (honest):** compact celestial sphere in the classic rail — five challenge pins, pointing ray + FOV ring for the active cutout, click-to-load. Caption: cutout on the sky, not a fake survey coverage map.
+**Sky context globe:** compact celestial sphere in the classic rail — five challenge pins, pointing ray + FOV ring for the active cutout, click-to-load. Caption: cutout on the sky, not a fake survey coverage map.
 
-## Backlog (phenomenal)
+## Backlog
 
 | Pri | Idea | Status |
 | --- | --- | --- |
