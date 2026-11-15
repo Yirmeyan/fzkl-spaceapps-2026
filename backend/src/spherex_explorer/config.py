@@ -10,6 +10,9 @@ _LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 _COLLECTION_NAME = re.compile(r"[a-z0-9_]+")
 # The bucket and its region become part of an address: nothing else than these characters.
 _STORAGE_NAME = re.compile(r"[a-z0-9][a-z0-9-]*")
+# A project of Google Cloud and a collection of its database become part of an address too.
+_PROJECT_NAME = re.compile(r"[a-z][a-z0-9-]{4,28}[a-z0-9]")
+_JOURNAL_COLLECTION = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,62}")
 # Stands for every origin in the list of origins a browser may call the service from.
 _EVERY_ORIGIN = "*"
 
@@ -69,6 +72,18 @@ class Settings(BaseSettings):
     catalog_timeout_s: float = Field(default=8.0, gt=0, le=60)
     # Sources kept per catalog and per view, the brightest first.
     catalog_limit: int = Field(default=300, ge=1, le=2000)
+
+    # The public journal: the marks visitors share. They are kept in the Firestore
+    # database of this project of Google Cloud. Without a project they stay in the
+    # memory of the process: good for a test, lost at the next start.
+    journal_project: str = ""
+    journal_collection: str = "marks"
+    journal_timeout_s: float = Field(default=8.0, gt=0, le=30)
+    # The switch that closes the journal to new marks, without another build.
+    journal_open: bool = True
+    # Most marks the journal holds, and most marks one visitor shares within an hour.
+    journal_limit: int = Field(default=300, ge=1, le=5000)
+    journal_per_hour: int = Field(default=5, ge=1, le=1000)
 
     @field_validator("log_level")
     @classmethod
@@ -145,6 +160,20 @@ class Settings(BaseSettings):
         for url in urls:
             if not url.startswith(("http://", "https://")) or "?" in url:
                 raise ValueError(f"not a catalog address: {url!r}")
+        return value
+
+    @field_validator("journal_project")
+    @classmethod
+    def _check_journal_project(cls, value: str) -> str:
+        if value and not _PROJECT_NAME.fullmatch(value):
+            raise ValueError(f"not the name of a project: {value!r}")
+        return value
+
+    @field_validator("journal_collection")
+    @classmethod
+    def _check_journal_collection(cls, value: str) -> str:
+        if not _JOURNAL_COLLECTION.fullmatch(value):
+            raise ValueError(f"not the name of a collection: {value!r}")
         return value
 
     @property

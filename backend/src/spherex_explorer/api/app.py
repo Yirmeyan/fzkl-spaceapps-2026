@@ -16,12 +16,15 @@ from spherex_explorer.api.errors import register_error_handlers
 from spherex_explorer.api.exposures import router as exposures_router
 from spherex_explorer.api.frames import router as frames_router
 from spherex_explorer.api.health import router as health_router
+from spherex_explorer.api.journal import Journal
+from spherex_explorer.api.journal import router as journal_router
 from spherex_explorer.api.resolve import NameResolver
 from spherex_explorer.api.resolve import router as resolve_router
 from spherex_explorer.api.spectrum import router as spectrum_router
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive
 from spherex_explorer.catalogs import VizierCatalogs
 from spherex_explorer.config import Settings, get_settings
+from spherex_explorer.marks import FirestoreStore, MarkStore, MemoryStore
 from spherex_explorer.pipeline import ExposureArchive, FieldMemory, FrameSource, SkyCatalogs
 from spherex_explorer.targets import SesameResolver
 
@@ -48,6 +51,7 @@ def create_app(
     frames: FrameSource | None = None,
     resolver: NameResolver | None = None,
     catalogs: SkyCatalogs | None = None,
+    marks: MarkStore | None = None,
 ) -> FastAPI:
     """Build the application.
 
@@ -114,6 +118,17 @@ def create_app(
                     timeout_s=settings.catalog_timeout_s,
                     limit=settings.catalog_limit,
                 )
+            if marks is None and settings.journal_project:
+                # The marks of the visitors outlive the process: they go to the database.
+                app.state.journal = Journal(
+                    FirestoreStore(
+                        client,
+                        project=settings.journal_project,
+                        collection=settings.journal_collection,
+                        timeout_s=settings.journal_timeout_s,
+                    ),
+                    settings,
+                )
             try:
                 yield
             finally:
@@ -140,12 +155,15 @@ def create_app(
     app.state.catalogs = catalogs
     # A field stays measured for as long as its list of exposures stays fresh.
     app.state.fields = FieldMemory(fresh_s=settings.search_fresh_s)
+    # Without a database the marks stay in memory: the server replaces this when it starts.
+    app.state.journal = Journal(marks or MemoryStore(), settings)
 
     # The browser application is served from another origin than this service.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origin_list,
-        allow_methods=["GET"],
+        # Everything is read, but a mark of the journal, which a visitor sends.
+        allow_methods=["GET", "POST"],
         allow_headers=["*"],
         # Without this, a browser hides the delay a 503 answer asks the client to wait.
         expose_headers=["Retry-After"],
@@ -172,6 +190,7 @@ def create_app(
     app.include_router(spectrum_router, prefix="/api")
     app.include_router(candidates_router, prefix="/api")
     app.include_router(catalog_router, prefix="/api")
+    app.include_router(journal_router, prefix="/api")
 
     logger.info(
         "Service %s ready in %s, origins allowed: %s",

@@ -37,6 +37,19 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 23:00 ET - From: Tommy - Kind: Need
+**The share button: `POST /api/journal`, and the marks of visitors in the Journal panel.** Contract: `docs/api-contract.md`, "Marks shared by visitors". Live once this pull request is merged and deployed. This comes after the Journal panel of the 22:45 entry.
+
+The rule that keeps insults out: **a visitor shares a place, never a text.**
+
+1. **Frame the point.** On the paused image, the visitor draws or drops a small frame on what caught the eye (a click that drops a fixed frame of about 12 pixels is enough, and works on a phone). Convert its center to `ra`, `dec` with the grid of the frame.
+2. **One category, from a list:** "It moves" (`moved`), "It changes brightness" (`changed`), "It appears once" (`appears-once`), "Something else" (`other`). No text field anywhere.
+3. **One button: "Share this finding".** `POST /api/journal` with `ra`, `dec`, `category`, `target` (the target of the view, as you pass it to the other calls), and what you have of `preset`, `detector`, `pass`, `frame` (the `id` of the paused exposure).
+4. **Answers:** `201` with the mark: add it on top of the list and say "Shared". `200` with an existing mark: "Someone already shared this place", and show that mark. `429`: "Five marks an hour. Try again later." `409` or `503` with `journal_full` / `journal_closed`: hide the button. `GET /api/journal` says `open: false` in those two cases: hide the button from the start.
+5. **The list.** `GET /api/journal` gives `entries`, the newest first, in the shape of the entries of `journal.json` plus `category`, `view`, `shared`. Show them in the Journal panel under their own heading, "Shared by visitors", apart from "Our checks". Their `kind`, `found`, `known` and `measured` are `null`: write "Shared by a visitor, not measured yet", never a sentence that reads like a finding. `status` is `unconfirmed`, or `synthetic` for a mark made in the synthetic field: keep the SYNTHETIC label there.
+6. **Opening a mark:** load `target` (or the static files of `preset`), go to `view.detector`, `view.pass` and `view.frame` when they are there, and draw the frame at `ra`, `dec`. Then let `candidates` say what the service finds: if one of its candidates sits on the mark, that is the answer to show.
+7. The page may keep the answer of `GET` for 20 seconds. Without the service (static files only), show the panel with our checks and no share button.
+
 ### 2026-11-14 22:45 ET - From: Tommy - Kind: Need
 
 **A journal of findings: one more panel. `samples/journal.json`, 28 entries, to read as you read the index.**
