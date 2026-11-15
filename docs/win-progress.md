@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Tommy 19:15 (judge-saver):** accept sexagesimal coords in search; hatched no-data pixels + edge line; AI disclosure meta in `index.html` + `package.json`.
+**Brown-dwarf fingerprint:** Epsilon Indi B spectrum shows labeled H₂O / CH₄ absorption bands — the science story next to the SPIFF badge.
 
 ## Backlog (phenomenal)
 
@@ -66,3 +66,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 19:35 | Scrub / Play years on AllWISE flight path | 98 | 88 |
 | 19:40 | ?years=1 deep-link + Planet X whisper | 98 | 88 |
 | 19:45 | Tommy coords + hatched nodata + AI meta | 98 | 89 |
+| 19:50 | Eps Indi H₂O/CH₄ spectrum fingerprint | 98 | 89 |

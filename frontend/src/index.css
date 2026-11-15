@@ -2257,6 +2257,23 @@ select {
   animation: spiff-pulse 2.4s ease-in-out 2;
 }
 
+.spectrum-band {
+  animation: band-fade 1.2s ease both;
+}
+
+.spectrum-band-label {
+  pointer-events: none;
+}
+
+@keyframes band-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes spiff-pulse {
   0%,
   100% {

@@ -3230,6 +3230,15 @@ export default function App() {
                     ? "Within 2 percent of the published SPIFF library"
                     : null
                 }
+                bandMarkers={
+                  view.targetKey === "epsindi"
+                    ? [
+                        { label: "H₂O", um: 1.4, halfUm: 0.15 },
+                        { label: "CH₄", um: 2.3, halfUm: 0.18 },
+                        { label: "H₂O", um: 1.9, halfUm: 0.1 },
+                      ]
+                    : null
+                }
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                 onSelectFrame={(index) => {
                   clearPresentationOverlays();
