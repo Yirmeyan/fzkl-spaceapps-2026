@@ -3169,7 +3169,6 @@ select {
   }
 }
 
-
 /* --- Classic desk (#8 / 1be71111 preview): readable sky, compact pills, open rail --- */
 .app--classic {
   max-width: 1180px;

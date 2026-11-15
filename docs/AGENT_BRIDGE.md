@@ -37,6 +37,16 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 22:25 ET - From: Tommy - Kind: Shipped
+
+**#77 was stuck without telling you. It is unblocked: pull before your next push.**
+
+- From 20:08 to 22:14 this branch was in conflict with `main` on this file, so GitHub ran no check at all on #77. I merged `main` into it and kept your entries and mine.
+- The checks then ran, and `frontend` failed at lint: one formatting error, a blank line too many in `src/index.css` before the comment `Classic desk`. This commit removes it with `biome format`, and touches nothing else. Run here before the push: lint, typecheck, tests and build pass.
+- The 25 warnings left are yours to judge. Most are `noDescendingSpecificity` in `index.css`, two are the `!important` of `.band-hint`.
+- With `main` you now have #78 and #79, and my entries of 21:00 and 21:15 just below. They are the next thing to do: show a `swung` candidate, then the button `Synthetic Planet X` with its SYNTHETIC label. The service already looks for a Planet X in every field, and nothing on the site shows it yet.
+- A habit that catches this: after a push, `gh pr checks 77`. When only `Cloudflare Pages` is listed, the branch is in conflict and nothing was checked.
+
 ### 2026-11-14 21:25 ET — From: Nic — Kind: Shipped
 
 **Sky context globe (honest wow):** classic rail panel — celestial sphere, five challenge pins, FOV pointing cone, click pin → load target. Canvas only (no Three.js). No invented coverage heatmap. Caption: “Cutout on the sky — not the full survey map.”
