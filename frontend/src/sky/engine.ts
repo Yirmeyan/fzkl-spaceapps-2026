@@ -17,8 +17,9 @@ import { NARROWEST_FOV, WIDEST_FOV } from "./view";
 // Typed as a plain string: the compiler must not look for this module on disk.
 export const ENGINE_URL: string = "https://cdn.jsdelivr.net/npm/aladin-lite@3.8.2/dist/aladin.js";
 const LOAD_TIMEOUT_MS = 30_000;
-// A layer takes a moment to be ready for a frame: the frame is asked again at these
-// delays, in milliseconds. Asking twice costs nothing: the engine keeps what it has.
+// A layer is ready for a frame once the engine has read what the archive says of it,
+// and the engine does not tell when. The frame is asked at these delays, in
+// milliseconds: asking twice costs nothing, the engine keeps what it has.
 const FRAME_RETRIES_MS = [0, 300, 1000, 2500, 6000];
 const BACKGROUND = "rgb(7, 11, 18)";
 
@@ -31,8 +32,9 @@ interface EngineView {
   getFov(): ArrayLike<number>;
   pix2world(x: number, y: number): ArrayLike<number> | null | undefined;
   world2pix(ra: number, dec: number): ArrayLike<number> | null | undefined;
-  setBaseImageLayer(layer: EngineLayer | string): void;
-  getBaseImageLayer(): EngineLayer;
+  setBaseImageLayer(url: string): void;
+  // Nothing until the engine has read what the archive says of the layer.
+  getBaseImageLayer(): EngineLayer | undefined;
   on(what: string, listener: () => void): void;
   setFoVRange?: (narrowest: number, widest: number) => void;
 }
@@ -40,7 +42,6 @@ interface EngineView {
 export interface Engine {
   init: Promise<unknown>;
   aladin(element: HTMLElement, options: Record<string, unknown>): EngineView;
-  HiPS(url: string, options?: Record<string, unknown>): EngineLayer;
 }
 
 export interface Place {
@@ -66,11 +67,7 @@ function isEngine(value: unknown): value is Engine {
     return false;
   }
   const candidate = value as Record<string, unknown>;
-  return (
-    typeof candidate.aladin === "function" &&
-    typeof candidate.HiPS === "function" &&
-    candidate.init instanceof Promise
-  );
+  return typeof candidate.aladin === "function" && candidate.init instanceof Promise;
 }
 
 function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
@@ -126,9 +123,7 @@ export function loadEngine(): Promise<Engine> {
 
 /** The map, as the page uses it. */
 export class SkyMap {
-  private readonly engine: Engine;
   private readonly view: EngineView;
-  private layer: EngineLayer;
   // Rises at each change of layer or frame: a retry of an older one sees it and stops.
   private asked = 0;
 
@@ -138,7 +133,6 @@ export class SkyMap {
     start: Place & { fov: number },
     layer: SkyLayer,
   ) {
-    this.engine = engine;
     try {
       this.view = engine.aladin(element, {
         survey: layer.url,
@@ -170,32 +164,32 @@ export class SkyMap {
       throw new MapUnavailable("The map could not be drawn in this browser.", error);
     }
     this.view.setFoVRange?.(NARROWEST_FOV, WIDEST_FOV);
-    this.layer = this.view.getBaseImageLayer();
   }
 
   /** Change the sky shown. */
   show(layer: SkyLayer): void {
     this.asked += 1;
-    this.layer = this.engine.HiPS(layer.url, { name: layer.label });
-    this.view.setBaseImageLayer(this.layer);
+    this.view.setBaseImageLayer(layer.url);
   }
 
   /** Show one frame of the cube the map is on. */
   showFrame(frame: number, axis: CubeAxis): void {
     this.asked += 1;
     const asked = this.asked;
-    const layer = this.layer;
     const slice = sliceForFrame(frame, axis);
+    const last = FRAME_RETRIES_MS[FRAME_RETRIES_MS.length - 1];
     for (const delay of FRAME_RETRIES_MS) {
       setTimeout(() => {
         if (asked !== this.asked) {
           return;
         }
-        try {
-          layer.setSliceNumber?.(slice);
-        } catch {
-          // The layer is still reading what the archive says of the cube: the next
-          // delay asks again.
+        // Asked of the layer the map is on at this moment: a layer that was not ready
+        // a moment ago is found here once it is.
+        const layer = this.view.getBaseImageLayer();
+        if (layer?.setSliceNumber) {
+          layer.setSliceNumber(slice);
+        } else if (delay === last) {
+          console.warn("The sky map could not choose a wavelength: the layer never got ready.");
         }
       }, delay);
     }

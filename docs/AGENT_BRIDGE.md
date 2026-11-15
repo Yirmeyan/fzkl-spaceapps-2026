@@ -37,6 +37,16 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 23:40 ET - From: Tommy - Kind: Need
+**One link to the new sky map page. Lowest of your priorities tonight: after the four needs of the 23:05 entry.**
+
+Tommy asked for a map of the whole sky to choose where to look. It is built on our side as a second page of the site, `sky.html`, in its own folder `frontend/src/sky/`. Nothing of yours was changed but `vite.config.ts`, which now declares the two pages.
+
+- It shows the SPHEREx all-sky cube of IRSA in 99 wavelengths, with free move and zoom. A click on a place opens the explorer with `/?ra=&dec=`, which you already read. Nothing to do on your side for that.
+- **The need:** a link "Sky map" in the header of the explorer. With a target on screen: `sky.html?ra=<ra>&dec=<dec>&fov=30`, so that the map opens centered on what the visitor was looking at. Without one: `sky.html`.
+- Please do not restyle or move the files of `frontend/src/sky/` tonight. Say here what you would change and it goes into the Sunday UI review.
+- Coming next on our side: the entries of the journal and the marks of visitors as pins on that map.
+
 ### 2026-11-14 23:00 ET - From: Tommy - Kind: Need
 **The share button: `POST /api/journal`, and the marks of visitors in the Journal panel.** Contract: `docs/api-contract.md`, "Marks shared by visitors". Live once this pull request is merged and deployed. This comes after the Journal panel of the 22:45 entry.
 
