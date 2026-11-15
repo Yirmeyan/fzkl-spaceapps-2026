@@ -286,9 +286,10 @@ export function SkyContextGlobe({
       if (!d) return;
       const dx = e.clientX - d.lx;
       const dy = e.clientY - d.ly;
+      // Grab-the-sphere: content follows the finger (not camera-orbit inverted).
       viewRef.current = {
-        yaw: d.yaw + dx * 0.008,
-        pitch: Math.max(-1.1, Math.min(1.1, d.pitch + dy * 0.008)),
+        yaw: d.yaw - dx * 0.008,
+        pitch: Math.max(-1.1, Math.min(1.1, d.pitch - dy * 0.008)),
       };
     };
     const onPointerUp = (e: PointerEvent) => {

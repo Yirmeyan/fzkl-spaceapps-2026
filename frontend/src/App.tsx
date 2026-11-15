@@ -214,9 +214,10 @@ export default function App() {
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
-  /** Instant FOV switch: both cutouts stay warm after first fetch. */
+  /** Instant FOV switch: both cutouts stay warm after first fetch (~2 slots / target). */
   const fieldCacheRef = useRef<Map<string, FieldCacheEntry>>(new Map());
-  const fovPrefetchRef = useRef<string | null>(null);
+  /** In-flight FOV fetches — switch joins these instead of starting a second download. */
+  const fieldWarmRef = useRef<Map<string, Promise<FieldCacheEntry | null>>>(new Map());
   const [timelineOpen, setTimelineOpen] = useState(true);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [spectrumWaiting, setSpectrumWaiting] = useState(false);
@@ -376,7 +377,7 @@ export default function App() {
       const fovOnly = opts?.keepFieldCache === true;
       if (!fovOnly) {
         fieldCacheRef.current.clear();
-        fovPrefetchRef.current = null;
+        fieldWarmRef.current.clear();
         setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
         setSpectrumPoints(null);
         setCandidatesFile(null);
@@ -592,10 +593,26 @@ export default function App() {
       if (load.status !== "ready") return;
       const t = load.data.target;
       const tk = view.targetKey === "custom" ? "custom" : view.targetKey || "custom";
-      const hit = fieldCacheRef.current.get(fieldCacheKey(tk, t, next));
+      const key = fieldCacheKey(tk, t, next);
+      const hit = fieldCacheRef.current.get(key);
       if (hit) {
         setLoad({ status: "ready", data: hit.data, source: hit.source });
         patchView({ frameIndex: 0, pass: null, playing: false, detector: null });
+        return;
+      }
+      // Join in-flight warm fetch (no second download) when possible.
+      const pending = fieldWarmRef.current.get(key);
+      if (pending) {
+        void pending.then((entry) => {
+          if (!entry) {
+            const ac = new AbortController();
+            void loadFromService(t, ac.signal, tk, { keepFieldCache: true });
+            return;
+          }
+          if (fieldPresetRef.current !== next) return;
+          setLoad({ status: "ready", data: entry.data, source: entry.source });
+          patchView({ frameIndex: 0, pass: null, playing: false, detector: null });
+        });
         return;
       }
       const ac = new AbortController();
@@ -604,26 +621,41 @@ export default function App() {
     [fieldPreset, load, view.targetKey, loadFromService, patchView],
   );
 
-  // Warm the other FOV in the background so the next click is instant.
+  // Warm the other FOV in the background. Two cutouts in RAM — switch is free after warm.
+  // Target-id deps only: progressive sample merges must not abort the warm fetch.
+  const loadReadyRef = useRef(load);
+  loadReadyRef.current = load;
+  const fovWarmTargetId =
+    load.status === "ready"
+      ? `${view.targetKey ?? "custom"}|${load.data.target.ra.toFixed(5)}|${load.data.target.dec.toFixed(5)}`
+      : null;
+
   useEffect(() => {
-    if (load.status !== "ready") return;
-    const other: FieldPreset = fieldPreset === "default" ? "wide" : "default";
+    if (!fovWarmTargetId) return;
+    const cur = loadReadyRef.current;
+    if (cur.status !== "ready") return;
     const tk = view.targetKey === "custom" ? "custom" : view.targetKey || "custom";
-    const t = load.data.target;
+    const t = cur.data.target;
+    const activePreset = fieldPresetRef.current;
+    const activeKey = fieldCacheKey(tk, t, activePreset);
+    if (!fieldCacheRef.current.has(activeKey)) {
+      fieldCacheRef.current.set(activeKey, { data: cur.data, source: cur.source });
+    }
+
+    const other: FieldPreset = activePreset === "default" ? "wide" : "default";
     const key = fieldCacheKey(tk, t, other);
-    if (fieldCacheRef.current.has(key)) return;
-    if (fovPrefetchRef.current === key) return;
-    fovPrefetchRef.current = key;
+    if (fieldCacheRef.current.has(key) || fieldWarmRef.current.has(key)) return;
+
     const ac = new AbortController();
     const field = FIELD_PRESETS[other];
-    void (async () => {
+    const warm = (async (): Promise<FieldCacheEntry | null> => {
       try {
         const {
           target: tt,
           grid,
           exposures,
         } = await fetchExposures(t, { fov: field.fov, size: field.size }, ac.signal);
-        if (ac.signal.aborted || exposures.length === 0) return;
+        if (ac.signal.aborted || exposures.length === 0) return null;
         const preferDet = tk === "wise0855" || /wise\s*0855/i.test(tt.name ?? "") ? 6 : 2;
         const byDet = new Map<number, typeof exposures>();
         for (const e of exposures) {
@@ -639,7 +671,7 @@ export default function App() {
         const priorExposures: typeof exposures = [];
         const priorFrames: Frame[] = [];
         for (const det of detOrder) {
-          if (ac.signal.aborted) return;
+          if (ac.signal.aborted) return null;
           const queue = byDet.get(det)!;
           const batchFrames: (Frame | undefined)[] = new Array(queue.length);
           await loadFramesProgressive(
@@ -656,23 +688,30 @@ export default function App() {
           priorExposures.push(...queue.filter((e) => got.has(e.id)));
           priorFrames.push(...finalized);
         }
-        if (ac.signal.aborted) return;
-        const data = decodeBundle({
-          format: "spherex-explorer/bundle",
-          version: 1,
-          generated: new Date().toISOString(),
-          target: tt,
-          grid,
-          exposures: priorExposures,
-          frames: priorFrames,
-        });
-        fieldCacheRef.current.set(key, { data, source: "live" });
+        if (ac.signal.aborted) return null;
+        const entry: FieldCacheEntry = {
+          data: decodeBundle({
+            format: "spherex-explorer/bundle",
+            version: 1,
+            generated: new Date().toISOString(),
+            target: tt,
+            grid,
+            exposures: priorExposures,
+            frames: priorFrames,
+          }),
+          source: "live",
+        };
+        fieldCacheRef.current.set(key, entry);
+        return entry;
       } catch {
-        if (fovPrefetchRef.current === key) fovPrefetchRef.current = null;
+        return null;
+      } finally {
+        fieldWarmRef.current.delete(key);
       }
     })();
+    fieldWarmRef.current.set(key, warm);
     return () => ac.abort();
-  }, [load, fieldPreset, view.targetKey]);
+  }, [fovWarmTargetId, view.targetKey]);
 
   const loadKnownTarget = useCallback(
     async (key: string, signal: AbortSignal, preferLive = false) => {
