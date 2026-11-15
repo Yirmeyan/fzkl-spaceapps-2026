@@ -13,6 +13,10 @@ interface CandidatesPanelProps {
   catalogPmDec?: number | null;
   /** Gaia slice of the view catalog (Tommy 19:00 knownAs lines). */
   gaiaCatalog?: CatalogSlice | null;
+  /** Tommy 19:40: show synthetic detection check (WISE 0855 / slide 6). */
+  showDetectionTrust?: boolean;
+  /** Extra cold-object limit sentence (WISE 0855). */
+  coldDetectionNote?: boolean;
   onPick: (index: number) => void;
   onStudy: (index: number) => void;
 }
@@ -26,6 +30,8 @@ export function CandidatesPanel({
   catalogPmRa = null,
   catalogPmDec = null,
   gaiaCatalog = null,
+  showDetectionTrust = false,
+  coldDetectionNote = false,
   onPick,
   onStudy,
 }: CandidatesPanelProps) {
@@ -101,6 +107,21 @@ export function CandidatesPanel({
           Too bright for SPHEREx to give a flux here ({data.saturated.length} saturated
           {data.saturated.length === 1 ? " star" : " stars"}).
         </p>
+      )}
+      {showDetectionTrust && (
+        <aside className="detection-trust" aria-label="How detection was checked">
+          <p className="detection-trust-kicker">How it was checked · synthetic</p>
+          <p className="detection-trust-line">
+            Tested on 2,560 synthetic stars added to real frames. A 0.3 mJy star moving 3″ per year
+            is found nine times in ten. No star that stood still was ever claimed.
+          </p>
+          {coldDetectionNote && (
+            <p className="detection-trust-cold">
+              Cold objects at 4–5 µm: limit about 0.5–1 mJy. WISE 0855 sits near 0.5 mJy — among the
+              faintest cold finds this tool can make.
+            </p>
+          )}
+        </aside>
       )}
     </section>
   );

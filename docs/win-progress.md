@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Tap a molecule, lock the sky:** click H₂O / CH₄ on Eps Indi’s spectrum to lock the movie to that infrared color — fingerprint becomes a control, not just a label.
+**Detection trust line (Tommy 19:40):** show the synthetic-star check on WISE 0855 — “0.3 mJy · 3″/yr found 9/10; never claimed a standstill” — with “synthetic” on screen.
 
 ## Backlog (phenomenal)
 
@@ -68,3 +68,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 19:45 | Tommy coords + hatched nodata + AI meta | 98 | 89 |
 | 19:50 | Eps Indi H₂O/CH₄ spectrum fingerprint | 98 | 89 |
 | 19:55 | Tap band → lock sky wavelength | 98 | 89 |
+| 20:00 | Synthetic detection trust line (WISE 0855) | 98 | 90 |

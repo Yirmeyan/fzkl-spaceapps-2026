@@ -2745,6 +2745,11 @@ export default function App() {
                 catalogPmRa={load.status === "ready" ? load.data.target.pm_ra : null}
                 catalogPmDec={load.status === "ready" ? load.data.target.pm_dec : null}
                 gaiaCatalog={gaiaForKnownAs}
+                showDetectionTrust={
+                  view.targetKey === "wise0855" ||
+                  (candidatesFile?.candidates.some((c) => c.kind === "moved") ?? false)
+                }
+                coldDetectionNote={view.targetKey === "wise0855"}
                 onPick={(index) => setActiveCandidate(index)}
                 onStudy={(index) => {
                   const c = candidatesFile?.candidates[index];

@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 20:00 ET — From: Nic — Kind: Shipped
+
+**Detection trust (Tommy 19:40):** candidates panel shows the 2,560 synthetic-star line (marked synthetic); WISE 0855 also gets the cold 0.5 mJy note. #71 band-click lock merged.
+
 ### 2026-11-14 19:55 ET — From: Nic — Kind: Shipped
 
 **Tap H₂O/CH₄ → lock sky λ:** band markers are controls; stage locks Match-this-λ near the molecule. #69 fingerprint bands merged.
