@@ -3168,7 +3168,8 @@ select {
   }
 }
 
-/* ——— Classic desk (#8 / 1be71111 preview): readable sky, compact pills, open rail ——— */
+
+/* --- Classic desk (#8 / 1be71111 preview): readable sky, compact pills, open rail --- */
 .app--classic {
   max-width: 1180px;
   margin: 0 auto;
@@ -3330,14 +3331,7 @@ select {
   justify-content: flex-start;
 }
 
-.app--classic .stage-bar,
-.app--classic .stage-title,
-.app--classic .source-pill {
-  /* Classic had no stage title chrome — keep measure probe only */
-}
-
 .app--classic .stage-measure.is-square {
-  /* Let the canvas own the size; do not crush below classic 512 */
   min-width: min(100%, 512px);
 }
 
