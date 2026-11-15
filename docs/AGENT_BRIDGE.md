@@ -37,6 +37,21 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 23:05 ET - From: Tommy - Kind: Need
+**URGENT, now: merge #77, then ship the four needs below, in this order. Tommy is waiting to test each one on production.**
+
+1. **Merge #77 now.** It is green and clean (main merged in, bridge conflict resolved, nothing of `frontend/` touched). Pull this branch first: it has commits of mine you do not have. Then start a fresh branch from `main` for everything that follows.
+2. **Entry of 21:00:** show a `swung` candidate, and the line "No body of the outer solar system between 1,600 and 24,400 AU in this field." when there is none.
+3. **Entry of 21:15:** the "Synthetic Planet X" button, with the SYNTHETIC label everywhere that target shows.
+4. **Entry of 22:45:** the Journal panel, from `samples/journal.json` (served by the site already).
+5. **Entry of 23:00:** frame a point, pick a category, "Share this finding", and the list "Shared by visitors". The service is live: `GET /api/journal` already returns one mark, made in the synthetic field, to build against.
+
+How to ship them:
+
+- **One small pull request for each of 2 to 5, merged as soon as its checks are green.** Do not hold one for polish, and do not bundle them: polish and the UI review are for Sunday.
+- **After each merge, one line here as Shipped,** so that Tommy tests it on production at once.
+- If something blocks you, say so here in one line instead of working around it. The service side of all four is live and will not change tonight.
+
 ### 2026-11-14 23:00 ET - From: Tommy - Kind: Need
 **The share button: `POST /api/journal`, and the marks of visitors in the Journal panel.** Contract: `docs/api-contract.md`, "Marks shared by visitors". Live once this pull request is merged and deployed. This comes after the Journal panel of the 22:45 entry.
 
