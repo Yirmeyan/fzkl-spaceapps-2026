@@ -24,12 +24,7 @@ import {
   stackPassClean,
   stackTrackingTarget,
 } from "./compose/stack";
-import {
-  type CandidatesFile,
-  discoveryFlashLine,
-  fetchCandidatesFile,
-  knownAs,
-} from "./data/candidates";
+import { type CandidatesFile, fetchCandidatesFile, knownAs } from "./data/candidates";
 import {
   type CatalogKey,
   type CatalogResponse,
@@ -111,6 +106,16 @@ const FIELD_PRESETS = {
   wide: { fov: 0.3, size: 256, label: "0.3° · 256²" },
 } as const;
 type FieldPreset = keyof typeof FIELD_PRESETS;
+
+type FieldCacheEntry = { data: DecodedBundle; source: "sample" | "live" };
+
+function fieldCacheKey(targetKey: string, target: Target, preset: FieldPreset): string {
+  const tk = normalizeTargetKey(targetKey);
+  if (!tk || tk === "custom") {
+    return `c:${target.ra.toFixed(5)},${target.dec.toFixed(5)}|${preset}`;
+  }
+  return `${tk}|${preset}`;
+}
 
 function meanPassTrail(frames: DecodedFrame[]): TrailPoint[] {
   const map = new Map<number, { sx: number; sy: number; n: number }>();
@@ -197,6 +202,9 @@ export default function App() {
   const [fieldPreset, setFieldPreset] = useState<FieldPreset>("default");
   const fieldPresetRef = useRef<FieldPreset>("default");
   fieldPresetRef.current = fieldPreset;
+  /** Instant FOV switch: both cutouts stay warm after first fetch. */
+  const fieldCacheRef = useRef<Map<string, FieldCacheEntry>>(new Map());
+  const fovPrefetchRef = useRef<string | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(true);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [spectrumWaiting, setSpectrumWaiting] = useState(false);
@@ -347,13 +355,30 @@ export default function App() {
   }, [eyepiece, splitVisits, load]);
 
   const loadFromService = useCallback(
-    async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
-      setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
-      setSpectrumPoints(null);
-      setCandidatesFile(null);
-      setActiveCandidate(null);
-      setSpectrumWaiting(true);
-      setCandidatesWaiting(true);
+    async (
+      target: Target,
+      signal: AbortSignal,
+      targetKey: string = "custom",
+      opts?: { keepFieldCache?: boolean },
+    ) => {
+      const fovOnly = opts?.keepFieldCache === true;
+      if (!fovOnly) {
+        fieldCacheRef.current.clear();
+        fovPrefetchRef.current = null;
+        setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
+        setSpectrumPoints(null);
+        setCandidatesFile(null);
+        setActiveCandidate(null);
+        setSpectrumWaiting(true);
+        setCandidatesWaiting(true);
+      } else {
+        // Keep current sky on screen while the other FOV loads (or use cache).
+        setLoad((prev) =>
+          prev.status === "ready"
+            ? prev
+            : { status: "loading", message: "Loading field of view…" },
+        );
+      }
       if (targetKey === "custom") {
         const extras: TargetExtras = {
           ra: target.ra,
@@ -368,31 +393,34 @@ export default function App() {
         skyTargetRef.current = null;
         setSkyTarget(null);
       }
-      // Spectrum in parallel with exposures/frames (chart waits separately, images do not).
-      const spectrumTask = fetchSpectrum(target, {}, signal)
-        .then((res) => {
-          if (!signal.aborted) setSpectrumPoints(res.points);
-        })
-        .catch(() => {
-          if (!signal.aborted) setSpectrumPoints(null);
-        })
-        .finally(() => {
-          if (!signal.aborted) setSpectrumWaiting(false);
-        });
-      // Candidates after first paint is fine; start now so cache warms (Tommy #44).
-      void fetchCandidates(target, signal)
-        .then((file) => {
-          if (!signal.aborted) {
-            setCandidatesFile(file);
-            setActiveCandidate(file.candidates.length > 0 ? 0 : null);
-          }
-        })
-        .catch(() => {
-          if (!signal.aborted) setCandidatesFile(null);
-        })
-        .finally(() => {
-          if (!signal.aborted) setCandidatesWaiting(false);
-        });
+      // Spectrum / candidates: skip on FOV-only swaps (same target, cutout size changes).
+      const spectrumTask = fovOnly
+        ? Promise.resolve()
+        : fetchSpectrum(target, {}, signal)
+            .then((res) => {
+              if (!signal.aborted) setSpectrumPoints(res.points);
+            })
+            .catch(() => {
+              if (!signal.aborted) setSpectrumPoints(null);
+            })
+            .finally(() => {
+              if (!signal.aborted) setSpectrumWaiting(false);
+            });
+      if (!fovOnly) {
+        void fetchCandidates(target, signal)
+          .then((file) => {
+            if (!signal.aborted) {
+              setCandidatesFile(file);
+              setActiveCandidate(file.candidates.length > 0 ? 0 : null);
+            }
+          })
+          .catch(() => {
+            if (!signal.aborted) setCandidatesFile(null);
+          })
+          .finally(() => {
+            if (!signal.aborted) setCandidatesWaiting(false);
+          });
+      }
 
       const field = FIELD_PRESETS[fieldPresetRef.current];
       const {
@@ -516,17 +544,23 @@ export default function App() {
         }
       }
 
+      const readyData = decodeBundle({
+        format: "spherex-explorer/bundle",
+        version: 1,
+        generated: new Date().toISOString(),
+        target: t,
+        grid,
+        exposures: priorExposures,
+        frames: priorFrames,
+      });
+      const preset = fieldPresetRef.current;
+      fieldCacheRef.current.set(fieldCacheKey(targetKey, t, preset), {
+        data: readyData,
+        source: "live",
+      });
       setLoad({
         status: "ready",
-        data: decodeBundle({
-          format: "spherex-explorer/bundle",
-          version: 1,
-          generated: new Date().toISOString(),
-          target: t,
-          grid,
-          exposures: priorExposures,
-          frames: priorFrames,
-        }),
+        data: readyData,
         source: "live",
       });
       await spectrumTask;
@@ -539,6 +573,96 @@ export default function App() {
     },
     [patchView],
   );
+
+  const applyFieldPreset = useCallback(
+    (next: FieldPreset) => {
+      if (fieldPreset === next) return;
+      setFieldPreset(next);
+      fieldPresetRef.current = next;
+      if (load.status !== "ready") return;
+      const t = load.data.target;
+      const tk = view.targetKey === "custom" ? "custom" : view.targetKey || "custom";
+      const hit = fieldCacheRef.current.get(fieldCacheKey(tk, t, next));
+      if (hit) {
+        setLoad({ status: "ready", data: hit.data, source: hit.source });
+        patchView({ frameIndex: 0, pass: null, playing: false, detector: null });
+        return;
+      }
+      const ac = new AbortController();
+      void loadFromService(t, ac.signal, tk, { keepFieldCache: true });
+    },
+    [fieldPreset, load, view.targetKey, loadFromService, patchView],
+  );
+
+  // Warm the other FOV in the background so the next click is instant.
+  useEffect(() => {
+    if (load.status !== "ready") return;
+    const other: FieldPreset = fieldPreset === "default" ? "wide" : "default";
+    const tk = view.targetKey === "custom" ? "custom" : view.targetKey || "custom";
+    const t = load.data.target;
+    const key = fieldCacheKey(tk, t, other);
+    if (fieldCacheRef.current.has(key)) return;
+    if (fovPrefetchRef.current === key) return;
+    fovPrefetchRef.current = key;
+    const ac = new AbortController();
+    const field = FIELD_PRESETS[other];
+    void (async () => {
+      try {
+        const {
+          target: tt,
+          grid,
+          exposures,
+        } = await fetchExposures(t, { fov: field.fov, size: field.size }, ac.signal);
+        if (ac.signal.aborted || exposures.length === 0) return;
+        const preferDet = tk === "wise0855" || /wise\s*0855/i.test(tt.name ?? "") ? 6 : 2;
+        const byDet = new Map<number, typeof exposures>();
+        for (const e of exposures) {
+          const list = byDet.get(e.detector) ?? [];
+          list.push(e);
+          byDet.set(e.detector, list);
+        }
+        const detOrder = [...byDet.keys()].sort((a, b) => {
+          if (a === preferDet) return -1;
+          if (b === preferDet) return 1;
+          return a - b;
+        });
+        const priorExposures: typeof exposures = [];
+        const priorFrames: Frame[] = [];
+        for (const det of detOrder) {
+          if (ac.signal.aborted) return;
+          const queue = byDet.get(det)!;
+          const batchFrames: (Frame | undefined)[] = new Array(queue.length);
+          await loadFramesProgressive(
+            queue,
+            tt,
+            grid,
+            (frame, index) => {
+              batchFrames[index] = frame;
+            },
+            { concurrency: 12, signal: ac.signal },
+          );
+          const finalized = batchFrames.filter(Boolean) as Frame[];
+          const got = new Set(finalized.map((f) => f.id));
+          priorExposures.push(...queue.filter((e) => got.has(e.id)));
+          priorFrames.push(...finalized);
+        }
+        if (ac.signal.aborted) return;
+        const data = decodeBundle({
+          format: "spherex-explorer/bundle",
+          version: 1,
+          generated: new Date().toISOString(),
+          target: tt,
+          grid,
+          exposures: priorExposures,
+          frames: priorFrames,
+        });
+        fieldCacheRef.current.set(key, { data, source: "live" });
+      } catch {
+        if (fovPrefetchRef.current === key) fovPrefetchRef.current = null;
+      }
+    })();
+    return () => ac.abort();
+  }, [load, fieldPreset, view.targetKey]);
 
   const loadKnownTarget = useCallback(
     async (key: string, signal: AbortSignal, preferLive = false) => {
@@ -636,6 +760,10 @@ export default function App() {
           const firstBundle = await fetchBundle(detectorBundleUrl(first.file), signal);
           if (signal.aborted) return;
           let merged = decodeBundle(firstBundle);
+          fieldCacheRef.current.set(fieldCacheKey(key, merged.target, "default"), {
+            data: merged,
+            source: "sample",
+          });
           setLoad({ status: "ready", data: merged, source: "sample" });
           // Honor deep-link frame/detector once; otherwise preferred detector at frame 0.
           const boot = deepLinkBootRef.current;
@@ -680,6 +808,10 @@ export default function App() {
               ]),
             };
             startTransition(() => {
+              fieldCacheRef.current.set(fieldCacheKey(key, merged.target, "default"), {
+                data: merged,
+                source: "sample",
+              });
               setLoad({ status: "ready", data: merged, source: "sample" });
             });
           }
@@ -706,6 +838,10 @@ export default function App() {
       const bundle = await fetchBundle(known.bundleUrl, signal);
       if (signal.aborted) return;
       const data = decodeBundle(bundle);
+      fieldCacheRef.current.set(fieldCacheKey(key, data.target, "default"), {
+        data,
+        source: "sample",
+      });
       setLoad({ status: "ready", data, source: "sample" });
       applyPresetDefaults(key, known.label);
     },
@@ -1206,51 +1342,33 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blinkPasses, view.mode, blinkA, blinkB, load, view.detector, patchView]);
 
-  // Cinematic arrival when the service first reports a target mover or changer.
+  // Halo pulse only (R Dra) — no "Found a mover" popup on every load (MatchVerdict covers it).
   useEffect(() => {
     if (!candidatesFile) {
       discoverySeenRef.current = null;
       setHaloPulse(null);
       setDiscoveryIsHalo(false);
+      setDiscoveryFlash(null);
       return;
     }
     const hit = candidatesFile.candidates.find(
-      (c) =>
-        c.is_target &&
-        ((c.kind === "moved" && c.motion) || (c.kind === "changed" && c.changes.length > 0)),
+      (c) => c.is_target && c.kind === "moved" && c.motion && c.method === "halo",
     );
     if (!hit) return;
-    const line = discoveryFlashLine(hit);
-    if (!line) return;
-    const key = `${hit.ra.toFixed(5)},${hit.dec.toFixed(5)},${hit.kind},${line}`;
+    const key = `halo:${hit.ra.toFixed(5)},${hit.dec.toFixed(5)}`;
     if (discoverySeenRef.current === key) return;
     discoverySeenRef.current = key;
-    const isHalo = hit.method === "halo";
-    setDiscoveryIsHalo(isHalo);
-    setDiscoveryFlash(line);
-
-    let pulseTimer: number | undefined;
-    if (isHalo) {
-      const grid = candidatesFile.grid;
-      const heart = hit.track[0];
-      const rArc = heart?.error_arcsec ?? 20;
-      const rGrid = (rArc / 3600 / grid.fov_deg) * grid.size;
-      setHaloPulse({
-        xFrac: hit.xy[0] / grid.size,
-        yFrac: hit.xy[1] / grid.size,
-        rPx: Math.max(28, rGrid * (displayPx / grid.size)),
-      });
-      pulseTimer = window.setTimeout(() => setHaloPulse(null), 2800);
-    }
-
-    const t = window.setTimeout(() => {
-      setDiscoveryFlash(null);
-      setDiscoveryIsHalo(false);
-    }, 3000);
-    return () => {
-      window.clearTimeout(t);
-      if (pulseTimer != null) window.clearTimeout(pulseTimer);
-    };
+    const grid = candidatesFile.grid;
+    const heart = hit.track[0];
+    const rArc = heart?.error_arcsec ?? 20;
+    const rGrid = (rArc / 3600 / grid.fov_deg) * grid.size;
+    setHaloPulse({
+      xFrac: hit.xy[0] / grid.size,
+      yFrac: hit.xy[1] / grid.size,
+      rPx: Math.max(28, rGrid * (displayPx / grid.size)),
+    });
+    const pulseTimer = window.setTimeout(() => setHaloPulse(null), 2800);
+    return () => window.clearTimeout(pulseTimer);
   }, [candidatesFile, displayPx]);
 
   // Capture the previous visit for a short afterimage so the hop is visible as a double exposure.
@@ -2884,47 +3002,23 @@ export default function App() {
               <button
                 type="button"
                 className={fieldPreset === "default" ? "active" : ""}
-                title="Tight cutout 0.1° · 128² (sample + archive)"
-                onClick={() => {
-                  if (fieldPreset === "default") return;
-                  setFieldPreset("default");
-                  fieldPresetRef.current = "default";
-                  if (load.status !== "ready") return;
-                  const t = load.data.target;
-                  const ac = new AbortController();
-                  void loadFromService(
-                    t,
-                    ac.signal,
-                    view.targetKey === "custom" ? "custom" : view.targetKey,
-                  );
-                }}
+                title="Tight cutout 0.1° · 128² — instant once cached"
+                onClick={() => applyFieldPreset("default")}
               >
                 0.1° · 128²
               </button>
               <button
                 type="button"
                 className={fieldPreset === "wide" ? "active" : ""}
-                title="Wider archive cutout 0.3° · 256² — more real pixels"
-                onClick={() => {
-                  if (fieldPreset === "wide") return;
-                  setFieldPreset("wide");
-                  fieldPresetRef.current = "wide";
-                  if (load.status !== "ready") return;
-                  const t = load.data.target;
-                  const ac = new AbortController();
-                  void loadFromService(
-                    t,
-                    ac.signal,
-                    view.targetKey === "custom" ? "custom" : view.targetKey,
-                  );
-                }}
+                title="Wider archive cutout 0.3° · 256² — prefetched in the background"
+                onClick={() => applyFieldPreset("wide")}
               >
                 0.3° · 256²
               </button>
               <span className="wave-chip">
                 {fieldPreset === "wide"
-                  ? "Wider = sharper from the live archive"
-                  : "Default sample size · try Wider for detail"}
+                  ? "Wider · 256² from archive (cached after first load)"
+                  : "Default · other FOV warms in the background"}
               </span>
             </fieldset>
 
