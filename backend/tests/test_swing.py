@@ -192,6 +192,22 @@ def test_two_visits_show_a_swing_but_not_the_motion_of_the_body():
     assert (body.rate_x, body.rate_y, body.rate_error) == (0.0, 0.0, 0.0)
 
 
+def test_a_bright_body_and_a_passing_source_do_not_make_a_second_body():
+    # A source shows during the first and the third visits only. It sits where a body
+    # twice as far out would be, if the bright body were that one during its second visit.
+    second = (X0 + 10.0 * side(2)[0], Y0 + 10.0 * side(2)[1])
+    passing = (second[0] + 40.0 * side(1)[0], second[1] + 40.0 * side(1)[1])
+
+    def scene(detector, visit, wavelength):
+        stars = swinging(10.0)(detector, visit, wavelength)
+        return stars if visit == 2 else [*stars, (*passing, 2.0)]
+
+    found = swings_of(scene)
+
+    assert len(found) == 1
+    assert found[0].parallax == pytest.approx(10.0, abs=0.2)
+
+
 # --- a visit of a few frames
 
 

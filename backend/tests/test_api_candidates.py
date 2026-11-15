@@ -189,6 +189,8 @@ def test_a_body_that_swings_comes_with_its_distance():
     assert len(out["candidates"]) == 1
     found = out["candidates"][0]
     assert (found["kind"], found["method"], found["confidence"]) == ("swung", "source", "high")
+    # The target was given where the Sun would see the body: the candidate is the target.
+    assert found["is_target"]
     # The place is where the Sun would see the body, and each sighting where a visit does.
     assert found["xy"] == pytest.approx((48.0, 50.0), abs=0.3)
     assert [sighting["pass"] for sighting in found["track"]] == [1, 2, 3]

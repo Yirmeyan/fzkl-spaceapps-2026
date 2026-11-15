@@ -9,7 +9,7 @@ Real SPHEREx data in the format of the [API contract](../docs/api-contract.md). 
 | `index.json` | The list of the bundles: targets, detectors, frames, wavelengths and sizes. The browser reads it first |
 | `<key>-d1.json` to `<key>-d6.json` | One [bundle](../docs/api-contract.md#the-bundle) per target and per detector: 30 files |
 | `<key>-spectrum.json` | The [spectrum](../docs/api-contract.md#the-spectrum-file) of a target, every detector together, without the images: 5 files of 60 to 130 kB |
-| `<key>-candidates.json` | The [candidates](../docs/api-contract.md#candidates) of the field of a target: the sources that moved or changed between the visits, found with no position given. 5 files of 1 to 2 kB |
+| `<key>-candidates.json` | The [candidates](../docs/api-contract.md#candidates) of the field of a target: the sources that moved, swung or changed between the visits, found with no position given. 5 files of 1 to 2 kB. None of the five fields holds a body that swings with the seasons: each file says between which distances one was looked for |
 | `<key>-catalog.json` | What [Gaia DR3 and AllWISE](../docs/api-contract.md#get-apicatalog) hold inside the view of a target, to draw over the images: 5 files of 11 to 38 kB, 60 to 90 sources of Gaia and 17 to 184 of AllWISE |
 | `check-sample.ts` | The script that checks a bundle, a spectrum file, a candidates file, a catalog file, or the index and every file it lists |
 

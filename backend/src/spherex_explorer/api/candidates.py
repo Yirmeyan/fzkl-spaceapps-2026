@@ -283,13 +283,23 @@ def _change_out(change: Change) -> ChangeOut:
 
 
 def _is_target(target: Target, grid: Grid, sightings: tuple[Sighting, ...]) -> bool:
-    """Is the source where the catalog puts the target, at the date of each visit?"""
+    """Is the source where the catalog puts the target, at the date of each visit?
+
+    Of a body that swings, the one sighting given is where the Sun would see it: no
+    catalog position holds a swing.
+    """
     for sighting in sightings:
         ra, dec = position_at(target, sighting.time_mjd)
         x, y = sky_to_grid(grid, np.array(ra), np.array(dec))
         if math.hypot(sighting.x - float(x), sighting.y - float(y)) > _SAME_AS_TARGET:
             return False
     return bool(sightings)
+
+
+def _seen_from_the_sun(source: FieldSource) -> tuple[Sighting, ...]:
+    """Where the Sun would see a body that swings, at the middle of its sightings."""
+    middle = float(np.mean([sighting.time_mjd for sighting in source.sightings]))
+    return (Sighting(0, middle, source.x, source.y, 0.0, ()),)
 
 
 def _candidate_out(target: Target, grid: Grid, candidate: Candidate) -> CandidateOut:
@@ -305,7 +315,9 @@ def _candidate_out(target: Target, grid: Grid, candidate: Candidate) -> Candidat
         method=_ON_THE_HALO if candidate.halo else _ON_THE_SOURCE,
         confidence=candidate.confidence,
         significance=round(candidate.significance, 1),
-        is_target=_is_target(target, grid, source.sightings),
+        is_target=_is_target(
+            target, grid, _seen_from_the_sun(source) if swung else source.sightings
+        ),
         ra=ra,
         dec=dec,
         epoch=round(

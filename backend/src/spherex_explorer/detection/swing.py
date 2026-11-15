@@ -278,8 +278,12 @@ class _Search:
             for other in self.visits:
                 if other == visit or np.hypot(*(at[other] - at[visit])) < _APART:
                     continue
+                there = self.still[other][path[:, 1], path[:, 0]]
+                if not np.isfinite(there).all():
+                    # A visit that did not look at the place cannot say it is empty.
+                    continue
                 checked += 1
-                if float(self.still[other][path[:, 1], path[:, 0]].max()) >= allowed:
+                if float(there.max()) >= allowed:
                     return False
         # One visit against one other, each way: under that nothing was checked.
         return checked >= 2
@@ -414,6 +418,16 @@ def _fitted(places: list[Place], swing: list[np.ndarray], significance: float) -
     )
 
 
+def _share_a_place(one: Swing, other: Swing) -> bool:
+    """Are two bodies at the same place during one of the visits?"""
+    return any(
+        here.pass_number == there.pass_number
+        and np.hypot(here.x - there.x, here.y - there.y) <= _SAME_BODY
+        for here in one.places
+        for there in other.places
+    )
+
+
 def find_swings(piles: Mapping[tuple[int, int], Pile], wobble: Wobble) -> tuple[Swing, ...]:
     """Bodies of the field that swing with the seasons, the surest first.
 
@@ -443,6 +457,8 @@ def find_swings(piles: Mapping[tuple[int, int], Pile], wobble: Wobble) -> tuple[
         if not close:
             continue
         swing = search.measured(max(close, key=lambda other: other.significance))
-        if swing is not None:
+        # Two bodies do not share a place: next to a bright body, its light and a source
+        # of the field can line up as a second, fainter one.
+        if swing is not None and not any(_share_a_place(swing, surer) for surer in swings):
             swings.append(swing)
     return tuple(sorted(swings, key=lambda swing: -swing.significance))
