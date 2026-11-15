@@ -3,7 +3,7 @@
 The words a visitor reads in the explorer, written for someone who has never heard of SPHEREx.
 This file is the reference for the labels, for the sentence under each control and for the welcome window.
 
-**Where it stands.** In the interface: the welcome window, the labels and the sentences below, kept in one table, `frontend/src/ui/copy.ts`, with a test that refuses the old words. Still to do: the place line above the picture, and the advanced tools closed at the first opening.
+**Where it stands.** In the interface: the welcome window, the labels and the sentences below, kept in one table, `frontend/src/ui/copy.ts`, with a test that refuses the old words. Also in: the place line above the picture, one fold named Advanced tools, closed at the first opening, that holds every setting, and a page that fits a phone without sideways scroll.
 
 ## Rules
 
@@ -87,7 +87,7 @@ The place line is new. It sits right above the picture and follows the place sho
 | Watch | Watch | Play the images one after the other. Each one is a slightly different infrared color. |
 | Blink | Blink | Flip between the first and the last visit. What jumps has moved. |
 | Move | Subtract | Subtract one visit from another. What stayed put disappears. What moved leaves a bright spot next to a dark one. |
-| More | Advanced | Every other setting, for people who want to dig. |
+| More | Average | Average the images of a visit. Faint objects such as WISE 0855 come out of the noise. |
 
 Under the picture:
 
@@ -99,7 +99,7 @@ Under the picture:
 | HOP | First visit, difference, last visit | Tap a picture to show it large. |
 | Visit 1 / Diff / Visit 3 | Visit 1, Aug 2025 / Difference / Visit 3, Aug 2026 | |
 | Share hop | removed | Copy link at the top does it, keeps the view, and works for a place opened by its coordinates. |
-| second row Blink, Move | Blink, Subtract | Still there: it goes away with the simple screen. |
+| second row Blink, Move | shown with the advanced tools | The row under the picture keeps Play and the slider. |
 
 ## Infrared cameras
 

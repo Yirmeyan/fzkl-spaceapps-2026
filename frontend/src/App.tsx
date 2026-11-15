@@ -90,13 +90,17 @@ import { browserStorage, rememberWelcome, welcomesAtOpening } from "./state/welc
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
 import { CandidatesPanel } from "./ui/CandidatesPanel";
 import {
+  ADVANCED,
   COLORS,
   COMBINE,
   CONTRAST,
   EXAMPLES,
   FLAGS,
+  FOUND,
   LOOK,
   PALETTE,
+  PANELS,
+  PLACE,
   PLAYER,
   SIZE,
   STRIP,
@@ -164,6 +168,9 @@ function uiModeFromView(mode: ComposeMode, blink: boolean): UiMode {
   if (mode === "stack" || mode === "track") return "more";
   return "watch";
 }
+
+/** While the images of a live place arrive, the film is drawn again this often, no more. */
+const LIVE_PAINT_MS = 700;
 
 type LoadState =
   | { status: "idle" }
@@ -330,6 +337,10 @@ export default function App() {
   const [demoLine, setDemoLine] = useState("");
   // Opens by itself at the first opening only. "How it works" opens it again through
   // `view.showHelp`, which the address carries.
+  /** Images of a live place still on their way while the film already plays. */
+  const [liveProgress, setLiveProgress] = useState<{ loaded: number; total: number } | null>(null);
+  /** Every setting of the picture lives in one fold, closed for a newcomer. */
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() =>
     welcomesAtOpening(window.location.search, browserStorage()),
   );
@@ -437,7 +448,8 @@ export default function App() {
         return;
       }
       // Prefer classic 512; only shrink if the column is truly narrower.
-      setDisplayPx(Math.max(400, Math.min(classic, maxByWidth || classic)));
+      // A phone gets the picture at the width of its screen: no floor wider than a phone.
+      setDisplayPx(Math.max(240, Math.min(classic, maxByWidth || classic)));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -460,7 +472,12 @@ export default function App() {
       if (!fovOnly) {
         fieldCacheRef.current.clear();
         fieldWarmRef.current.clear();
-        setLoad({ status: "loading", message: "SPHEREx archive. listing exposures…" });
+        setLoad({
+          status: "loading",
+          message:
+            "Asking the SPHEREx archive which images cover this place… It can take half a minute when the archive is busy.",
+        });
+        setLiveProgress(null);
         setSpectrumPoints(null);
         setCandidatesFile(null);
         setActiveCandidate(null);
@@ -550,7 +567,9 @@ export default function App() {
       let loadedTotal = 0;
       const grandTotal = exposures.length;
 
+      let lastPaint = 0;
       const publishLive = (exps: typeof exposures, frames: Frame[]) => {
+        lastPaint = performance.now();
         const partial: Bundle = {
           format: "spherex-explorer/bundle",
           version: 1,
@@ -560,9 +579,11 @@ export default function App() {
           exposures: exps,
           frames,
         };
-        startTransition(() => {
-          setLoad({ status: "ready", data: decodeBundle(partial), source: "live" });
-        });
+        // Urgent on purpose. Inside a transition, the images that kept arriving pushed this
+        // paint back until the last one: a place opened by its coordinates stayed blank for
+        // up to 45 seconds. The pace is held by LIVE_PAINT_MS instead.
+        setLoad({ status: "ready", data: decodeBundle(partial), source: "live" });
+        setLiveProgress({ loaded: loadedTotal, total: grandTotal });
       };
 
       for (let di = 0; di < detOrder.length; di++) {
@@ -575,7 +596,7 @@ export default function App() {
         if (di === 0) {
           setLoad({
             status: "loading",
-            message: `SPHEREx archive. detector ${det}…`,
+            message: `Loading the images of camera ${det}…`,
             loaded: 0,
             total: grandTotal,
           });
@@ -594,18 +615,16 @@ export default function App() {
             const kept = queue.filter((e) => got.has(e.id));
             const exps = [...priorExposures, ...kept];
             const frames = [...priorFrames, ...present];
-            const shouldPaint =
-              di === 0
-                ? batchLoaded === 1 || batchLoaded % 8 === 0 || batchLoaded === queue.length
-                : batchLoaded === queue.length || batchLoaded % 12 === 0;
-            if (shouldPaint) publishLive(exps, frames);
+            // The first image shows at once, then the film grows a few times a second.
+            const first = di === 0 && batchLoaded === 1;
+            if (first || performance.now() - lastPaint >= LIVE_PAINT_MS) publishLive(exps, frames);
             setLoad((prev) =>
               prev.status === "loading"
                 ? {
                     ...prev,
                     loaded: loadedTotal,
                     total: grandTotal,
-                    message: `Archive. D${det} ${batchLoaded}/${queue.length} · ${loadedTotal}/${grandTotal}`,
+                    message: `Loading the images: ${loadedTotal} of ${grandTotal}`,
                   }
                 : prev,
             );
@@ -656,6 +675,7 @@ export default function App() {
         data: readyData,
         source: "live",
       });
+      setLiveProgress(null);
       await spectrumTask;
       const known = targetByKey(targetKey);
       if (targetKey !== "custom") {
@@ -1011,7 +1031,8 @@ export default function App() {
           if (err.status === 404 || err.code === "not_found") {
             setLoad({
               status: "error",
-              message: "Unknown name, try coordinates.",
+              message:
+                "No object is known under this name. Check the spelling, or type coordinates.",
               retryable: true,
             });
             return;
@@ -2151,7 +2172,7 @@ export default function App() {
       if (err instanceof ApiError && (err.status === 404 || err.code === "not_found")) {
         setLoad({
           status: "error",
-          message: "Unknown name, try coordinates.",
+          message: "No object is known under this name. Check the spelling, or type coordinates.",
           retryable: true,
         });
         return;
@@ -2207,7 +2228,7 @@ export default function App() {
         if (err instanceof ApiError && (err.status === 404 || err.code === "not_found")) {
           setLoad({
             status: "error",
-            message: "Unknown name, try coordinates.",
+            message: "No object is known under this name. Check the spelling, or type coordinates.",
             retryable: true,
           });
           return;
@@ -2260,7 +2281,9 @@ export default function App() {
       <header className="top">
         <div className="brand-block">
           <p className="brand">SPHEREx Explorer</p>
-          <p className="tagline">Watch the near-infrared sky move — NASA Space Apps 2026</p>
+          <p className="tagline">
+            Watch the infrared sky change, visit after visit · NASA Space Apps 2026
+          </p>
         </div>
         <div className="top-actions">
           <HealthBadge />
@@ -2467,6 +2490,13 @@ export default function App() {
         <section className="viewer-pane stage" ref={stageRef}>
           {/* Invisible width probe: column width, not the square box (avoids circular sizing). */}
           <div className="stage-width-probe" ref={measureRef} aria-hidden="true" />
+          {load.status === "ready" && (
+            <p className="place-line" title={PLACE.hint}>
+              <strong>{load.data.target.name ?? targetName}</strong>
+              <span>{PLACE.coordinates(load.data.target.ra, load.data.target.dec)}</span>
+              {passes.length > 0 && <span>{PLACE.visits(passes.length)}</span>}
+            </p>
+          )}
           <div
             className={`stage-measure${splitPair ? " is-wide" : " is-square"}${shareArmed ? " is-share-armed" : ""}`}
             style={
@@ -2559,6 +2589,15 @@ export default function App() {
                 )}
               </div>
             )}
+            {load.status === "ready" &&
+              liveProgress &&
+              liveProgress.loaded < liveProgress.total && (
+                <div className="status-banner quiet" role="status">
+                  More images are arriving from the archive: {liveProgress.loaded} of{" "}
+                  {liveProgress.total}. You can already play the ones that are here.
+                  <progress value={liveProgress.loaded} max={liveProgress.total} />
+                </div>
+              )}
             {load.status === "error" && (
               <div className="status-banner error">
                 <span>{load.message}</span>
@@ -2984,82 +3023,86 @@ export default function App() {
                     title="Drag to pick a frame by hand"
                   />
                 )}
-                {!overlayActive && !blinkPasses && (
-                  <label className="fps-field" title="Playback speed (1–30)">
-                    FPS
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={fpsDraft}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, "");
-                        setFpsDraft(raw);
-                        if (raw === "") return;
-                        const n = Number(raw);
-                        if (n >= 1 && n <= 30) patchView({ fps: n });
+                {(advancedOpen || blinkPasses || ghostVisits || splitVisits) && (
+                  <>
+                    {!overlayActive && !blinkPasses && (
+                      <label className="fps-field" title="Playback speed (1–30)">
+                        FPS
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={fpsDraft}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, "");
+                            setFpsDraft(raw);
+                            if (raw === "") return;
+                            const n = Number(raw);
+                            if (n >= 1 && n <= 30) patchView({ fps: n });
+                          }}
+                          onBlur={() => {
+                            const n = Number(fpsDraft);
+                            const next =
+                              Number.isFinite(n) && n >= 1 ? Math.min(30, Math.floor(n)) : 24;
+                            setFpsDraft(String(next));
+                            if (next !== view.fps) patchView({ fps: next });
+                          }}
+                          aria-label="Frames per second"
+                        />
+                      </label>
+                    )}
+                    <button
+                      type="button"
+                      className={blinkPasses ? "active" : "ghost"}
+                      disabled={passes.length < 2}
+                      title={`${WAYS.compare.hint} (B)`}
+                      onClick={() => {
+                        if (blinkPasses) {
+                          setBlinkPasses(false);
+                          blinkWaveRef.current = null;
+                          patchView({ pass: null, mode: "single", waveUm: null });
+                        } else {
+                          setUiMode("compare");
+                        }
                       }}
-                      onBlur={() => {
-                        const n = Number(fpsDraft);
-                        const next =
-                          Number.isFinite(n) && n >= 1 ? Math.min(30, Math.floor(n)) : 24;
-                        setFpsDraft(String(next));
-                        if (next !== view.fps) patchView({ fps: next });
+                    >
+                      {blinkPasses ? "Stop blink" : WAYS.compare.label}
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost"
+                      disabled={passes.length < 2}
+                      title={WAYS.difference.hint}
+                      onClick={() => setUiMode("difference")}
+                    >
+                      {WAYS.difference.label}
+                    </button>
+                    <button
+                      type="button"
+                      className={ghostVisits ? "active" : "ghost"}
+                      disabled={passes.length < 2}
+                      title={PLAYER.overlay.hint}
+                      onClick={() => {
+                        setExclusiveOverlay(ghostVisits ? null : "ghost");
+                        patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
                       }}
-                      aria-label="Frames per second"
-                    />
-                  </label>
+                    >
+                      {PLAYER.overlay.label}
+                    </button>
+                    <button
+                      type="button"
+                      className={splitVisits ? "active" : "ghost"}
+                      disabled={passes.length < 2}
+                      title={PLAYER.sideBySide.hint}
+                      onClick={() => {
+                        setExclusiveOverlay(splitVisits ? null : "split");
+                        patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
+                      }}
+                    >
+                      {PLAYER.sideBySide.label}
+                    </button>
+                  </>
                 )}
-                <button
-                  type="button"
-                  className={blinkPasses ? "active" : "ghost"}
-                  disabled={passes.length < 2}
-                  title={`${WAYS.compare.hint} (B)`}
-                  onClick={() => {
-                    if (blinkPasses) {
-                      setBlinkPasses(false);
-                      blinkWaveRef.current = null;
-                      patchView({ pass: null, mode: "single", waveUm: null });
-                    } else {
-                      setUiMode("compare");
-                    }
-                  }}
-                >
-                  {blinkPasses ? "Stop blink" : WAYS.compare.label}
-                </button>
-                <button
-                  type="button"
-                  className="ghost"
-                  disabled={passes.length < 2}
-                  title={WAYS.difference.hint}
-                  onClick={() => setUiMode("difference")}
-                >
-                  {WAYS.difference.label}
-                </button>
-                <button
-                  type="button"
-                  className={ghostVisits ? "active" : "ghost"}
-                  disabled={passes.length < 2}
-                  title={PLAYER.overlay.hint}
-                  onClick={() => {
-                    setExclusiveOverlay(ghostVisits ? null : "ghost");
-                    patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
-                  }}
-                >
-                  {PLAYER.overlay.label}
-                </button>
-                <button
-                  type="button"
-                  className={splitVisits ? "active" : "ghost"}
-                  disabled={passes.length < 2}
-                  title={PLAYER.sideBySide.hint}
-                  onClick={() => {
-                    setExclusiveOverlay(splitVisits ? null : "split");
-                    patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
-                  }}
-                >
-                  {PLAYER.sideBySide.label}
-                </button>
               </div>
               {!overlayActive && (
                 <FrameCaption
@@ -3174,289 +3217,50 @@ export default function App() {
         </section>
 
         <aside className="side rail">
-          <div className="controls">
-            <fieldset>
-              <legend>{VISITS.label}</legend>
-              <button
-                type="button"
-                className={view.pass == null ? "active" : ""}
-                title={VISITS.all.hint}
-                onClick={() => {
-                  clearPresentationOverlays();
-                  patchView({ pass: null, frameIndex: 0, playing: false });
-                }}
-              >
-                {VISITS.all.label}
-              </button>
-              {passes.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={view.pass === p ? "active" : ""}
-                  title={VISITS.one(p).hint}
-                  onClick={() => {
-                    clearPresentationOverlays();
-                    patchView({ pass: p, frameIndex: 0, playing: false, mode: "single" });
-                  }}
-                >
-                  {p}
-                </button>
-              ))}
-              <p className="control-hint">
-                {view.pass == null ? VISITS.all.hint : VISITS.one(view.pass).hint}
-              </p>
-            </fieldset>
-
-            <fieldset>
-              <legend>{COMBINE.label}</legend>
-              {(["single", "stack", "difference", "track"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={view.mode === mode && !passMovie ? "active" : ""}
-                  title={COMBINE.options[mode].hint}
-                  onClick={() => {
-                    clearPresentationOverlays();
-                    setBlinkPasses(false);
-                    setPassMovie(false);
-                    setUiMode(
-                      mode === "difference" ? "difference" : mode === "single" ? "watch" : "more",
-                    );
-                    patchView({
-                      mode,
-                      playing: mode === "single" ? view.playing : false,
-                    });
-                  }}
-                >
-                  {COMBINE.options[mode].label}
-                </button>
-              ))}
-              <p className="control-hint">{COMBINE.options[view.mode].hint}</p>
-            </fieldset>
-
-            <fieldset>
-              <legend>{COLORS.label}</legend>
-              <button
-                type="button"
-                className={view.waveUm == null ? "active" : ""}
-                title={COLORS.all.hint}
-                onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
-              >
-                {COLORS.all.label}
-              </button>
-              <button
-                type="button"
-                className={view.waveUm != null ? "active" : ""}
-                disabled={!display || !("meta" in display) || !display.meta}
-                title={COLORS.thisOne.hint}
-                onClick={() => {
-                  if (!display || !("meta" in display) || !display.meta) return;
+          {(candidatesFile || candidatesWaiting) && (
+            <details className="rail-card details rail-secondary" open>
+              <summary title={FOUND.panel.hint}>{FOUND.panel.label}</summary>
+              <CandidatesPanel
+                data={candidatesFile}
+                waiting={candidatesWaiting}
+                activeIndex={activeCandidate}
+                detector={view.detector}
+                catalogPmRa={load.status === "ready" ? load.data.target.pm_ra : null}
+                catalogPmDec={load.status === "ready" ? load.data.target.pm_dec : null}
+                gaiaCatalog={gaiaForKnownAs}
+                showDetectionTrust={
+                  view.targetKey === "wise0855" ||
+                  (candidatesFile?.candidates.some((c) => c.kind === "moved") ?? false)
+                }
+                coldDetectionNote={view.targetKey === "wise0855"}
+                onPick={(index) => setActiveCandidate(index)}
+                onStudy={(index) => {
+                  const c = candidatesFile?.candidates[index];
+                  if (!c) return;
+                  const target: Target = {
+                    name: `Candidate ${index + 1}`,
+                    ra: c.ra,
+                    dec: c.dec,
+                    epoch: c.epoch,
+                    pm_ra: c.motion?.pm_ra ?? null,
+                    pm_dec: c.motion?.pm_dec ?? null,
+                  };
+                  const label = `${c.ra.toFixed(4)}, ${c.dec.toFixed(4)}`;
+                  setSearchInput(label);
                   patchView({
-                    waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
+                    targetKey: "custom",
+                    query: label,
+                    mode: "single",
+                    pass: null,
                     frameIndex: 0,
                     playing: false,
                   });
+                  const ac = new AbortController();
+                  void loadFromService(target, ac.signal, "custom");
                 }}
-              >
-                {COLORS.thisOne.label}
-              </button>
-              {view.waveUm != null && (
-                <span className="wave-chip">
-                  {view.waveUm.toFixed(3)} ± {view.waveTolUm.toFixed(3)} µm · {filtered.length}{" "}
-                  images
-                </span>
-              )}
-              <p className="control-hint">
-                {view.waveUm == null ? COLORS.all.hint : COLORS.thisOne.hint}
-              </p>
-            </fieldset>
-
-            <fieldset className="contrast-field">
-              <legend>{CONTRAST.label}</legend>
-              <label title={CONTRAST.hint}>
-                <span className="sr-only">{CONTRAST.label}</span>
-                <input
-                  type="range"
-                  min={0.4}
-                  max={3}
-                  step={0.1}
-                  value={contrastLive}
-                  onChange={(e) => setContrastLive(Number(e.target.value))}
-                  onPointerUp={() => {
-                    if (contrastLive !== view.contrast) patchView({ contrast: contrastLive });
-                  }}
-                  onKeyUp={() => {
-                    if (contrastLive !== view.contrast) patchView({ contrast: contrastLive });
-                  }}
-                  aria-label={CONTRAST.label}
-                />
-                <span>{contrastLive.toFixed(1)}×</span>
-              </label>
-              <p className="control-hint">{CONTRAST.hint}</p>
-            </fieldset>
-
-            <fieldset>
-              <legend>{PALETTE.label}</legend>
-              <button
-                type="button"
-                className={view.colorMap === "heat" ? "active" : ""}
-                title={PALETTE.heat.hint}
-                onClick={() => patchView({ colorMap: "heat" })}
-              >
-                {PALETTE.heat.label}
-              </button>
-              <button
-                type="button"
-                className={view.colorMap === "gray" ? "active" : ""}
-                title={PALETTE.gray.hint}
-                onClick={() => patchView({ colorMap: "gray" })}
-              >
-                {PALETTE.gray.label}
-              </button>
-              <p className="control-hint">
-                {view.colorMap === "heat" ? PALETTE.heat.hint : PALETTE.gray.hint}
-              </p>
-            </fieldset>
-
-            <fieldset>
-              <legend>{LOOK.label}</legend>
-              <button
-                type="button"
-                className={smoothScale ? "active" : ""}
-                title={LOOK.smooth.hint}
-                onClick={() => setSmoothScale(true)}
-              >
-                {LOOK.smooth.label}
-              </button>
-              <button
-                type="button"
-                className={!smoothScale ? "active" : ""}
-                title={LOOK.pixels.hint}
-                onClick={() => setSmoothScale(false)}
-              >
-                {LOOK.pixels.label}
-              </button>
-              <button
-                type="button"
-                className={showPathTrail ? "active" : ""}
-                title={LOOK.path.hint}
-                onClick={() => setShowPathTrail((v) => !v)}
-              >
-                {showPathTrail ? "Path on" : "Path off"}
-              </button>
-              <p className="control-hint">
-                {smoothScale ? LOOK.smooth.hint : LOOK.pixels.hint}
-                {showPathTrail ? ` ${LOOK.path.on}` : ""}
-              </p>
-            </fieldset>
-
-            <fieldset>
-              <legend>{SIZE.label}</legend>
-              <button
-                type="button"
-                className={fieldPreset === "default" ? "active" : ""}
-                title={SIZE.close.hint}
-                onClick={() => applyFieldPreset("default")}
-              >
-                {SIZE.close.label}
-              </button>
-              <button
-                type="button"
-                className={fieldPreset === "wide" ? "active" : ""}
-                title={SIZE.wide.hint}
-                onClick={() => applyFieldPreset("wide")}
-              >
-                {SIZE.wide.label}
-              </button>
-              <p className="control-hint">
-                {fieldPreset === "wide" ? SIZE.wide.hint : SIZE.close.hint}
-              </p>
-            </fieldset>
-
-            <fieldset>
-              <legend>{SURVEYS.label}</legend>
-              <button
-                type="button"
-                className={showGaia ? "active" : ""}
-                disabled={catalogError != null && !catalogFile}
-                title={SURVEYS.gaia.hint}
-                onClick={() => setShowGaia((v) => !v)}
-              >
-                {SURVEYS.gaia.label}
-              </button>
-              <button
-                type="button"
-                className={showAllwise ? "active" : ""}
-                disabled={catalogError != null && !catalogFile}
-                title={SURVEYS.wise.hint}
-                onClick={() => setShowAllwise((v) => !v)}
-              >
-                {SURVEYS.wise.label}
-              </button>
-              <button
-                type="button"
-                className={showAllwise && flightPath ? "active" : ""}
-                disabled={catalogError != null && !catalogFile}
-                title={SURVEYS.path.hint}
-                onClick={() => {
-                  setShowAllwise(true);
-                  setShowPathTrail(true);
-                  setFlightScrub(1);
-                }}
-              >
-                {SURVEYS.path.label}
-              </button>
-              <button
-                type="button"
-                className={flightPlaying ? "active" : ""}
-                disabled={(catalogError != null && !catalogFile) || flightPlaying}
-                title={SURVEYS.years.hint}
-                onClick={() => {
-                  setShowAllwise(true);
-                  setShowPathTrail(true);
-                  playFlightYears();
-                }}
-              >
-                {SURVEYS.years.label}
-              </button>
-              <p className="control-hint">{SURVEYS.group}</p>
-              {catalogWaiting && <span className="wave-chip">Asking catalogs…</span>}
-              {catalogError && <span className="wave-chip catalog-unavail">{catalogError}</span>}
-              {catalogTip && <span className="wave-chip catalog-tip">{catalogTip}</span>}
-            </fieldset>
-
-            {view.mode === "difference" && (
-              <fieldset className="diff-picks">
-                <legend>Passes A − B</legend>
-                <label>
-                  A
-                  <select
-                    value={view.diffPassA}
-                    onChange={(e) => patchView({ diffPassA: Number(e.target.value) })}
-                  >
-                    {passes.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  B
-                  <select
-                    value={view.diffPassB}
-                    onChange={(e) => patchView({ diffPassB: Number(e.target.value) })}
-                  >
-                    {passes.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </fieldset>
-            )}
-          </div>
+              />
+            </details>
+          )}
 
           {display && load.status === "ready" && display.meta && (
             <dl className="meta">
@@ -3534,7 +3338,7 @@ export default function App() {
             onToggle={(e) => setSkyContextOpen(e.currentTarget.open)}
           >
             <summary title="Where this cutout sits among the five challenge targets">
-              Sky context
+              {PANELS.sky}
             </summary>
             <SkyContextGlobe
               pins={CHALLENGE_SKY_PINS}
@@ -3548,51 +3352,6 @@ export default function App() {
               }}
             />
           </details>
-
-          {(candidatesFile || candidatesWaiting) && (
-            <details className="rail-card details rail-secondary" open>
-              <summary title="What moved or changed in this field">What moved</summary>
-              <CandidatesPanel
-                data={candidatesFile}
-                waiting={candidatesWaiting}
-                activeIndex={activeCandidate}
-                detector={view.detector}
-                catalogPmRa={load.status === "ready" ? load.data.target.pm_ra : null}
-                catalogPmDec={load.status === "ready" ? load.data.target.pm_dec : null}
-                gaiaCatalog={gaiaForKnownAs}
-                showDetectionTrust={
-                  view.targetKey === "wise0855" ||
-                  (candidatesFile?.candidates.some((c) => c.kind === "moved") ?? false)
-                }
-                coldDetectionNote={view.targetKey === "wise0855"}
-                onPick={(index) => setActiveCandidate(index)}
-                onStudy={(index) => {
-                  const c = candidatesFile?.candidates[index];
-                  if (!c) return;
-                  const target: Target = {
-                    name: `Candidate ${index + 1}`,
-                    ra: c.ra,
-                    dec: c.dec,
-                    epoch: c.epoch,
-                    pm_ra: c.motion?.pm_ra ?? null,
-                    pm_dec: c.motion?.pm_dec ?? null,
-                  };
-                  const label = `${c.ra.toFixed(4)}, ${c.dec.toFixed(4)}`;
-                  setSearchInput(label);
-                  patchView({
-                    targetKey: "custom",
-                    query: label,
-                    mode: "single",
-                    pass: null,
-                    frameIndex: 0,
-                    playing: false,
-                  });
-                  const ac = new AbortController();
-                  void loadFromService(target, ac.signal, "custom");
-                }}
-              />
-            </details>
-          )}
 
           {load.status === "ready" && (
             <details className="rail-card details rail-secondary" open>
@@ -3608,8 +3367,295 @@ export default function App() {
             </details>
           )}
 
-          <details className="rail-card details adjust-fold">
-            <summary title="Extra tools">More tools</summary>
+          <details
+            className="rail-card details adjust-fold"
+            open={advancedOpen}
+            onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
+          >
+            <summary title={ADVANCED.hint}>{ADVANCED.label}</summary>
+            <div className="controls">
+              <fieldset>
+                <legend>{VISITS.label}</legend>
+                <button
+                  type="button"
+                  className={view.pass == null ? "active" : ""}
+                  title={VISITS.all.hint}
+                  onClick={() => {
+                    clearPresentationOverlays();
+                    patchView({ pass: null, frameIndex: 0, playing: false });
+                  }}
+                >
+                  {VISITS.all.label}
+                </button>
+                {passes.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    className={view.pass === p ? "active" : ""}
+                    title={VISITS.one(p).hint}
+                    onClick={() => {
+                      clearPresentationOverlays();
+                      patchView({ pass: p, frameIndex: 0, playing: false, mode: "single" });
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <p className="control-hint">
+                  {view.pass == null ? VISITS.all.hint : VISITS.one(view.pass).hint}
+                </p>
+              </fieldset>
+
+              <fieldset>
+                <legend>{COMBINE.label}</legend>
+                {(["single", "stack", "difference", "track"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={view.mode === mode && !passMovie ? "active" : ""}
+                    title={COMBINE.options[mode].hint}
+                    onClick={() => {
+                      clearPresentationOverlays();
+                      setBlinkPasses(false);
+                      setPassMovie(false);
+                      setUiMode(
+                        mode === "difference" ? "difference" : mode === "single" ? "watch" : "more",
+                      );
+                      patchView({
+                        mode,
+                        playing: mode === "single" ? view.playing : false,
+                      });
+                    }}
+                  >
+                    {COMBINE.options[mode].label}
+                  </button>
+                ))}
+                <p className="control-hint">{COMBINE.options[view.mode].hint}</p>
+              </fieldset>
+
+              <fieldset>
+                <legend>{COLORS.label}</legend>
+                <button
+                  type="button"
+                  className={view.waveUm == null ? "active" : ""}
+                  title={COLORS.all.hint}
+                  onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
+                >
+                  {COLORS.all.label}
+                </button>
+                <button
+                  type="button"
+                  className={view.waveUm != null ? "active" : ""}
+                  disabled={!display || !("meta" in display) || !display.meta}
+                  title={COLORS.thisOne.hint}
+                  onClick={() => {
+                    if (!display || !("meta" in display) || !display.meta) return;
+                    patchView({
+                      waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
+                      frameIndex: 0,
+                      playing: false,
+                    });
+                  }}
+                >
+                  {COLORS.thisOne.label}
+                </button>
+                {view.waveUm != null && (
+                  <span className="wave-chip">
+                    {view.waveUm.toFixed(3)} ± {view.waveTolUm.toFixed(3)} µm · {filtered.length}{" "}
+                    images
+                  </span>
+                )}
+                <p className="control-hint">
+                  {view.waveUm == null ? COLORS.all.hint : COLORS.thisOne.hint}
+                </p>
+              </fieldset>
+
+              <fieldset className="contrast-field">
+                <legend>{CONTRAST.label}</legend>
+                <label title={CONTRAST.hint}>
+                  <span className="sr-only">{CONTRAST.label}</span>
+                  <input
+                    type="range"
+                    min={0.4}
+                    max={3}
+                    step={0.1}
+                    value={contrastLive}
+                    onChange={(e) => setContrastLive(Number(e.target.value))}
+                    onPointerUp={() => {
+                      if (contrastLive !== view.contrast) patchView({ contrast: contrastLive });
+                    }}
+                    onKeyUp={() => {
+                      if (contrastLive !== view.contrast) patchView({ contrast: contrastLive });
+                    }}
+                    aria-label={CONTRAST.label}
+                  />
+                  <span>{contrastLive.toFixed(1)}×</span>
+                </label>
+                <p className="control-hint">{CONTRAST.hint}</p>
+              </fieldset>
+
+              <fieldset>
+                <legend>{PALETTE.label}</legend>
+                <button
+                  type="button"
+                  className={view.colorMap === "heat" ? "active" : ""}
+                  title={PALETTE.heat.hint}
+                  onClick={() => patchView({ colorMap: "heat" })}
+                >
+                  {PALETTE.heat.label}
+                </button>
+                <button
+                  type="button"
+                  className={view.colorMap === "gray" ? "active" : ""}
+                  title={PALETTE.gray.hint}
+                  onClick={() => patchView({ colorMap: "gray" })}
+                >
+                  {PALETTE.gray.label}
+                </button>
+                <p className="control-hint">
+                  {view.colorMap === "heat" ? PALETTE.heat.hint : PALETTE.gray.hint}
+                </p>
+              </fieldset>
+
+              <fieldset>
+                <legend>{LOOK.label}</legend>
+                <button
+                  type="button"
+                  className={smoothScale ? "active" : ""}
+                  title={LOOK.smooth.hint}
+                  onClick={() => setSmoothScale(true)}
+                >
+                  {LOOK.smooth.label}
+                </button>
+                <button
+                  type="button"
+                  className={!smoothScale ? "active" : ""}
+                  title={LOOK.pixels.hint}
+                  onClick={() => setSmoothScale(false)}
+                >
+                  {LOOK.pixels.label}
+                </button>
+                <button
+                  type="button"
+                  className={showPathTrail ? "active" : ""}
+                  title={LOOK.path.hint}
+                  onClick={() => setShowPathTrail((v) => !v)}
+                >
+                  {showPathTrail ? "Path on" : "Path off"}
+                </button>
+                <p className="control-hint">
+                  {smoothScale ? LOOK.smooth.hint : LOOK.pixels.hint}
+                  {showPathTrail ? ` ${LOOK.path.on}` : ""}
+                </p>
+              </fieldset>
+
+              <fieldset>
+                <legend>{SIZE.label}</legend>
+                <button
+                  type="button"
+                  className={fieldPreset === "default" ? "active" : ""}
+                  title={SIZE.close.hint}
+                  onClick={() => applyFieldPreset("default")}
+                >
+                  {SIZE.close.label}
+                </button>
+                <button
+                  type="button"
+                  className={fieldPreset === "wide" ? "active" : ""}
+                  title={SIZE.wide.hint}
+                  onClick={() => applyFieldPreset("wide")}
+                >
+                  {SIZE.wide.label}
+                </button>
+                <p className="control-hint">
+                  {fieldPreset === "wide" ? SIZE.wide.hint : SIZE.close.hint}
+                </p>
+              </fieldset>
+
+              <fieldset>
+                <legend>{SURVEYS.label}</legend>
+                <button
+                  type="button"
+                  className={showGaia ? "active" : ""}
+                  disabled={catalogError != null && !catalogFile}
+                  title={SURVEYS.gaia.hint}
+                  onClick={() => setShowGaia((v) => !v)}
+                >
+                  {SURVEYS.gaia.label}
+                </button>
+                <button
+                  type="button"
+                  className={showAllwise ? "active" : ""}
+                  disabled={catalogError != null && !catalogFile}
+                  title={SURVEYS.wise.hint}
+                  onClick={() => setShowAllwise((v) => !v)}
+                >
+                  {SURVEYS.wise.label}
+                </button>
+                <button
+                  type="button"
+                  className={showAllwise && flightPath ? "active" : ""}
+                  disabled={catalogError != null && !catalogFile}
+                  title={SURVEYS.path.hint}
+                  onClick={() => {
+                    setShowAllwise(true);
+                    setShowPathTrail(true);
+                    setFlightScrub(1);
+                  }}
+                >
+                  {SURVEYS.path.label}
+                </button>
+                <button
+                  type="button"
+                  className={flightPlaying ? "active" : ""}
+                  disabled={(catalogError != null && !catalogFile) || flightPlaying}
+                  title={SURVEYS.years.hint}
+                  onClick={() => {
+                    setShowAllwise(true);
+                    setShowPathTrail(true);
+                    playFlightYears();
+                  }}
+                >
+                  {SURVEYS.years.label}
+                </button>
+                <p className="control-hint">{SURVEYS.group}</p>
+                {catalogWaiting && <span className="wave-chip">Asking catalogs…</span>}
+                {catalogError && <span className="wave-chip catalog-unavail">{catalogError}</span>}
+                {catalogTip && <span className="wave-chip catalog-tip">{catalogTip}</span>}
+              </fieldset>
+
+              {view.mode === "difference" && (
+                <fieldset className="diff-picks">
+                  <legend>Passes A − B</legend>
+                  <label>
+                    A
+                    <select
+                      value={view.diffPassA}
+                      onChange={(e) => patchView({ diffPassA: Number(e.target.value) })}
+                    >
+                      {passes.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    B
+                    <select
+                      value={view.diffPassB}
+                      onChange={(e) => patchView({ diffPassB: Number(e.target.value) })}
+                    >
+                      {passes.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </fieldset>
+              )}
+            </div>
 
             {load.status === "ready" && storyboard && (
               <div className="storyboard-fold-inner">
@@ -3827,7 +3873,7 @@ export default function App() {
               onToggle={(e) => setTimelineOpen((e.target as HTMLDetailsElement).open)}
             >
               <summary title="Spectrum and light curve. open for Epsilon Indi B / RW Aur">
-                Infrared timeline
+                {PANELS.timeline}
               </summary>
               <Charts
                 frames={filtered}
