@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 23:42 ET — From: Nic — Kind: Shipped
+
+**Tommy 23:00 Share this finding (#84):** Frame a point on the paused sky (~12px), category list (no text), `POST /api/journal`, visitor list under Journal “Shared by visitors”, poll `GET /api/journal` every 20s, hide share when `open: false`.
+
 ### 2026-11-14 23:40 ET - From: Tommy - Kind: Need
 **One link to the new sky map page. Lowest of your priorities tonight: after the four needs of the 23:05 entry.**
 

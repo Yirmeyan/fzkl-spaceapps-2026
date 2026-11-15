@@ -39,6 +39,8 @@ export interface SkyPlayerProps {
   flightPath?: FlightPath | null;
   /** 0 = AllWISE epoch, 1 = now — bead position on the flight path. */
   flightScrub?: number;
+  /** Visitor / share mark (~12 px frame). */
+  markXy?: [number, number] | null;
   className?: string;
   onFrameIndexChange?: (index: number) => void;
 }
@@ -70,6 +72,7 @@ export function SkyPlayer({
   catalogHighlightId = null,
   flightPath = null,
   flightScrub = 1,
+  markXy = null,
   className,
   onFrameIndexChange,
 }: SkyPlayerProps) {
@@ -91,6 +94,7 @@ export function SkyPlayer({
     catalogHighlightId,
     flightPath,
     flightScrub,
+    markXy,
   });
   candidatesRef.current = {
     candidates,
@@ -103,6 +107,7 @@ export function SkyPlayer({
     catalogHighlightId,
     flightPath,
     flightScrub,
+    markXy,
   };
   const onChangeRef = useRef(onFrameIndexChange);
   onChangeRef.current = onFrameIndexChange;
@@ -185,6 +190,14 @@ export function SkyPlayer({
     if (overlay.flightPath) {
       drawFlightPath(ctx, overlay.flightPath, overlay.flightScrub);
     }
+    if (overlay.markXy) {
+      const half = 6;
+      ctx.save();
+      ctx.strokeStyle = "rgba(251, 191, 36, 0.95)";
+      ctx.lineWidth = 1.4;
+      ctx.strokeRect(overlay.markXy[0] - half, overlay.markXy[1] - half, half * 2, half * 2);
+      ctx.restore();
+    }
   }
 
   useEffect(() => {
@@ -208,6 +221,7 @@ export function SkyPlayer({
     catalogHighlightId,
     flightPath,
     flightScrub,
+    markXy,
   ]);
 
   useEffect(() => {

@@ -1,6 +1,8 @@
 import {
   type CSSProperties,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   startTransition,
   useCallback,
   useEffect,
@@ -41,8 +43,11 @@ import {
   fetchCandidates,
   fetchCatalog,
   fetchExposures,
+  fetchJournalLive,
   fetchSpectrum,
+  type JournalShareCategory,
   loadFramesProgressive,
+  postJournalMark,
   resolveName,
 } from "./data/client";
 import type { Bundle, Frame, Grid, Target } from "./data/contract";
@@ -50,6 +55,7 @@ import {
   computeDisplayLimits,
   MASK_BIT_LEGEND,
   mjdToDate,
+  pixelToSky,
   skyToPixel,
   targetAt,
 } from "./data/contract";
@@ -93,6 +99,7 @@ import { MatchVerdict } from "./ui/MatchVerdict";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
 import { PassStackMovie } from "./ui/PassStackMovie";
+import { ShareFinding } from "./ui/ShareFinding";
 import { CHALLENGE_SKY_PINS, SkyContextGlobe } from "./ui/SkyContextGlobe";
 import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
@@ -212,7 +219,16 @@ export default function App() {
   }, [view.fps]);
   const [journalOpen, setJournalOpen] = useState(false);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [visitorEntries, setVisitorEntries] = useState<JournalEntry[]>([]);
+  const [journalLiveOpen, setJournalLiveOpen] = useState(false);
   const [journalMeasuringId, setJournalMeasuringId] = useState<string | null>(null);
+  const [shareArmed, setShareArmed] = useState(false);
+  const [shareMark, setShareMark] = useState<{ ra: number; dec: number } | null>(null);
+  const [shareCategory, setShareCategory] = useState<JournalShareCategory>("moved");
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  /** Seek to this exposure id after a journal open (visitor or team). */
+  const [pendingJournalFrame, setPendingJournalFrame] = useState<string | null>(null);
   useEffect(() => {
     const ac = new AbortController();
     void fetchJournalFile(ac.signal)
@@ -223,6 +239,28 @@ export default function App() {
         if (!ac.signal.aborted) setJournalEntries([]);
       });
     return () => ac.abort();
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    const pull = () => {
+      void fetchJournalLive()
+        .then((live) => {
+          if (cancelled) return;
+          setJournalLiveOpen(live.open);
+          setVisitorEntries(live.entries ?? []);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setJournalLiveOpen(false);
+          setVisitorEntries([]);
+        });
+    };
+    pull();
+    const id = window.setInterval(pull, 20_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }, []);
   /** Live contrast for the slider/sky; URL + heavy overlays commit on pointer up. */
   const [contrastLive, setContrastLive] = useState(view.contrast);
@@ -1096,6 +1134,13 @@ export default function App() {
       patchView({ frameIndex: filtered.length - 1 });
     }
   }, [filtered.length, view.frameIndex, patchView]);
+
+  useEffect(() => {
+    if (!pendingJournalFrame || filtered.length === 0) return;
+    const idx = filtered.findIndex((f) => f.frame.id === pendingJournalFrame);
+    setPendingJournalFrame(null);
+    if (idx >= 0) patchView({ frameIndex: idx, playing: false });
+  }, [pendingJournalFrame, filtered, patchView]);
 
   const onPlayerFrame = useCallback((index: number) => {
     setView((prev) => {
@@ -2284,20 +2329,33 @@ export default function App() {
         open={journalOpen}
         onClose={() => setJournalOpen(false)}
         teamEntries={journalEntries}
+        visitorEntries={visitorEntries}
         measuringId={journalMeasuringId}
         onOpen={(entry) => {
           setJournalOpen(false);
           setBlinkPasses(false);
+          setShareMark({ ra: entry.ra, dec: entry.dec });
+          setShareArmed(false);
+          setPendingJournalFrame(entry.view?.frame ?? null);
+          setShareStatus(
+            entry.source === "visitor" ? "Shared by a visitor, not measured yet" : null,
+          );
           if (entry.preset) {
             const uiKey = normalizeTargetKey(entry.preset);
-            patchView({ targetKey: uiKey, mode: "single", pass: null, playing: false });
+            patchView({
+              targetKey: uiKey,
+              mode: "single",
+              pass: entry.view?.pass ?? null,
+              detector: entry.view?.detector ?? null,
+              playing: false,
+            });
             return;
           }
           const t: Target = {
             name: entry.name,
             ra: entry.target.ra,
             dec: entry.target.dec,
-            epoch: entry.target.epoch,
+            epoch: entry.target.epoch ?? 2000,
             pm_ra: entry.target.pm_ra,
             pm_dec: entry.target.pm_dec,
           };
@@ -2308,7 +2366,8 @@ export default function App() {
             targetKey: "custom",
             query: label,
             mode: "single",
-            pass: null,
+            pass: entry.view?.pass ?? null,
+            detector: entry.view?.detector ?? null,
             frameIndex: 0,
             playing: false,
           });
@@ -2411,7 +2470,7 @@ export default function App() {
           {/* Invisible width probe: column width, not the square box (avoids circular sizing). */}
           <div className="stage-width-probe" ref={measureRef} aria-hidden="true" />
           <div
-            className={`stage-measure${splitPair ? " is-wide" : " is-square"}`}
+            className={`stage-measure${splitPair ? " is-wide" : " is-square"}${shareArmed ? " is-share-armed" : ""}`}
             style={
               {
                 ...(display?.meta?.frame.wavelength_um != null
@@ -2432,6 +2491,33 @@ export default function App() {
                 ? display.meta.frame.wavelength_um.toFixed(2)
                 : undefined
             }
+            {...(shareArmed
+              ? {
+                  role: "application" as const,
+                  tabIndex: 0,
+                  "aria-label": "Click the sky to drop a frame on what you see",
+                  onKeyDown: (e: ReactKeyboardEvent<HTMLDivElement>) => {
+                    if (e.key === "Escape") {
+                      setShareArmed(false);
+                      setShareStatus(null);
+                    }
+                  },
+                  onClick: (e: ReactMouseEvent<HTMLDivElement>) => {
+                    if (load.status !== "ready") return;
+                    const canvas = (e.target as HTMLElement).closest("canvas");
+                    if (!canvas) return;
+                    const rect = canvas.getBoundingClientRect();
+                    if (rect.width < 8 || rect.height < 8) return;
+                    const grid = load.data.grid;
+                    const x = ((e.clientX - rect.left) / rect.width) * grid.size;
+                    const y = ((e.clientY - rect.top) / rect.height) * grid.size;
+                    const [ra, dec] = pixelToSky(grid, x, y);
+                    setShareMark({ ra, dec });
+                    setShareArmed(false);
+                    setShareStatus("Frame set. Pick a category and share.");
+                  },
+                }
+              : {})}
           >
             {(targetByKey(view.targetKey)?.synthetic || candidatesFile?.synthetic) && (
               <p className="synthetic-banner" role="status">
@@ -2648,6 +2734,11 @@ export default function App() {
                     catalogHighlightId={catalogHighlightId ?? flightPath?.sourceId ?? null}
                     flightPath={showPathTrail ? flightPath : null}
                     flightScrub={flightScrub}
+                    markXy={
+                      shareMark && load.status === "ready"
+                        ? skyToPixel(load.data.grid, shareMark.ra, shareMark.dec)
+                        : null
+                    }
                     onFrameIndexChange={onPlayerFrame}
                   />
                   {flightPath && (
@@ -2988,6 +3079,81 @@ export default function App() {
                   hasCatalogMotion={hasCatalogMotion}
                 />
               )}
+              <ShareFinding
+                open={journalLiveOpen && load.status === "ready" && !eyepiece}
+                armed={shareArmed}
+                hasMark={shareMark != null}
+                category={shareCategory}
+                status={shareStatus}
+                busy={shareBusy}
+                onToggleArm={() => {
+                  const next = !shareArmed;
+                  setShareArmed(next);
+                  if (next) {
+                    patchView({ playing: false });
+                    setShareStatus("Click the sky to drop a small frame on what you see.");
+                  } else {
+                    setShareStatus(null);
+                  }
+                }}
+                onCategory={setShareCategory}
+                onClear={() => {
+                  setShareMark(null);
+                  setShareStatus(null);
+                  setShareArmed(false);
+                }}
+                onShare={() => {
+                  if (!shareMark || load.status !== "ready") return;
+                  const t = load.data.target;
+                  const preset =
+                    view.targetKey !== "custom"
+                      ? (INDEX_KEY_BY_UI[view.targetKey] ?? view.targetKey)
+                      : undefined;
+                  setShareBusy(true);
+                  setShareStatus(null);
+                  void postJournalMark({
+                    ra: shareMark.ra,
+                    dec: shareMark.dec,
+                    category: shareCategory,
+                    target: {
+                      ra: t.ra,
+                      dec: t.dec,
+                      epoch: t.epoch,
+                      pm_ra: t.pm_ra,
+                      pm_dec: t.pm_dec,
+                    },
+                    preset,
+                    detector: view.detector ?? undefined,
+                    pass: view.pass ?? display?.meta?.exposure.pass,
+                    frame: display?.meta?.frame.id,
+                  })
+                    .then((res) => {
+                      setVisitorEntries((prev) => [
+                        res.entry,
+                        ...prev.filter((e) => e.id !== res.entry.id),
+                      ]);
+                      setShareStatus(
+                        res.status === 200 ? "Someone already shared this place." : "Shared.",
+                      );
+                      setShareArmed(false);
+                    })
+                    .catch((err: unknown) => {
+                      if (err instanceof ApiError) {
+                        if (err.code === "too_many_marks") {
+                          setShareStatus("Five marks an hour. Try again later.");
+                          return;
+                        }
+                        if (err.code === "journal_full" || err.code === "journal_closed") {
+                          setJournalLiveOpen(false);
+                          setShareStatus("Sharing is closed right now.");
+                          return;
+                        }
+                      }
+                      setShareStatus("Could not share. Try again.");
+                    })
+                    .finally(() => setShareBusy(false));
+                }}
+              />
               {!eyepiece && (
                 <details className="viewer-guide-fold" open>
                   <summary>What you are looking at</summary>

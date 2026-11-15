@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop
 
-**Sky context globe:** compact celestial sphere in the classic rail — five challenge pins, pointing ray + FOV ring for the active cutout, click-to-load. Caption: cutout on the sky, not a fake survey coverage map.
+**This loop’s wow:** Share a finding — click-to-frame a place on the paused sky (no free text), category + POST /api/journal, visitor marks under Journal. Tommy 23:00.
 
 ## Backlog
 
