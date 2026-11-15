@@ -181,8 +181,23 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
     page.notice.hidden = true;
   }
 
-  const map = new SkyMap(engine, page.map, view, layerOf(view.layer));
   const frames = axis ? usableFrames(axis) : [];
+  // The frame the slider is on, or null for a sky that is not a cube.
+  function frameAsked(): number | null {
+    if (!axis || !layerOf(view.layer).cube) {
+      return null;
+    }
+    return frames[Number(page.slider.value)] ?? frames[0];
+  }
+  if (axis) {
+    page.slider.max = String(frames.length - 1);
+    page.slider.value = String(Math.max(0, frames.indexOf(nearestFrame(view.wavelength, axis))));
+  }
+
+  const map = new SkyMap(engine, page.map, view, layerOf(view.layer), frameAsked(), axis);
+  map.onLayerFailure((layer) => {
+    say(page, `The sky "${layer.label}" did not load. Choose another one in the list below.`);
+  });
   let selected: Place | null = null;
 
   function writeAddress(): void {
@@ -200,24 +215,23 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
     resting = setTimeout(writeAddress, ADDRESS_DELAY_MS);
   }
 
-  function showFrameOfSlider(): void {
-    if (!axis) {
+  // What the page says of the frame the slider is on.
+  function sayFrame(): void {
+    const frame = frameAsked();
+    if (frame === null || !axis) {
       return;
     }
-    const frame = frames[Number(page.slider.value)] ?? frames[0];
-    map.showFrame(frame, axis);
     page.waveSaid.textContent = frameLabel(frame, axis);
     view.wavelength = wavelengthOf(frame, axis) ?? view.wavelength;
   }
 
-  function showLayer(): void {
+  // What the page says of the layer the map is on.
+  function sayLayer(): void {
     const layer = layerOf(view.layer);
     page.layer.value = layer.key;
     page.credit.textContent = `Image: ${layer.credit}. Map engine: Aladin Lite, CDS.`;
     page.wave.hidden = !layer.cube;
-    if (layer.cube) {
-      showFrameOfSlider();
-    }
+    sayFrame();
   }
 
   // The pin follows its place while the map moves: one look at the map for each frame
@@ -251,24 +265,25 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
     }
   }
 
-  if (axis) {
-    page.slider.max = String(frames.length - 1);
-    page.slider.value = String(Math.max(0, frames.indexOf(nearestFrame(view.wavelength, axis))));
-  }
   for (const option of Array.from(page.layer.options)) {
     option.disabled = axis === null && layerOf(option.value).cube;
   }
-  showLayer();
+  sayLayer();
   writeAddress();
 
   page.layer.addEventListener("change", () => {
     view.layer = layerOf(page.layer.value).key;
-    map.show(layerOf(view.layer));
-    showLayer();
+    page.notice.hidden = true;
+    map.show(layerOf(view.layer), frameAsked(), axis);
+    sayLayer();
     writeAddress();
   });
   page.slider.addEventListener("input", () => {
-    showFrameOfSlider();
+    const frame = frameAsked();
+    if (frame !== null && axis) {
+      map.showFrame(frame, axis);
+    }
+    sayFrame();
     moved();
   });
   page.cardClose.addEventListener("click", () => select(null));

@@ -17,14 +17,19 @@ import { NARROWEST_FOV, WIDEST_FOV } from "./view";
 // Typed as a plain string: the compiler must not look for this module on disk.
 export const ENGINE_URL: string = "https://cdn.jsdelivr.net/npm/aladin-lite@3.8.2/dist/aladin.js";
 const LOAD_TIMEOUT_MS = 30_000;
-// A layer is ready for a frame once the engine has read what the archive says of it,
-// and the engine does not tell when. The frame is asked at these delays, in
-// milliseconds: asking twice costs nothing, the engine keeps what it has.
-const FRAME_RETRIES_MS = [0, 300, 1000, 2500, 6000];
+// A layer that has not said it is ready after this long is counted as failed.
+const LAYER_TIMEOUT_MS = 20_000;
 const BACKGROUND = "rgb(7, 11, 18)";
 
 interface EngineLayer {
-  setSliceNumber?: (slice: number) => void;
+  setSliceNumber(slice: number): void;
+}
+
+interface EngineLayerOptions {
+  name: string;
+  /** Called once the engine has read what the archive says of the layer. */
+  successCallback: () => void;
+  errorCallback: () => void;
 }
 
 interface EngineView {
@@ -32,16 +37,16 @@ interface EngineView {
   getFov(): ArrayLike<number>;
   pix2world(x: number, y: number): ArrayLike<number> | null | undefined;
   world2pix(ra: number, dec: number): ArrayLike<number> | null | undefined;
-  setBaseImageLayer(url: string): void;
-  // Nothing until the engine has read what the archive says of the layer.
-  getBaseImageLayer(): EngineLayer | undefined;
+  setBaseImageLayer(layer: EngineLayer): void;
   on(what: string, listener: () => void): void;
   setFoVRange?: (narrowest: number, widest: number) => void;
+  setBackgroundColor?: (color: string) => void;
 }
 
 export interface Engine {
   init: Promise<unknown>;
   aladin(element: HTMLElement, options: Record<string, unknown>): EngineView;
+  HiPS(url: string, options: EngineLayerOptions): EngineLayer;
 }
 
 export interface Place {
@@ -67,7 +72,11 @@ function isEngine(value: unknown): value is Engine {
     return false;
   }
   const candidate = value as Record<string, unknown>;
-  return typeof candidate.aladin === "function" && candidate.init instanceof Promise;
+  return (
+    typeof candidate.aladin === "function" &&
+    typeof candidate.HiPS === "function" &&
+    candidate.init instanceof Promise
+  );
 }
 
 function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
@@ -123,18 +132,29 @@ export function loadEngine(): Promise<Engine> {
 
 /** The map, as the page uses it. */
 export class SkyMap {
+  private readonly engine: Engine;
   private readonly view: EngineView;
-  // Rises at each change of layer or frame: a retry of an older one sees it and stops.
-  private asked = 0;
+  private layer: EngineLayer | null = null;
+  // True once the layer on the map has said it is ready: a frame asked before waits.
+  private ready = false;
+  private slice: number | null = null;
+  private failed: (layer: SkyLayer) => void = () => {};
 
+  /**
+   * `frame` and `axis` choose the frame of a cube, and are null for any other layer.
+   */
   constructor(
     engine: Engine,
     element: HTMLElement,
     start: Place & { fov: number },
     layer: SkyLayer,
+    frame: number | null,
+    axis: CubeAxis | null,
   ) {
+    this.engine = engine;
     try {
       this.view = engine.aladin(element, {
+        // Named here too: left alone, the engine would start on a sky of its own choice.
         survey: layer.url,
         target: `${start.ra} ${start.dec}`,
         fov: start.fov,
@@ -164,34 +184,56 @@ export class SkyMap {
       throw new MapUnavailable("The map could not be drawn in this browser.", error);
     }
     this.view.setFoVRange?.(NARROWEST_FOV, WIDEST_FOV);
+    this.view.setBackgroundColor?.(BACKGROUND);
+    this.show(layer, frame, axis);
   }
 
-  /** Change the sky shown. */
-  show(layer: SkyLayer): void {
-    this.asked += 1;
-    this.view.setBaseImageLayer(layer.url);
+  /** Change the sky shown. `frame` and `axis` as for the constructor. */
+  show(layer: SkyLayer, frame: number | null, axis: CubeAxis | null): void {
+    this.ready = false;
+    this.slice = frame !== null && axis !== null ? sliceForFrame(frame, axis) : null;
+    const giveUp = setTimeout(() => {
+      if (this.layer === made && !this.ready) {
+        this.failed(layer);
+      }
+    }, LAYER_TIMEOUT_MS);
+    const made: EngineLayer = this.engine.HiPS(layer.url, {
+      name: layer.label,
+      successCallback: () => {
+        clearTimeout(giveUp);
+        // A layer the visitor has already left says nothing to the map.
+        if (this.layer === made) {
+          this.ready = true;
+          this.give();
+        }
+      },
+      errorCallback: () => {
+        clearTimeout(giveUp);
+        if (this.layer === made) {
+          this.failed(layer);
+        }
+      },
+    });
+    this.layer = made;
+    this.view.setBaseImageLayer(made);
   }
 
   /** Show one frame of the cube the map is on. */
   showFrame(frame: number, axis: CubeAxis): void {
-    this.asked += 1;
-    const asked = this.asked;
-    const slice = sliceForFrame(frame, axis);
-    const last = FRAME_RETRIES_MS[FRAME_RETRIES_MS.length - 1];
-    for (const delay of FRAME_RETRIES_MS) {
-      setTimeout(() => {
-        if (asked !== this.asked) {
-          return;
-        }
-        // Asked of the layer the map is on at this moment: a layer that was not ready
-        // a moment ago is found here once it is.
-        const layer = this.view.getBaseImageLayer();
-        if (layer?.setSliceNumber) {
-          layer.setSliceNumber(slice);
-        } else if (delay === last) {
-          console.warn("The sky map could not choose a wavelength: the layer never got ready.");
-        }
-      }, delay);
+    this.slice = sliceForFrame(frame, axis);
+    if (this.ready) {
+      this.give();
+    }
+  }
+
+  /** Call `listener` when a sky could not be loaded. */
+  onLayerFailure(listener: (layer: SkyLayer) => void): void {
+    this.failed = listener;
+  }
+
+  private give(): void {
+    if (this.layer !== null && this.slice !== null) {
+      this.layer.setSliceNumber(this.slice);
     }
   }
 
