@@ -111,6 +111,10 @@ async def measure_exposure(
     return SpectrumPoint(listed, time_mjd, wavelength, bandwidth, photometry)
 
 
+def _date(point: SpectrumPoint) -> float:
+    return point.time_mjd
+
+
 async def measure_spectrum(
     archive: ExposureArchive,
     source: FrameSource,
@@ -151,5 +155,7 @@ async def measure_spectrum(
             f"{len(failures)} exposures of {len(chosen)} could not be read",
             retry_after_s=_RETRY_AFTER_S,
         ) from failures[0]
-    points = tuple(point for point in measured if point is not None)
-    return Spectrum(target=target, points=points)
+    # The date of a point is read in its file. Two detectors that expose together carry
+    # dates a fraction of a second apart, and not always in the order of the list.
+    points = sorted((point for point in measured if point is not None), key=_date)
+    return Spectrum(target=target, points=tuple(points))
