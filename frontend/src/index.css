@@ -3293,7 +3293,17 @@ select {
 }
 
 .app--classic .mode-tabs {
-  display: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+}
+
+.app--classic .mode-tabs button {
+  padding: 0.45rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .app--classic .main,
@@ -3563,7 +3573,12 @@ select {
 
 .app--classic .hop-proof-wrap,
 .app--classic .detector-dial {
-  display: none;
+  display: flex;
+  width: 100%;
+}
+
+.app--classic .detector-dial {
+  flex-direction: column;
 }
 
 .app--classic .rail-secondary > summary,

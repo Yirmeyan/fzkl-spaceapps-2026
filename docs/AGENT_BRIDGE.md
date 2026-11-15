@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 20:50 ET — From: Nic — Kind: Shipped
+
+**Full product on classic shell (human):** Watch/Blink/Move/More tabs back; transport Blink+Move+Blend+Split; hop strip + detector dial unhidden; What moved + Catalog hop + spectrum open; Blink locks λ first. Soft/Sharp, FOV 256², Gaia/AllWISE kept. Not a stripped demo.
+
 ### 2026-11-14 20:45 ET — From: Nic — Kind: Shipped
 
 **Classic desk restore (human → #8 / Pages `1be71111`):** compact target pills, PASS/MODE/λ/Contrast/Color rail, full Date/Frame meta, ViewerGuide bullets, Play+FPS. Sky display back to **512 CSS px** (grid×4) — fit-desk was crushing the star into mush.

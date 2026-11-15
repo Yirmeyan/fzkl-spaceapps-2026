@@ -197,7 +197,7 @@ export default function App() {
   const [fieldPreset, setFieldPreset] = useState<FieldPreset>("default");
   const fieldPresetRef = useRef<FieldPreset>("default");
   fieldPresetRef.current = fieldPreset;
-  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(true);
   const [spectrumPoints, setSpectrumPoints] = useState<SpectrumPoint[] | null>(null);
   const [spectrumWaiting, setSpectrumWaiting] = useState(false);
   const [candidatesFile, setCandidatesFile] = useState<CandidatesFile | null>(null);
@@ -1288,14 +1288,16 @@ export default function App() {
       return;
     }
     if (next === "compare") {
+      // Lock λ first (navigator advice): blink at the same band, not the spectrum.
       const cur = filtered[Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))];
-      blinkWaveRef.current = view.waveUm ?? cur?.frame.wavelength_um ?? null;
+      const wave = view.waveUm ?? cur?.frame.wavelength_um ?? null;
+      blinkWaveRef.current = wave;
       patchView({
         mode: "single",
         pass: blinkA,
         playing: false,
         frameIndex: 0,
-        waveUm: null,
+        waveUm: wave != null ? Number(Number(wave).toFixed(4)) : null,
       });
       setBlinkPasses(true);
       return;
@@ -2103,6 +2105,27 @@ export default function App() {
       </form>
       <p className="search-hint">Try: Luhman 16 · 133.7951, -7.2451 · 08h55m10.8s -07d14m43s</p>
 
+      <nav className="mode-tabs" aria-label="What do you want to do?">
+        {(
+          [
+            ["watch", "Watch", "Play infrared frames — each frame is a slightly different color"],
+            ["compare", "Blink", "Flip early ↔ late visits at the same λ so the hop is obvious"],
+            ["difference", "Move", "Subtract two visits: bright/dark pair = motion"],
+            ["more", "More", "Average stack, tracking, and filters"],
+          ] as [UiMode, string, string][]
+        ).map(([id, label, tip]) => (
+          <button
+            key={id}
+            type="button"
+            className={uiMode === id ? "active" : ""}
+            title={tip}
+            onClick={() => setUiMode(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
       <main className="main workspace">
         <section className="viewer-pane stage" ref={stageRef}>
           {/* Invisible width probe: column width, not the square box (avoids circular sizing). */}
@@ -2610,6 +2633,32 @@ export default function App() {
                 )}
                 <button
                   type="button"
+                  className={blinkPasses ? "active" : "ghost"}
+                  disabled={passes.length < 2}
+                  title="Blink early ↔ late visits at the same infrared color (B)"
+                  onClick={() => {
+                    if (blinkPasses) {
+                      setBlinkPasses(false);
+                      blinkWaveRef.current = null;
+                      patchView({ pass: null, mode: "single", waveUm: null });
+                    } else {
+                      setUiMode("compare");
+                    }
+                  }}
+                >
+                  {blinkPasses ? "Stop blink" : "Blink"}
+                </button>
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={passes.length < 2}
+                  title="Difference two visits — bright/dark pair = motion"
+                  onClick={() => setUiMode("difference")}
+                >
+                  Move
+                </button>
+                <button
+                  type="button"
                   className={ghostVisits ? "active" : "ghost"}
                   disabled={passes.length < 2}
                   title="Overlay early and late visits (G)"
@@ -2632,19 +2681,6 @@ export default function App() {
                 >
                   Split
                 </button>
-                {blinkPasses && (
-                  <button
-                    type="button"
-                    className="active"
-                    onClick={() => {
-                      setBlinkPasses(false);
-                      blinkWaveRef.current = null;
-                      patchView({ pass: null, mode: "single" });
-                    }}
-                  >
-                    Stop blink
-                  </button>
-                )}
               </div>
               {!overlayActive && (
                 <FrameCaption
@@ -3045,7 +3081,7 @@ export default function App() {
           )}
 
           {(candidatesFile || candidatesWaiting) && (
-            <details className="rail-card details rail-secondary">
+            <details className="rail-card details rail-secondary" open>
               <summary title="What moved or changed in this field">What moved</summary>
               <CandidatesPanel
                 data={candidatesFile}
@@ -3089,17 +3125,20 @@ export default function App() {
             </details>
           )}
 
-          <details className="rail-card details adjust-fold">
-            <summary title="Extra tools">More tools</summary>
-
-            {load.status === "ready" && (
+          {load.status === "ready" && (
+            <details className="rail-card details rail-secondary" open>
+              <summary title="How far the catalog says the star hops">Catalog hop</summary>
               <MotionInsight
                 grid={load.data.grid}
                 trail={trail}
                 targetName={load.data.target.name ?? targetName}
                 hasCatalogMotion={hasCatalogMotion}
               />
-            )}
+            </details>
+          )}
+
+          <details className="rail-card details adjust-fold">
+            <summary title="Extra tools">More tools</summary>
 
             {load.status === "ready" && storyboard && (
               <div className="storyboard-fold-inner">
