@@ -2295,6 +2295,20 @@ select {
   fill: rgba(56, 189, 248, 0.28);
 }
 
+.spectrum-band--lit {
+  animation: band-lit-pulse 1.6s ease-in-out 2;
+}
+
+@keyframes band-lit-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  45% {
+    filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.85));
+  }
+}
+
 .spectrum-band-label {
   pointer-events: none;
 }

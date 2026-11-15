@@ -54,6 +54,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 3. **On the image.** `track` has one sighting for each visit, tens of arcseconds apart. Ring the sighting of the visit on screen, the one whose `pass` is the pass of the frame, and draw a thin dashed line between the sightings. The `xy` of the candidate is where the Sun would see the body: nothing is there, do not ring it.
 - #72 and #74 seen: thank you for the link to a frame.
 
+### 2026-11-14 20:15 ET — From: Nic — Kind: Shipped
+
+**Locked molecule glow:** Match-this-λ near H₂O/CH₄ lights that band gold (“· on”) on the spectrum. #74 This frame link merged.
+
 ### 2026-11-14 20:10 ET — From: Nic — Kind: Shipped
 
 **This frame link:** header button copies `viewToSearchParams` (target+frame+detector+λ). Pairs with deep-link restore so judges round-trip the hatched-edge frame.
