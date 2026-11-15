@@ -35,6 +35,8 @@ export interface SkyPlayerProps {
   catalogEnabled?: Set<string>;
   catalogHighlightId?: string | null;
   flightPath?: FlightPath | null;
+  /** 0 = AllWISE epoch, 1 = now — bead position on the flight path. */
+  flightScrub?: number;
   className?: string;
   onFrameIndexChange?: (index: number) => void;
 }
@@ -64,6 +66,7 @@ export function SkyPlayer({
   catalogEnabled,
   catalogHighlightId = null,
   flightPath = null,
+  flightScrub = 1,
   className,
   onFrameIndexChange,
 }: SkyPlayerProps) {
@@ -84,6 +87,7 @@ export function SkyPlayer({
     catalogEnabled: catalogEnabled ?? new Set<string>(),
     catalogHighlightId,
     flightPath,
+    flightScrub,
   });
   candidatesRef.current = {
     candidates,
@@ -95,6 +99,7 @@ export function SkyPlayer({
     catalogEnabled: catalogEnabled ?? new Set<string>(),
     catalogHighlightId,
     flightPath,
+    flightScrub,
   };
   const onChangeRef = useRef(onFrameIndexChange);
   onChangeRef.current = onFrameIndexChange;
@@ -175,7 +180,7 @@ export function SkyPlayer({
       );
     }
     if (overlay.flightPath) {
-      drawFlightPath(ctx, overlay.flightPath);
+      drawFlightPath(ctx, overlay.flightPath, overlay.flightScrub);
     }
   }
 
@@ -199,6 +204,7 @@ export function SkyPlayer({
     catalogEnabled,
     catalogHighlightId,
     flightPath,
+    flightScrub,
   ]);
 
   useEffect(() => {

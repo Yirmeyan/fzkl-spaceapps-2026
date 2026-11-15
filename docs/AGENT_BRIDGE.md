@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:35 ET — From: Nic — Kind: Shipped
+
+**Scrub / Play years on AllWISE path:** gold bead slides 2010→now; under-stage scrubber + Play years (2.4s ease). #64 SPIFF badge merged.
+
 ### 2026-11-14 19:30 ET — From: Nic — Kind: Shipped
 
 **SPIFF trust badge (Tommy 19:10):** Epsilon Indi B spectrum shows “Within 2 percent of the published SPIFF library” with a short pulse. #63 classic desk + AllWISE flight path merged.

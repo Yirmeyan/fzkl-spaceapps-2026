@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**SPIFF trust badge:** on Epsilon Indi B’s spectrum, a one-line NASA-judge proof — “Within 2 percent of the published SPIFF library” (Tommy 19:10) — with a soft pulse so the check is impossible to miss.
+**Scrub the years:** with AllWISE flight path on, drag (or Play years) to slide a bead from 2010 → now along the trek — judges feel decades of proper motion in two seconds.
 
 ## Backlog (phenomenal)
 
@@ -63,3 +63,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 19:20 | Classic desk style (4px pills, Syne, PASS/λ) | 98 | 88 |
 | 19:25 | AllWISE 2010→now flight path on sky | 98 | 88 |
 | 19:30 | SPIFF “within 2%” badge on Eps Ind spectrum | 98 | 88 |
+| 19:35 | Scrub / Play years on AllWISE flight path | 98 | 88 |
