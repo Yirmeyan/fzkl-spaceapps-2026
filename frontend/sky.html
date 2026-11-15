@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="The whole sky as SPHEREx sees it, in 102 wavelengths. Click a place to watch it change over time. NASA Space Apps Challenge 2026, team Foxtrot Zulu Kilo Lima."
+    />
+    <meta
+      name="ai-disclosure"
+      content="Most of the code of this site was written by AI assistants directed by the team. See the README of the repository."
+    />
+    <title>Sky map · SPHEREx Explorer</title>
+    <!-- The map engine comes from another site: the browser checks that it received
+         these exact bytes, where it knows how to. -->
+    <script type="importmap">
+      {
+        "integrity": {
+          "https://cdn.jsdelivr.net/npm/aladin-lite@3.8.2/dist/aladin.js": "sha256-vtnI7x0eg1AbHLeCNmCSxyxezRyI8W/vMWYYiugGIGY="
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="sky-root"></div>
+    <noscript>The sky map needs JavaScript. SPHEREx Explorer is at the root of this site.</noscript>
+    <script type="module" src="/src/sky/main.ts"></script>
+  </body>
+</html>
