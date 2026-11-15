@@ -3309,6 +3309,7 @@ export default function App() {
                   setDiscoveryFlash(`Sky locked near ${label} · ${um.toFixed(1)} µm`);
                   window.setTimeout(() => setDiscoveryFlash(null), 2800);
                 }}
+                lockedWaveUm={view.waveUm}
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                 onSelectFrame={(index) => {
                   clearPresentationOverlays();

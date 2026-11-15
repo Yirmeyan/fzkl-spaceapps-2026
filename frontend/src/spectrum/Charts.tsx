@@ -15,6 +15,8 @@ interface ChartsProps {
   bandMarkers?: SpectrumBand[] | null;
   /** Click a band to lock the sky movie near that wavelength. */
   onBandPick?: (um: number, label: string) => void;
+  /** Current Match-this-λ lock (µm); lights the matching molecule band. */
+  lockedWaveUm?: number | null;
   activeIndex: number;
   onSelectFrame?: (index: number) => void;
 }
@@ -42,6 +44,7 @@ export function Charts({
   spiffLine = null,
   bandMarkers = null,
   onBandPick,
+  lockedWaveUm = null,
   activeIndex,
   onSelectFrame,
 }: ChartsProps) {
@@ -118,6 +121,7 @@ export function Charts({
             highlightDetector={highlightDetector}
             bands={bandMarkers ?? undefined}
             onBandPick={onBandPick}
+            lockedWaveUm={lockedWaveUm}
             onPick={(id) => {
               const idx = frames.findIndex((f) => f.frame.id === id);
               if (idx >= 0) onSelectFrame?.(idx);
@@ -280,6 +284,7 @@ function FluxSvg({
   highlightDetector = null,
   bands,
   onBandPick,
+  lockedWaveUm = null,
 }: {
   points: FluxPoint[];
   xLabel: string;
@@ -290,6 +295,7 @@ function FluxSvg({
   highlightDetector?: number | null;
   bands?: SpectrumBand[];
   onBandPick?: (um: number, label: string) => void;
+  lockedWaveUm?: number | null;
 }) {
   const w = 320;
   const h = 140;
@@ -329,11 +335,14 @@ function FluxSvg({
         const x1 = sx(Math.min(maxX, b.um + half));
         const cx = sx(b.um);
         if (cx < padL || cx > w - padR) return null;
+        const lit = lockedWaveUm != null && Math.abs(lockedWaveUm - b.um) <= Math.max(half, 0.08);
         return (
           // biome-ignore lint/a11y/useSemanticElements: SVG band hit target
           <g
             key={`${b.label}-${b.um}`}
-            className={`spectrum-band${onBandPick ? " spectrum-band--hot" : ""}`}
+            className={`spectrum-band${onBandPick ? " spectrum-band--hot" : ""}${
+              lit ? " spectrum-band--lit" : ""
+            }`}
             role="button"
             tabIndex={onBandPick ? 0 : undefined}
             style={{ cursor: onBandPick ? "pointer" : undefined }}
@@ -346,34 +355,40 @@ function FluxSvg({
               }
             }}
           >
-            <title>{`Lock sky near ${b.label} (${b.um.toFixed(1)} µm)`}</title>
+            <title>
+              {lit
+                ? `Sky locked near ${b.label} (${b.um.toFixed(1)} µm)`
+                : `Lock sky near ${b.label} (${b.um.toFixed(1)} µm)`}
+            </title>
             <rect
               x={x0}
               y={padT}
               width={Math.max(2, x1 - x0)}
               height={h - padT - padB}
-              fill="rgba(56, 189, 248, 0.12)"
-              stroke="none"
+              fill={lit ? "rgba(251, 191, 36, 0.22)" : "rgba(56, 189, 248, 0.12)"}
+              stroke={lit ? "rgba(251, 191, 36, 0.7)" : "none"}
+              strokeWidth={lit ? 1 : 0}
             />
             <line
               x1={cx}
               x2={cx}
               y1={padT}
               y2={h - padB}
-              stroke="rgba(125, 211, 252, 0.85)"
-              strokeWidth="1"
-              strokeDasharray="3 2"
+              stroke={lit ? "#fbbf24" : "rgba(125, 211, 252, 0.85)"}
+              strokeWidth={lit ? 1.6 : 1}
+              strokeDasharray={lit ? undefined : "3 2"}
             />
             <text
               x={cx + 3}
               y={padT + 9}
               className="spectrum-band-label"
-              fill="#7dd3fc"
+              fill={lit ? "#fbbf24" : "#7dd3fc"}
               fontSize="8"
               fontFamily="IBM Plex Sans, sans-serif"
-              fontWeight="600"
+              fontWeight="700"
             >
               {b.label}
+              {lit ? " · on" : ""}
             </text>
           </g>
         );
