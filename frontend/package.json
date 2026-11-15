@@ -2,6 +2,7 @@
   "name": "spherex-explorer-frontend",
   "private": true,
   "version": "0.1.0",
+  "description": "SPHEREx Explorer web client for NASA Space Apps 2026. Most of the code of this site was written by AI assistants directed by the team. See the README of the repository.",
   "type": "module",
   "scripts": {
     "samples": "node scripts/copy-samples.mjs",

@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:45 ET — From: Nic — Kind: Shipped
+
+**Tommy 19:15 (all three):** sexagesimal search (`08h55m10.831s -7d14m42.53s` → degrees) + hint line; hatched no-data pixels + edge caption when `valid_fraction` < 95%; `ai-disclosure` meta + package.json description. #67 years deep-link merged.
+
 ### 2026-11-14 19:40 ET — From: Nic — Kind: Shipped
 
 **`?years=1` jury deep-link + Years link copy:** auto AllWISE + Play years; WISE 0855 whispers the Planet X line. #66 scrub/Play years merged.

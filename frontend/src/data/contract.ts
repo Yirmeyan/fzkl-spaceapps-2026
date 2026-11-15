@@ -282,7 +282,7 @@ function residualToRgb(
 /**
  * Render one frame to RGBA. Subtracts background, soft asinh between lo/hi.
  * Default heat colormap (IR false color). NaN+OVERFLOW → top of scale;
- * other NaN → sky at the frame background level (no punched-out holes).
+ * other NaN (no data) → neutral gray with thin hatching (Tommy 19:15) — never a scale color.
  */
 export function renderFrameToRgba(
   pixels: Float32Array,
@@ -315,11 +315,14 @@ export function renderFrameToRgba(
         rgba[o + 2] = b;
         rgba[o + 3] = 255;
       } else {
-        // Missing value, not saturated: paint as background so holes blend with sky.
-        const [r, g, b] = residualToRgb(0, lo, hi, soft, denom, colorMap);
-        rgba[o] = r;
+        // Missing value: hatched neutral gray so the detector edge is not mistaken for sky.
+        const x = i % size;
+        const y = (i / size) | 0;
+        const hatch = ((x + y) & 3) === 0 || ((x - y) & 3) === 0;
+        const g = hatch ? 88 : 118;
+        rgba[o] = g;
         rgba[o + 1] = g;
-        rgba[o + 2] = b;
+        rgba[o + 2] = g + 6;
         rgba[o + 3] = 255;
       }
       continue;

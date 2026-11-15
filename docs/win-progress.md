@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Jury deep-link `?years=1`:** one URL auto-arms AllWISE + Play years; on WISE 0855 a Planet X whisper fires — shareable hunt moment for slide 6.
+**Tommy 19:15 (judge-saver):** accept sexagesimal coords in search; hatched no-data pixels + edge line; AI disclosure meta in `index.html` + `package.json`.
 
 ## Backlog (phenomenal)
 
@@ -65,3 +65,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 19:30 | SPIFF “within 2%” badge on Eps Ind spectrum | 98 | 88 |
 | 19:35 | Scrub / Play years on AllWISE flight path | 98 | 88 |
 | 19:40 | ?years=1 deep-link + Planet X whisper | 98 | 88 |
+| 19:45 | Tommy coords + hatched nodata + AI meta | 98 | 89 |
