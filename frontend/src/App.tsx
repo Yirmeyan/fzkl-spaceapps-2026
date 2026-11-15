@@ -55,6 +55,7 @@ import {
 } from "./data/contract";
 import { parseCoordinateQuery } from "./data/coords";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
+import { fetchJournalFile, type JournalEntry } from "./data/journal";
 import {
   candidatesFileUrl,
   catalogFileUrl,
@@ -87,6 +88,7 @@ import { GhostVisits } from "./ui/GhostVisits";
 import { HealthBadge } from "./ui/HealthBadge";
 import { HelpPanel } from "./ui/HelpPanel";
 import { type HopProofPick, HopProofStrip } from "./ui/HopProofStrip";
+import { JournalPanel } from "./ui/JournalPanel";
 import { MatchVerdict } from "./ui/MatchVerdict";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
@@ -208,6 +210,20 @@ export default function App() {
   useEffect(() => {
     setFpsDraft(String(view.fps));
   }, [view.fps]);
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [journalMeasuringId, setJournalMeasuringId] = useState<string | null>(null);
+  useEffect(() => {
+    const ac = new AbortController();
+    void fetchJournalFile(ac.signal)
+      .then((file) => {
+        if (!ac.signal.aborted) setJournalEntries(file.entries);
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setJournalEntries([]);
+      });
+    return () => ac.abort();
+  }, []);
   /** Live contrast for the slider/sky; URL + heavy overlays commit on pointer up. */
   const [contrastLive, setContrastLive] = useState(view.contrast);
   useEffect(() => {
@@ -2210,6 +2226,14 @@ export default function App() {
         </div>
         <div className="top-actions">
           <HealthBadge />
+          <button
+            type="button"
+            className="ghost"
+            title="What the search found in the fields we checked"
+            onClick={() => setJournalOpen(true)}
+          >
+            Journal
+          </button>
           <details className="jury-tools">
             <summary title="Demo and share tools">Share</summary>
             {cinema && (
@@ -2255,6 +2279,45 @@ export default function App() {
       {demoPhase !== "idle" && <AutoDemoBanner line={demoLine} onSkip={stopAutoDemo} />}
 
       <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
+
+      <JournalPanel
+        open={journalOpen}
+        onClose={() => setJournalOpen(false)}
+        teamEntries={journalEntries}
+        measuringId={journalMeasuringId}
+        onOpen={(entry) => {
+          setJournalOpen(false);
+          setBlinkPasses(false);
+          if (entry.preset) {
+            const uiKey = normalizeTargetKey(entry.preset);
+            patchView({ targetKey: uiKey, mode: "single", pass: null, playing: false });
+            return;
+          }
+          const t: Target = {
+            name: entry.name,
+            ra: entry.target.ra,
+            dec: entry.target.dec,
+            epoch: entry.target.epoch,
+            pm_ra: entry.target.pm_ra,
+            pm_dec: entry.target.pm_dec,
+          };
+          const label = `${entry.target.ra.toFixed(4)}, ${entry.target.dec.toFixed(4)}`;
+          setSearchInput(label);
+          setJournalMeasuringId(entry.id);
+          patchView({
+            targetKey: "custom",
+            query: label,
+            mode: "single",
+            pass: null,
+            frameIndex: 0,
+            playing: false,
+          });
+          const ac = new AbortController();
+          void loadFromService(t, ac.signal, "custom").finally(() => {
+            setJournalMeasuringId(null);
+          });
+        }}
+      />
 
       <nav className="targets" aria-label="Challenge test targets">
         {KNOWN_TARGETS.filter((t) => !t.synthetic).map((t) => {

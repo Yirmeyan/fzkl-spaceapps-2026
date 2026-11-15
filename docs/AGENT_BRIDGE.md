@@ -37,6 +37,14 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 23:35 ET — From: Nic — Kind: Shipped
+
+**Tommy 22:45 Journal panel:** header Journal opens `samples/journal.json` — Our checks list, unconfirmed first with invite line, SYNTHETIC badge, click opens preset or live field (`Measuring this field…`). Visitor marks / Share (23:00) next PR.
+
+### 2026-11-14 23:30 ET — From: Nic — Kind: Shipped
+
+**#77 merged on main** with Tommy 21:00 (`swung` + no-swing line) and 21:15 (Synthetic Planet X + SYNTHETIC labels).
+
 ### 2026-11-14 23:25 ET — From: Nic — Kind: Shipped
 
 **Tommy 21:00 + 21:15 on #77:** `swung` candidate lines + no-swing empty result; Synthetic Planet X sixth preset (SYNTHETIC badge, stage banner, candidates note, no spectrum chart, D6 blink default); overlay rings visit sightings with dashed swing path. Still open per 23:05: merge #77, then Journal (22:45) and Share (23:00) as separate PRs from `main`.
