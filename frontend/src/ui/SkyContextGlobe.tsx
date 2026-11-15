@@ -79,7 +79,7 @@ function project(
 
 /**
  * Compact celestial-sphere context: five challenge pins + FOV cone.
- * Canvas only — no Three.js weight. Honest cutout orientation, not a survey map.
+ * Canvas wireframe only — no Three.js weight. Orientation aid, not a survey map.
  */
 export function SkyContextGlobe({
   pins,
@@ -146,96 +146,61 @@ export function SkyContextGlobe({
 
       ctx.clearRect(0, 0, w, h);
 
-      // Sphere shell
-      const grd = ctx.createRadialGradient(cx - R * 0.25, cy - R * 0.3, R * 0.1, cx, cy, R);
-      grd.addColorStop(0, "#1a2740");
-      grd.addColorStop(0.7, "#0b1220");
-      grd.addColorStop(1, "#070b12");
+      // Glass sphere: outline only so the pointing ray reads through the volume.
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.fillStyle = grd;
-      ctx.fill();
-      ctx.strokeStyle = "rgba(143, 163, 187, 0.35)";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(143, 163, 187, 0.45)";
+      ctx.lineWidth = 1.1;
       ctx.stroke();
 
-      // Meridians / parallels (subtle)
-      ctx.strokeStyle = "rgba(143, 163, 187, 0.12)";
-      ctx.lineWidth = 1;
-      for (let i = -2; i <= 2; i++) {
-        const dec = (i * 30 * Math.PI) / 180;
-        ctx.beginPath();
-        let started = false;
-        for (let ra = 0; ra <= 360; ra += 6) {
-          const v = raDecToVec(ra, (dec * 180) / Math.PI);
-          const p = project(v, basis, cx, cy, R);
-          if (p.depth < -0.05) {
-            started = false;
-            continue;
+      const strokeGrid = (back: boolean) => {
+        ctx.strokeStyle = back ? "rgba(143, 163, 187, 0.08)" : "rgba(143, 163, 187, 0.22)";
+        ctx.lineWidth = 1;
+        for (let i = -2; i <= 2; i++) {
+          const dec = (i * 30 * Math.PI) / 180;
+          ctx.beginPath();
+          let started = false;
+          for (let ra = 0; ra <= 360; ra += 6) {
+            const v = raDecToVec(ra, (dec * 180) / Math.PI);
+            const p = project(v, basis, cx, cy, R);
+            const isBack = p.depth < 0;
+            if (isBack !== back) {
+              started = false;
+              continue;
+            }
+            if (!started) {
+              ctx.moveTo(p.sx, p.sy);
+              started = true;
+            } else ctx.lineTo(p.sx, p.sy);
           }
-          if (!started) {
-            ctx.moveTo(p.sx, p.sy);
-            started = true;
-          } else ctx.lineTo(p.sx, p.sy);
+          ctx.stroke();
         }
-        ctx.stroke();
-      }
-      for (let ra = 0; ra < 360; ra += 45) {
-        ctx.beginPath();
-        let started = false;
-        for (let dec = -90; dec <= 90; dec += 6) {
-          const v = raDecToVec(ra, dec);
-          const p = project(v, basis, cx, cy, R);
-          if (p.depth < -0.05) {
-            started = false;
-            continue;
+        for (let ra = 0; ra < 360; ra += 45) {
+          ctx.beginPath();
+          let started = false;
+          for (let dec = -90; dec <= 90; dec += 6) {
+            const v = raDecToVec(ra, dec);
+            const p = project(v, basis, cx, cy, R);
+            const isBack = p.depth < 0;
+            if (isBack !== back) {
+              started = false;
+              continue;
+            }
+            if (!started) {
+              ctx.moveTo(p.sx, p.sy);
+              started = true;
+            } else ctx.lineTo(p.sx, p.sy);
           }
-          if (!started) {
-            ctx.moveTo(p.sx, p.sy);
-            started = true;
-          } else ctx.lineTo(p.sx, p.sy);
+          ctx.stroke();
         }
-        ctx.stroke();
-      }
-
-      // Telescope at center
-      ctx.beginPath();
-      ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
-      ctx.fillStyle = "#e8a045";
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.7)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      };
+      strokeGrid(true);
 
       const activePin = pinsRef.current.find((p) => p.key === activeKey);
       const aimRa = activeRa ?? activePin?.ra ?? null;
       const aimDec = activeDec ?? activePin?.dec ?? null;
 
-      if (aimRa != null && aimDec != null) {
-        const aim = raDecToVec(aimRa, aimDec);
-        const tip = project(aim, basis, cx, cy, R);
-        if (tip.depth > -0.2) {
-          // Pointing ray
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(tip.sx, tip.sy);
-          ctx.strokeStyle = "rgba(232, 160, 69, 0.85)";
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-
-          // FOV ring (exaggerated so 0.1° vs 0.3° reads; real angle is tiny on a sphere)
-          const ringPx = Math.max(7, Math.min(26, 7 + fovDeg * 28));
-          ctx.beginPath();
-          ctx.arc(tip.sx, tip.sy, ringPx, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(56, 189, 248, 0.75)";
-          ctx.lineWidth = 1.25;
-          ctx.stroke();
-          ctx.fillStyle = "rgba(56, 189, 248, 0.08)";
-          ctx.fill();
-        }
-      }
-
-      // Pins
+      // Pins (back first), then ray through center, then front pins.
       const hits: { key: string; sx: number; sy: number }[] = [];
       const sorted = [...pinsRef.current].sort((a, b) => {
         const da = project(raDecToVec(a.ra, a.dec), basis, cx, cy, R).depth;
@@ -243,28 +208,66 @@ export function SkyContextGlobe({
         return da - db;
       });
 
-      for (const pin of sorted) {
+      const drawPin = (pin: (typeof sorted)[number], front: boolean) => {
         const p = project(raDecToVec(pin.ra, pin.dec), basis, cx, cy, R);
-        if (p.depth < -0.15) continue;
+        if (front ? p.depth < 0 : p.depth >= 0) return;
         const active = pin.key === activeKey;
-        const rad = active ? 5.5 : 3.8;
+        const rad = active ? (front ? 5.5 : 4) : front ? 3.8 : 2.8;
+        const alpha = front ? 1 : 0.35;
         ctx.beginPath();
         ctx.arc(p.sx, p.sy, rad, 0, Math.PI * 2);
-        ctx.fillStyle = active ? "#e8a045" : "#7dd3fc";
+        ctx.fillStyle = active ? `rgba(232, 160, 69, ${alpha})` : `rgba(125, 211, 252, ${alpha})`;
         ctx.fill();
-        ctx.strokeStyle = active ? "#fff" : "rgba(255,255,255,0.55)";
-        ctx.lineWidth = active ? 1.4 : 0.9;
+        ctx.strokeStyle = front
+          ? active
+            ? "#fff"
+            : "rgba(255,255,255,0.55)"
+          : "rgba(255,255,255,0.2)";
+        ctx.lineWidth = active && front ? 1.4 : 0.9;
         ctx.stroke();
+        if (front) {
+          ctx.font = active
+            ? "600 10px IBM Plex Sans, sans-serif"
+            : "500 9px IBM Plex Sans, sans-serif";
+          ctx.fillStyle = active ? "#fff" : "rgba(232, 238, 246, 0.85)";
+          ctx.textAlign = "left";
+          ctx.fillText(pin.label, p.sx + rad + 4, p.sy + 3);
+          hits.push({ key: pin.key, sx: p.sx, sy: p.sy });
+        }
+      };
 
-        ctx.font = active
-          ? "600 10px IBM Plex Sans, sans-serif"
-          : "500 9px IBM Plex Sans, sans-serif";
-        ctx.fillStyle = active ? "#fff" : "rgba(232, 238, 246, 0.85)";
-        ctx.textAlign = "left";
-        ctx.fillText(pin.label, p.sx + rad + 4, p.sy + 3);
+      for (const pin of sorted) drawPin(pin, false);
 
-        hits.push({ key: pin.key, sx: p.sx, sy: p.sy });
+      // Telescope at center + pointing ray (always, including far hemisphere)
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#e8a045";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      if (aimRa != null && aimDec != null) {
+        const tip = project(raDecToVec(aimRa, aimDec), basis, cx, cy, R);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(tip.sx, tip.sy);
+        ctx.strokeStyle = tip.depth >= 0 ? "rgba(232, 160, 69, 0.9)" : "rgba(232, 160, 69, 0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash(tip.depth >= 0 ? [] : [4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const ringPx = Math.max(7, Math.min(26, 7 + fovDeg * 28));
+        ctx.beginPath();
+        ctx.arc(tip.sx, tip.sy, ringPx, 0, Math.PI * 2);
+        ctx.strokeStyle = tip.depth >= 0 ? "rgba(56, 189, 248, 0.8)" : "rgba(56, 189, 248, 0.3)";
+        ctx.lineWidth = 1.25;
+        ctx.stroke();
       }
+
+      strokeGrid(false);
+      for (const pin of sorted) drawPin(pin, true);
       hitRef.current = hits;
 
       raf = window.requestAnimationFrame(paint);

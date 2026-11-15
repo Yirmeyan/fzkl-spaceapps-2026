@@ -203,6 +203,11 @@ export default function App() {
   const [fieldPreset, setFieldPreset] = useState<FieldPreset>("default");
   const fieldPresetRef = useRef<FieldPreset>("default");
   fieldPresetRef.current = fieldPreset;
+  /** Allow emptying the FPS field while typing; commit on blur. */
+  const [fpsDraft, setFpsDraft] = useState(() => String(view.fps));
+  useEffect(() => {
+    setFpsDraft(String(view.fps));
+  }, [view.fps]);
   /** Sky context globe: open on desk, collapsed on narrow phones. */
   const [skyContextOpen, setSkyContextOpen] = useState(
     () => typeof window === "undefined" || !window.matchMedia("(max-width: 720px)").matches,
@@ -2180,7 +2185,7 @@ export default function App() {
         <div className="top-actions">
           <HealthBadge />
           <details className="jury-tools">
-            <summary title="Demo and share tools">Jury</summary>
+            <summary title="Demo and share tools">Share</summary>
             {cinema && (
               <button
                 type="button"
@@ -2196,7 +2201,7 @@ export default function App() {
               className="ghost"
               disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
               onClick={() => runAutoDemo()}
-              title="Timed walkthrough for judges (J)"
+              title="Timed walkthrough (J)"
             >
               Demo
             </button>
@@ -2204,7 +2209,7 @@ export default function App() {
               type="button"
               className="ghost"
               onClick={() => copyJudgeLink()}
-              title="Copy a link that auto-starts the jury demo"
+              title="Copy a link that auto-starts the demo"
             >
               {linkCopied ? "Copied" : "Demo link"}
             </button>
@@ -2786,14 +2791,27 @@ export default function App() {
                   />
                 )}
                 {!overlayActive && !blinkPasses && (
-                  <label className="fps-field" title="Playback speed">
+                  <label className="fps-field" title="Playback speed (1–30)">
                     FPS
                     <input
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={view.fps}
-                      onChange={(e) => patchView({ fps: Number(e.target.value) || 4 })}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={fpsDraft}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, "");
+                        setFpsDraft(raw);
+                        if (raw === "") return;
+                        const n = Number(raw);
+                        if (n >= 1 && n <= 30) patchView({ fps: n });
+                      }}
+                      onBlur={() => {
+                        const n = Number(fpsDraft);
+                        const next =
+                          Number.isFinite(n) && n >= 1 ? Math.min(30, Math.floor(n)) : 24;
+                        setFpsDraft(String(next));
+                        if (next !== view.fps) patchView({ fps: next });
+                      }}
                       aria-label="Frames per second"
                     />
                   </label>
@@ -3188,16 +3206,18 @@ export default function App() {
               </div>
               <div>
                 <dt>Photometry</dt>
-                <dd>
-                  {display.meta.frame.photometry.flux_mjy != null
-                    ? `${display.meta.frame.photometry.flux_mjy.toFixed(3)} ± ${display.meta.frame.photometry.error_mjy?.toFixed(3)} mJy`
-                    : "—"}{" "}
+                <dd className="meta-value-row">
+                  <span className="meta-value-text">
+                    {display.meta.frame.photometry.flux_mjy != null
+                      ? `${display.meta.frame.photometry.flux_mjy.toFixed(3)} ± ${display.meta.frame.photometry.error_mjy?.toFixed(3)} mJy`
+                      : "—"}
+                  </span>
                   <span className="quality">{display.meta.frame.photometry.quality}</span>
                 </dd>
               </div>
               <div>
-                <dt>Background / noise</dt>
-                <dd>
+                <dt>Bg / noise</dt>
+                <dd className="meta-value-nowrap">
                   {display.meta.frame.background?.toFixed(3) ?? "—"} /{" "}
                   {display.meta.frame.noise?.toFixed(3) ?? "—"} MJy/sr
                 </dd>
@@ -3208,7 +3228,7 @@ export default function App() {
               </div>
               <div>
                 <dt>Grid</dt>
-                <dd>
+                <dd className="meta-value-nowrap">
                   {load.data.grid.size}² · {load.data.grid.fov_deg}° · {view.mode} ·{" "}
                   {filtered.length} frames
                 </dd>
@@ -3593,10 +3613,7 @@ export default function App() {
         </aside>
       </main>
 
-      <footer className="foot">
-        Foxtrot Zulu Kilo Lima · Planet X and SPHEREx · AGPL-3.0 · AI-assisted build disclosed in
-        README
-      </footer>
+      <footer className="foot">Foxtrot Zulu Kilo Lima · Planet X and SPHEREx · AGPL-3.0</footer>
     </div>
   );
 }
@@ -3651,11 +3668,13 @@ function AdvancedDetails({
         </div>
         <div>
           <dt>Quality</dt>
-          <dd>
+          <dd className="meta-value-row">
             <span className="quality">{f.photometry.quality}</span>
-            {f.photometry.flux_mjy != null
-              ? ` · ${f.photometry.flux_mjy.toFixed(3)} ± ${f.photometry.error_mjy?.toFixed(3)} mJy`
-              : " · flux unavailable"}
+            <span className="meta-value-text">
+              {f.photometry.flux_mjy != null
+                ? `${f.photometry.flux_mjy.toFixed(3)} ± ${f.photometry.error_mjy?.toFixed(3)} mJy`
+                : "flux unavailable"}
+            </span>
           </dd>
         </div>
         <div>

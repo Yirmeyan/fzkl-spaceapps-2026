@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import type { DecodedFrame } from "../data/decode";
 
 interface FrameCaptionProps {
@@ -20,23 +19,10 @@ export function FrameCaption({
   playing,
   hasCatalogMotion = true,
 }: FrameCaptionProps) {
-  const [passFlash, setPassFlash] = useState(false);
-  const prevPass = useRef<number | null>(null);
   const cur = frames[frameIndex];
   const pass = cur?.exposure.pass ?? null;
   const first = frames[0];
   const last = frames[frames.length - 1];
-
-  useEffect(() => {
-    if (pass == null) return;
-    if (prevPass.current != null && prevPass.current !== pass) {
-      setPassFlash(true);
-      const t = window.setTimeout(() => setPassFlash(false), 1100);
-      prevPass.current = pass;
-      return () => window.clearTimeout(t);
-    }
-    prevPass.current = pass;
-  }, [pass]);
 
   if (!cur || !first || !last) return null;
 
@@ -44,9 +30,8 @@ export function FrameCaption({
 
   return (
     <div className="frame-caption" aria-live="polite">
-      <p className={`frame-caption-pass${passFlash ? " flash" : ""}`}>
+      <p className="frame-caption-pass">
         Visit {pass}
-        {passFlash ? " · phase just changed" : ""}
         {playing ? " · playing" : ""}
       </p>
       <p className="frame-caption-now">
