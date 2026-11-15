@@ -81,6 +81,7 @@ import {
   readViewFromUrl,
   type TargetExtras,
   type ViewState,
+  viewToSearchParams,
   writeViewToUrl,
 } from "./state/url";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
@@ -273,6 +274,26 @@ export default function App() {
     void navigator.clipboard.writeText(href).then(() => {
       setLinkCopied(true);
       window.setTimeout(() => setLinkCopied(false), 2000);
+    });
+  }
+
+  const [frameLinkCopied, setFrameLinkCopied] = useState(false);
+
+  /** Exact view for judges / journal: keeps frame, detector, λ (Tommy 19:55). */
+  function copyFrameLink() {
+    const url = new URL(window.location.href);
+    url.search = `?${viewToSearchParams(view, skyTargetRef.current).toString()}`;
+    const href = url.toString();
+    void navigator.clipboard.writeText(href).then(() => {
+      setFrameLinkCopied(true);
+      window.setTimeout(() => setFrameLinkCopied(false), 2000);
+      setDiscoveryIsHalo(false);
+      setDiscoveryFlash(
+        `Frame link copied · frame ${view.frameIndex + 1}${
+          view.detector != null ? ` · D${view.detector}` : ""
+        }`,
+      );
+      window.setTimeout(() => setDiscoveryFlash(null), 2400);
     });
   }
 
@@ -2015,7 +2036,16 @@ export default function App() {
             onClick={() => copyJudgeLink()}
             title="Copy a link that auto-starts the jury demo"
           >
-            {linkCopied ? "Copied" : "Link"}
+            {linkCopied ? "Copied" : "Demo link"}
+          </button>
+          <button
+            type="button"
+            className={frameLinkCopied ? "active" : "ghost"}
+            disabled={load.status !== "ready"}
+            onClick={() => copyFrameLink()}
+            title="Copy a link to this exact frame (target, frame, detector, wavelength)"
+          >
+            {frameLinkCopied ? "Copied" : "This frame"}
           </button>
         </div>
       </header>
