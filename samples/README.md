@@ -1,19 +1,27 @@
 # Samples
 
-Real SPHEREx data in the format of the [API contract](../docs/api-contract.md). The site shows the test targets of the challenge from these files, at once, even when the service or the archive is slow.
+Real SPHEREx data in the format of the [API contract](../docs/api-contract.md). The site shows the test targets of the challenge from these files, at once, even when the service or the archive is slow. A sixth target holds real frames with a made-up body drawn on them, and says so.
 
 ## Files
 
 | File | Content |
 | --- | --- |
 | `index.json` | The list of the bundles: targets, detectors, frames, wavelengths and sizes. The browser reads it first |
-| `<key>-d1.json` to `<key>-d6.json` | One [bundle](../docs/api-contract.md#the-bundle) per target and per detector: 30 files |
-| `<key>-spectrum.json` | The [spectrum](../docs/api-contract.md#the-spectrum-file) of a target, every detector together, without the images: 5 files of 60 to 130 kB |
-| `<key>-candidates.json` | The [candidates](../docs/api-contract.md#candidates) of the field of a target: the sources that moved or changed between the visits, found with no position given. 5 files of 1 to 2 kB |
-| `<key>-catalog.json` | What [Gaia DR3 and AllWISE](../docs/api-contract.md#get-apicatalog) hold inside the view of a target, to draw over the images: 5 files of 11 to 38 kB, 60 to 90 sources of Gaia and 17 to 184 of AllWISE |
+| `<key>-d1.json` to `<key>-d6.json` | One [bundle](../docs/api-contract.md#the-bundle) per target and per detector: 36 files |
+| `<key>-spectrum.json` | The [spectrum](../docs/api-contract.md#the-spectrum-file) of a target, every detector together, without the images: 6 files of 60 to 130 kB |
+| `<key>-candidates.json` | The [candidates](../docs/api-contract.md#candidates) of the field of a target: the sources that moved, swung or changed between the visits, found with no position given. 6 files of 1 to 2 kB. None of the five real fields holds a body that swings with the seasons: each file says between which distances one was looked for |
+| `<key>-catalog.json` | What [Gaia DR3 and AllWISE](../docs/api-contract.md#get-apicatalog) hold inside the view of a target, to draw over the images: 6 files of 11 to 38 kB, 28 to 90 sources of Gaia and 17 to 184 of AllWISE |
 | `check-sample.ts` | The script that checks a bundle, a spectrum file, a candidates file, a catalog file, or the index and every file it lists |
 
 The view of every target is 0.1 degree on 128 × 128 pixels, north up, east left. The six detectors of a target share it.
+
+## The sixth target is not real
+
+`synthetic-planet-x` is a quiet field of the sky with a made-up body of the outer solar system drawn on its frames: cold, 6,000 astronomical units away, three times as bright as WISE 0855. It shows what the search for a body that swings with the seasons finds when there is one. Its entry of the index, its six bundles and its candidates file say so in a field `synthetic`. See [the contract](../docs/api-contract.md#a-sixth-target-that-is-not-real).
+
+- 407 real frames, May 2025 to June 2026, 3 passes, 27 MB.
+- In detectors 5 and 6 the body is about 11 pixels to one side of the center during the first and the third pass, and as far to the other side during the second. The other detectors do not show it.
+- The search finds it with no hint: 6,148 astronomical units away, between 6,048 and 6,252.
 
 ## The five targets
 

@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 
 import numpy as np
@@ -9,6 +10,8 @@ from spherex_explorer.archive import Exposure, Level2Reader, key_from_id
 from spherex_explorer.catalogs import CatalogSource, Cone
 from spherex_explorer.errors import NotFound, UpstreamUnavailable
 from spherex_explorer.precompute import (
+    SYNTHETIC_TARGETS,
+    TARGETS,
     BundleTarget,
     build_target,
     main,
@@ -17,7 +20,8 @@ from spherex_explorer.precompute import (
     write_catalog,
     write_index,
 )
-from spherex_explorer.targets import ResolvedTarget
+from spherex_explorer.synthetic import SyntheticBody
+from spherex_explorer.targets import ResolvedTarget, Target
 
 WANTED = BundleTarget("test-star", "Test Star", "TST 1")
 IDS = [
@@ -61,12 +65,12 @@ async def no_wait(seconds: float) -> None:
     return None
 
 
-def build(tmp_path, identifiers=IDS, missing=(), source=None, **options):
+def build(tmp_path, identifiers=IDS, missing=(), source=None, wanted=WANTED, **options):
     content = build_level2_file(flags=np.zeros((72, 96), dtype=np.int32))
     files = {key_from_id(i): content for i in identifiers if i not in missing}
     return asyncio.run(
         build_target(
-            WANTED,
+            wanted,
             resolver=FakeResolver(),
             archive=FakeArchive(identifiers),
             frames=source or Level2Reader(FakeStorage(files)),
@@ -289,6 +293,7 @@ def test_candidates_file_is_measured_on_the_frames_of_the_bundles(tmp_path):
         "file": "test-star-candidates.json",
         "count": 0,
         "moved": 0,
+        "swung": 0,
         "changed": 0,
         "bytes": (tmp_path / "test-star-candidates.json").stat().st_size,
     }
@@ -411,3 +416,111 @@ def test_command_refuses_catalogs_without_bundles_and_with_another_partial_build
     with pytest.raises(SystemExit):
         main(["--output", str(tmp_path), "--catalogs-only", "--candidates-only"])
     assert "cannot go together" in capsys.readouterr().err
+
+
+# --- a made-up body
+
+# A body of the outer solar system that no catalog knows: 20,000 astronomical units
+# away, seen by detector 2 alone, where the Sun would see it at the center of the files.
+MADE_UP = BundleTarget(
+    "made-up",
+    "Synthetic Test Body",
+    "",
+    SyntheticBody(
+        Target(ra=SKY_CENTER[0], dec=SKY_CENTER[1], epoch=2025.5),
+        distance_au=20000.0,
+        flux_mjy={2: 50.0},
+    ),
+)
+
+
+def images(path) -> np.ndarray:
+    """The pixels of each frame of a bundle, one frame per row."""
+    bundle = json.loads(path.read_text(encoding="utf-8"))
+    return np.array(
+        [
+            np.frombuffer(base64.b64decode(frame["image"]), dtype="<f2").astype(np.float64)
+            for frame in bundle["frames"]
+        ]
+    )
+
+
+def test_a_made_up_body_is_drawn_on_the_frames_of_the_detectors_that_show_it(tmp_path):
+    (tmp_path / "real").mkdir()
+    (tmp_path / "made-up").mkdir()
+    build(tmp_path / "real")
+    # No catalog is asked: the resolver of the tests would refuse the name.
+    entry = build(tmp_path / "made-up", wanted=MADE_UP)
+
+    assert entry["target"] == {
+        "name": "Synthetic Test Body",
+        "ra": SKY_CENTER[0],
+        "dec": SKY_CENTER[1],
+        "epoch": 2025.5,
+        "pm_ra": 0.0,
+        "pm_dec": 0.0,
+    }
+    drawn = images(tmp_path / "made-up" / "made-up-d2.json")
+    real = images(tmp_path / "real" / "test-star-d2.json")
+    # The light added to each frame is the flux of the body: megajanskys per steradian,
+    # times the steradians of a pixel of the view, in millijanskys.
+    pixel_sr = np.radians(0.05 / 64) ** 2
+    added = np.nansum(drawn - real, axis=1) * pixel_sr * 1e9
+    assert added == pytest.approx([50.0, 50.0], rel=0.03)
+    # Detector 5 does not show it: its frames are the real ones.
+    assert np.array_equal(
+        images(tmp_path / "made-up" / "made-up-d5.json"),
+        images(tmp_path / "real" / "test-star-d5.json"),
+        equal_nan=True,
+    )
+
+
+def test_every_file_of_a_made_up_body_says_that_it_is_made_up(tmp_path):
+    entry = build(tmp_path, wanted=MADE_UP)
+
+    said = {
+        "note": (
+            "A made-up body added to real SPHEREx frames to test the search for a swing. "
+            "It does not exist."
+        ),
+        "distance_au": 20000.0,
+        "parallax_arcsec": 10.31,
+        "flux_mjy": {"2": 50.0},
+    }
+    assert entry["synthetic"] == said
+    for name in ("made-up-d2.json", "made-up-d5.json", "made-up-candidates.json"):
+        file = json.loads((tmp_path / name).read_text(encoding="utf-8"))
+        assert list(file)[-1] == "synthetic"
+        assert file["synthetic"] == said
+    # Built again from the bundles alone, the candidates file still says it.
+    rebuild_candidates_of(tmp_path, entry)
+    again = json.loads((tmp_path / "made-up-candidates.json").read_text(encoding="utf-8"))
+    assert again["synthetic"] == said
+
+
+def rebuild_candidates_of(folder, entry) -> None:
+    write_index(folder, [entry])
+    rebuild_candidates(folder, [entry["key"]])
+
+
+def test_a_real_target_is_not_told_as_made_up(tmp_path):
+    entry = build(tmp_path)
+
+    assert "synthetic" not in entry
+    for name in ("test-star-d2.json", "test-star-candidates.json"):
+        assert "synthetic" not in json.loads((tmp_path / name).read_text(encoding="utf-8"))
+
+
+def test_the_made_up_target_of_the_site_is_named_as_such_and_built_on_request():
+    assert [wanted.key for wanted in TARGETS] == [
+        "barnard-star",
+        "epsilon-indi-b",
+        "wise-0855",
+        "rw-aurigae",
+        "r-draconis",
+    ]
+    assert all(wanted.body is None for wanted in TARGETS)
+    (made_up,) = SYNTHETIC_TARGETS
+    assert made_up.key == "synthetic-planet-x"
+    assert "Synthetic" in made_up.name
+    assert made_up.body is not None and made_up.body.distance_au == 6000.0

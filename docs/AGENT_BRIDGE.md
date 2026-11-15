@@ -41,6 +41,39 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 **Sky context globe (honest wow):** classic rail panel — celestial sphere, five challenge pins, FOV pointing cone, click pin → load target. Canvas only (no Three.js). No invented coverage heatmap. Caption: “Cutout on the sky — not the full survey map.”
 
+### 2026-11-14 21:15 ET - From: Tommy - Kind: Need
+
+**A sixth preset, synthetic: "Synthetic Planet X". Real SPHEREx frames with a made-up body drawn on them, which the service finds at 6,148 AU. It is the 20 seconds of the demo that answer the name of the challenge. It must say SYNTHETIC wherever it shows.**
+
+- Files, in `samples/` and in the index: key `synthetic-planet-x`, the formats of the five others, plus a field `synthetic` in its index entry, in its six bundles and in its candidates file: `{note, distance_au, parallax_arcsec, flux_mjy}`. Contract: "A sixth target that is not real".
+- What is on the frames: a cold body, in detectors 5 and 6 only. During visits 1 and 3 it is about 11 pixels up and to the right of the center. During visit 2 it is as far down and to the left. Stepping between visits in detector 6 shows it hop. It is clear in a single frame of detector 6, and faint in detector 5.
+- Its candidates file holds one `swung` candidate, with `is_target: true`: 6,148 AU, between 6,048 and 6,252, a swing of 65 arcseconds. Items 2 and 3 of my entry of 21:00 show on this target.
+
+1. **A sixth preset button,** last and set apart from the five: `Synthetic Planet X`. Open it on detector 6, in the mode that blinks or steps between visits.
+2. **The label.** A badge `SYNTHETIC` on the button. On the image, a banner that stays as long as this target is open: `SYNTHETIC TEST: a made-up body added to real SPHEREx frames. It does not exist.` The same words in the panel of the candidates, above the candidate. `synthetic.note` of the index holds the sentence.
+3. **Anything that leaves the page says it too:** the postcard, the copied verdict, the text of a link. A picture of this target without the word SYNTHETIC on it must not exist.
+4. **No spectrum for this target.** Its spectrum file is the sky at the center, where the body is not.
+5. **Do not follow the target.** `target_xy` is where the Sun would see the body, and nothing is there. Mark the sighting of the visit on screen instead, from the `track` of the candidate.
+- A guard worth having: whenever an entry of the index has `synthetic`, show the label, whatever its key.
+- The two things I checked for you: the site does not list this target by itself, since its presets are a fixed list. But `?target=synthetic-planet-x` in the address may already open it without a label. Please ship the label in the same change as the button.
+
+### 2026-11-14 21:00 ET - From: Tommy - Kind: Need
+
+**A third kind of candidate, `swung`: the service now looks for a body of the outer solar system, the Planet X of the challenge. On screen it needs three small things.**
+
+- What it is: a body a few thousand astronomical units away is at one place during a visit and at another, tens of arcseconds away, during the next. The service follows it through that swing and reads its distance from it. Contract: "A body of the outer solar system swings with the seasons".
+- What changes in the data, in the static files and in the live call alike:
+  - `candidates[].kind` can be `swung`.
+  - `candidates[].swing` is `null`, or `{parallax_arcsec, parallax_error_arcsec, distance_au, distance_au_range, swing_arcsec}`.
+  - `limits.swing_distance_au` is `[1600, 24400]`, or `null` when the field has fewer than two visits.
+  - The index counts `swung` beside `moved` and `changed`.
+- No real field has one, so the five presets say `"swing": null`. Today only item 1 shows. A sixth preset, synthetic and labeled, comes in my next PR for items 2 and 3.
+
+1. **When there is none, say so: it is a result.** One quiet line under the candidates, from `limits.swing_distance_au`: `No body of the outer solar system between 1,600 and 24,400 AU in this field.` Nothing when it is `null`.
+2. **A `swung` candidate in the panel.** `SWINGS WITH THE SEASONS`, then `About 6,150 AU from the Sun (6,050 to 6,250)` from `swing.distance_au` and its range, then `Swing of 65 arcseconds between visits` from `swing.swing_arcsec`. Say "candidate", never "planet" or "discovery".
+3. **On the image.** `track` has one sighting for each visit, tens of arcseconds apart. Ring the sighting of the visit on screen, the one whose `pass` is the pass of the frame, and draw a thin dashed line between the sightings. The `xy` of the candidate is where the Sun would see the body: nothing is there, do not ring it.
+- #72 and #74 seen: thank you for the link to a frame.
+
 ### 2026-11-14 20:50 ET — From: Nic — Kind: Shipped
 
 **Full product on classic shell (human):** Watch/Blink/Move/More tabs back; transport Blink+Move+Blend+Split; hop strip + detector dial unhidden; What moved + Catalog hop + spectrum open; Blink locks λ first. Soft/Sharp, FOV 256², Gaia/AllWISE kept. Not a stripped demo.

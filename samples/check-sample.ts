@@ -127,7 +127,13 @@ const VIEW_KEYS = ["ra", "dec", "fov_deg"];
 const CATALOG_KEYS = ["key", "name", "epoch", "band", "limit", "truncated", "sources"];
 const SOURCE_KEYS = ["id", "ra", "dec", "pm_ra", "pm_dec", "parallax_mas", "mags"];
 const CANDIDATES_KEYS = ["format", "version", "generated", "target", "grid", "frames", "sources", "visits", "limits", "saturated", "candidates"];
-const CANDIDATE_KEYS = ["kind", "method", "confidence", "significance", "is_target", "ra", "dec", "epoch", "xy", "detectors", "track", "motion", "changes"];
+const CANDIDATE_KEYS = ["kind", "method", "confidence", "significance", "is_target", "ra", "dec", "epoch", "xy", "detectors", "track", "motion", "swing", "changes"];
+const SWING_KEYS = ["parallax_arcsec", "parallax_error_arcsec", "distance_au", "distance_au_range", "swing_arcsec"];
+const LIMITS_KEYS = ["significance", "shift_arcsec", "change", "swing_distance_au"];
+// What a file built with a made-up body says of it.
+const SYNTHETIC_KEYS = ["note", "distance_au", "parallax_arcsec", "flux_mjy"];
+// Astronomical units to an object whose parallax is one arcsecond.
+const AU_AT_ONE_ARCSECOND = 206264.806;
 const SIGHTING_KEYS = ["pass", "time_mjd", "time_iso", "ra", "dec", "xy", "error_arcsec", "detectors"];
 const MOTION_KEYS = [
   "shift_arcsec",
@@ -347,6 +353,7 @@ function checkSpectrum(spectrum: any): SpectrumSummary {
 interface CandidatesSummary {
   count: number;
   moved: number;
+  swung: number;
   changed: number;
   frames: number;
   lines: string[];
@@ -375,7 +382,8 @@ function samePlace(grid: Grid, place: any): boolean {
 function checkCandidates(file: any): CandidatesSummary {
   const lines: string[] = [];
   check(file.format === CANDIDATES_FORMAT && file.version === 1, "format or version");
-  check(sameKeys(file, CANDIDATES_KEYS), "fields of the file");
+  // Frames with a made-up body give a made-up candidate, and the file says so last.
+  check(sameKeys(file, file.synthetic === undefined ? CANDIDATES_KEYS : [...CANDIDATES_KEYS, "synthetic"]), "fields of the file");
   check(sameKeys(file.target, TARGET_KEYS), "fields of the target");
   check(sameKeys(file.grid, GRID_KEYS), "fields of the grid");
   const grid: Grid = file.grid;
@@ -392,7 +400,11 @@ function checkCandidates(file: any): CandidatesSummary {
     visits.every((visit) => sameMoment(visit)),
     "time_iso of a visit differs from its time_mjd",
   );
+  check(sameKeys(limits, LIMITS_KEYS), "fields of the limits");
   check(limits.significance >= 5 && limits.shift_arcsec > 0 && limits.change > 0, "limits of the claims");
+  // A swing takes two visits to show: with fewer, no body that swings was looked for.
+  const reach = limits.swing_distance_au;
+  check(visits.length >= 2 ? Array.isArray(reach) && 0 < reach[0] && reach[0] < reach[1] : reach === null, "distances a swing was looked for at");
   const passes = new Set(visits.map((visit) => visit.pass));
 
   for (const star of file.saturated ?? []) {
@@ -400,6 +412,7 @@ function checkCandidates(file: any): CandidatesSummary {
   }
 
   let moved = 0;
+  let swung = 0;
   const candidates: any[] = file.candidates ?? [];
   check(
     candidates.every((candidate, i) => i === 0 || candidate.significance <= candidates[i - 1].significance),
@@ -408,7 +421,7 @@ function checkCandidates(file: any): CandidatesSummary {
   for (const candidate of candidates) {
     const where = `candidate at ${candidate.xy}: `;
     check(sameKeys(candidate, CANDIDATE_KEYS), where + "fields");
-    check(["moved", "changed"].includes(candidate.kind), where + "kind");
+    check(["moved", "swung", "changed"].includes(candidate.kind), where + "kind");
     check(["source", "halo"].includes(candidate.method), where + "method");
     check(["high", "medium"].includes(candidate.confidence), where + "confidence");
     check(candidate.significance >= limits.significance, where + "significance under the limit");
@@ -447,9 +460,31 @@ function checkCandidates(file: any): CandidatesSummary {
         where + "a saturated star is placed to the radius of its heart",
       );
     }
-    if (candidate.kind === "moved") {
+    if (candidate.kind === "swung") {
+      swung++;
+      // A body of the outer solar system: one sighting for each visit, on either side
+      // of where the Sun would see it, and a distance drawn from how far they are apart.
+      const swing = candidate.swing;
+      check(sameKeys(swing, SWING_KEYS), where + "fields of the swing");
+      if (!swing || track.length < 2) {
+        check(false, where + "a swung candidate needs a swing and two sightings");
+        continue;
+      }
+      check(!onHalo && changes.length === 0, where + "a swung candidate is a source, and carries no change");
+      check(swing.parallax_arcsec > 0 && swing.parallax_error_arcsec > 0, where + "parallax of the swing");
+      check(Math.abs(swing.distance_au - AU_AT_ONE_ARCSECOND / swing.parallax_arcsec) <= 0.01 * swing.distance_au + 1, where + "distance and parallax disagree");
+      check(swing.distance_au_range?.[0] <= swing.distance_au && swing.distance_au <= swing.distance_au_range?.[1], where + "range of the distance");
+      check(Array.isArray(reach) && 0.8 * reach[0] <= swing.distance_au && swing.distance_au <= 1.5 * reach[1], where + "a body outside the distances looked at");
+      let widest = 0;
+      for (const one of track) for (const other of track) widest = Math.max(widest, Math.hypot(one.xy[0] - other.xy[0], one.xy[1] - other.xy[1]) * arcsec);
+      check(Math.abs(widest - swing.swing_arcsec) <= 0.5, where + "the swing is not the widest gap of the track");
+      // Its own motion is known when a third visit checked it, and never without.
+      check(track.length >= 3 ? sameKeys(candidate.motion, MOTION_KEYS) : candidate.motion === null, where + "motion of a swung candidate");
+      lines.push(`swung (${candidate.confidence}): parallax ${swing.parallax_arcsec} +- ${swing.parallax_error_arcsec} arcsec, ${swing.distance_au} astronomical units away (${swing.distance_au_range.join(" to ")}), a swing of ${swing.swing_arcsec} arcsec`);
+    } else if (candidate.kind === "moved") {
       moved++;
       const motion = candidate.motion;
+      check(candidate.swing === null, where + "a moved candidate carries no swing");
       check(sameKeys(motion, MOTION_KEYS), where + "fields of the motion");
       if (!motion || track.length < 2) {
         check(false, where + "a moved candidate needs a motion and two sightings");
@@ -481,12 +516,12 @@ function checkCandidates(file: any): CandidatesSummary {
       const far = motion.distance_ly === null ? "" : `, ${motion.distance_ly} light-years away`;
       lines.push(`moved (${candidate.confidence}): ${motion.rate_arcsec_per_year} +- ${motion.rate_error_arcsec_per_year} arcsec per year toward ${motion.angle_deg} degrees${far}, detectors ${candidate.detectors.join("")}`);
     } else {
-      check(candidate.motion === null, where + "a changed candidate carries no motion");
+      check(candidate.motion === null && candidate.swing === null, where + "a changed candidate carries no motion and no swing");
       check(new Set(changes.map((change) => change.detector)).size >= 2, where + "a change needs two detectors");
       lines.push(`changed (${candidate.confidence}${onHalo ? ", on the halo of a saturated star" : ""}): ${changes.map((change) => `x${change.ratio} in detector ${change.detector}`).join(", ")}`);
     }
   }
-  return { count: candidates.length, moved, changed: candidates.length - moved, frames: file.frames ?? 0, lines };
+  return { count: candidates.length, moved, swung, changed: candidates.length - moved - swung, frames: file.frames ?? 0, lines };
 }
 
 interface CatalogSummary {
@@ -547,6 +582,34 @@ function sameFields(a: any, b: any, keys: string[]): boolean {
   return a != null && b != null && keys.every((key) => a[key] === b[key]);
 }
 
+// A target with a made-up body: a real field, with a body of the outer solar system
+// drawn on its frames to show the search at work. The index says what was drawn.
+function checkSynthetic(entry: any): void {
+  context = `${entry.key}: `;
+  const body = entry.synthetic;
+  check(sameKeys(body, SYNTHETIC_KEYS), "fields of the made-up body");
+  check(typeof body.note === "string" && /does not exist/.test(body.note), "the note must say that the body does not exist");
+  check(/synthetic/i.test(entry.name), "the name of the target must say that it is synthetic");
+  check(body.distance_au > 0 && Math.abs(body.parallax_arcsec - AU_AT_ONE_ARCSECOND / body.distance_au) <= 0.01, "distance and parallax of the made-up body");
+  const shown = Object.entries(body.flux_mjy ?? {});
+  check(shown.length > 0 && shown.every(([detector, flux]) => /^[1-6]$/.test(detector) && (flux as number) > 0), "flux of the made-up body, by detector");
+}
+
+// The candidates of a field with a made-up body: the search must find that body, and
+// nothing else. The distance found must be the distance it was drawn at.
+function checkSyntheticFound(entry: any, file: any): void {
+  const body = entry.synthetic;
+  const found: any[] = file.candidates ?? [];
+  check(JSON.stringify(file.synthetic) === JSON.stringify(body), "a made-up body must be told by the file and by the index alike");
+  check(found.length === 1 && found[0].kind === "swung" && found[0].is_target === true, "the made-up body is not the one candidate of its field");
+  const swing = found[0]?.swing;
+  if (!swing) return;
+  const [near, far] = swing.distance_au_range;
+  check(Math.abs(swing.distance_au - body.distance_au) <= 3 * Math.max(swing.distance_au - near, far - swing.distance_au), "the made-up body is not found at its distance");
+  check(found[0].detectors.every((detector: number) => String(detector) in body.flux_mjy), "the made-up body is found in a detector that does not show it");
+  console.log(`  made-up body drawn at ${body.distance_au} astronomical units: found at ${swing.distance_au} (${near} to ${far})`);
+}
+
 function checkIndex(index: any, folder: string): void {
   check(index.version === 1, "version of the index");
   check(Array.isArray(index.targets) && index.targets.length > 0, "the index lists no target");
@@ -570,6 +633,7 @@ function checkIndex(index: any, folder: string): void {
       }
       const bundle = JSON.parse(text);
       const summary = checkBundle(bundle, false);
+      check(JSON.stringify(bundle.synthetic) === JSON.stringify(entry.synthetic), "a made-up body must be told by the file and by the index alike");
       check(Buffer.byteLength(text, "utf8") === listed.bytes, "size differs from the index");
       check(sameFields(bundle.target, entry.target, TARGET_KEYS), "target differs from the index");
       check(sameFields(bundle.grid, entry.grid, GRID_KEYS), "grid differs from the index");
@@ -583,6 +647,7 @@ function checkIndex(index: any, folder: string): void {
       for (const [id, value] of summary.measured) measured.set(id, value);
       console.log(`${listed.file}: ${summary.frames} frames, ${summary.wavelengths[0]} to ${summary.wavelengths[1]} micrometers`);
     }
+    if (entry.synthetic !== undefined) checkSynthetic(entry);
     if (entry.spectrum) checkListedSpectrum(entry, folder, measured);
     if (entry.candidates) checkListedCandidates(entry, folder, total);
     if (entry.catalog) checkListedCatalog(entry, folder);
@@ -729,10 +794,15 @@ function checkListedCandidates(entry: any, folder: string, frames: number): void
   }
   const file = JSON.parse(text);
   const summary = checkCandidates(file);
+  if (entry.synthetic !== undefined) checkSyntheticFound(entry, file);
+  else check(file.synthetic === undefined, "a real field must not be told as made up");
   check(Buffer.byteLength(text, "utf8") === listed.bytes, "size differs from the index");
   check(sameFields(file.target, entry.target, TARGET_KEYS), "target differs from the index");
   check(sameFields(file.grid, entry.grid, GRID_KEYS), "grid differs from the index");
-  check(summary.count === listed.count && summary.moved === listed.moved && summary.changed === listed.changed, "counts differ from the index");
+  check(
+    summary.count === listed.count && summary.moved === listed.moved && summary.swung === listed.swung && summary.changed === listed.changed,
+    "counts differ from the index",
+  );
   // A frame without a background cannot be compared with the others and is left out.
   check(summary.frames <= frames && summary.frames >= 0.9 * frames, "frames measured against the frames of the bundles");
   check((file.visits ?? []).length === entry.passes, "visits differ from the passes of the index");

@@ -92,6 +92,7 @@ def build_level2_file(
     image: np.ndarray | None = None,
     flags: np.ndarray | None = None,
     seed: int = 7,
+    mjd: float = MJD,
 ) -> bytes:
     rng = np.random.default_rng(seed)
     if image is None:
@@ -110,7 +111,7 @@ def build_level2_file(
     header = fits.Header()
     header["BUNIT"] = ("MJy / sr", "Unit of pixel value")
     header["DETECTOR"] = (2, "1-3: SWIR, 4-6: MWIR")
-    header["MJD-AVG"] = (MJD, "[d] MJD at midpoint of observation")
+    header["MJD-AVG"] = (mjd, "[d] MJD at midpoint of observation")
     for keyword, value in sky_cards(width, height):
         header[keyword] = value
     header["XPOSURE"] = (113.5826, "[s] Exposure (integration) time")

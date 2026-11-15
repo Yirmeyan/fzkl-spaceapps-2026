@@ -28,6 +28,7 @@ from spherex_explorer.detection.stack import (
     average,
     without_outliers,
 )
+from spherex_explorer.detection.swing import Swing, find_swings
 
 # Bit of a frame mask for a pixel that nears saturation, or is saturated.
 _OVERFLOW = 2
@@ -220,11 +221,17 @@ class SaturatedStar:
 
 @dataclass(frozen=True, slots=True)
 class Field:
-    """What was measured in a field: its visits, its sources and its saturated stars."""
+    """What was measured in a field: its visits, its sources and its saturated stars.
+
+    `swung` holds the bodies that swing with the seasons by more than a source is
+    followed: bodies of the outer solar system, if there are any. Each has one sighting
+    for each visit, and a motion whose parallax is that swing.
+    """
 
     visits: tuple[Visit, ...]
     sources: tuple[FieldSource, ...]
     saturated: tuple[SaturatedStar, ...]
+    swung: tuple[FieldSource, ...] = ()
 
 
 @dataclass(slots=True)
@@ -876,12 +883,35 @@ def _halo_changes(star: SaturatedStar, piles: dict[tuple[int, int], _Pile]) -> t
     return tuple(changes)
 
 
+def _swung_source(swing: Swing) -> FieldSource:
+    """A body that swings, as a source: where the Sun would see it, and where each visit does."""
+    sightings = tuple(
+        Sighting(place.pass_number, place.time_mjd, place.x, place.y, place.error, place.detectors)
+        for place in swing.places
+    )
+    days = sightings[-1].time_mjd - sightings[0].time_mjd
+    motion = Motion(
+        rate_x=swing.rate_x,
+        rate_y=swing.rate_y,
+        rate_error=swing.rate_error,
+        shift_x=swing.rate_x * days,
+        shift_y=swing.rate_y * days,
+        days=days,
+        significance=swing.significance,
+        checked=swing.followed,
+        parallax=swing.parallax,
+        parallax_error=swing.parallax_error,
+    )
+    return FieldSource(swing.x, swing.y, swing.significance, sightings, motion, ())
+
+
 def measure_field(frames: Sequence[FieldFrame], wobble: Wobble | None = None) -> Field:
     """Measure every source of a field in every visit.
 
     The frames are those of one view, all on the same grid, from any number of
     detectors and visits. `wobble` gives, for dates in days (MJD), where a parallax of
-    one pixel puts a source of the field along x and y. Without it no parallax is fitted.
+    one pixel puts a source of the field along x and y. Without it no parallax is fitted,
+    and no body that swings with the seasons is looked for.
     """
     piles = _piles(frames)
     if not piles:
@@ -959,4 +989,5 @@ def measure_field(frames: Sequence[FieldFrame], wobble: Wobble | None = None) ->
     saturated = tuple(
         replace(star, changes=_halo_changes(star, piles)) for star in _saturated_stars(hearts)
     )
-    return Field(visits=tuple(visits), sources=tuple(sources), saturated=saturated)
+    swung = tuple(_swung_source(swing) for swing in find_swings(piles, wobble)) if wobble else ()
+    return Field(visits=tuple(visits), sources=tuple(sources), saturated=saturated, swung=swung)

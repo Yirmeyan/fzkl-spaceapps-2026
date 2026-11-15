@@ -92,6 +92,23 @@ def test_spectrum_has_one_point_per_exposure_in_the_order_of_the_list(content):
     assert all(point.time_mjd == pytest.approx(MJD) for point in spectrum.points)
 
 
+def test_points_follow_the_dates_their_files_give(content):
+    # Two detectors expose together, and their files give dates a fraction of a second
+    # apart. Here the file of the first exposure of the list gives the later one.
+    image = np.random.default_rng(3).normal(0.3, 0.02, (HEIGHT, WIDTH))
+    flags = np.zeros((HEIGHT, WIDTH), dtype=np.int32)
+    a_moment_later = build_level2_file(image=image, flags=flags, mjd=MJD + 2e-6)
+    storage = FakeStorage(
+        {key_from_id(IDS[0]): a_moment_later, key_from_id(IDS[1]): content},
+    )
+
+    spectrum = spectrum_of(storage, archive=FakeArchive(IDS[:2]))
+
+    assert [point.listed.exposure.id for point in spectrum.points] == [IDS[1], IDS[0]]
+    dates = [point.time_mjd for point in spectrum.points]
+    assert dates == sorted(dates)
+
+
 def test_point_is_the_measurement_of_the_frame_of_the_same_exposure(content):
     storage = storage_of(content)
     grid = Grid(ra=STAR[0], dec=STAR[1], fov_deg=0.05, size=64)
