@@ -44,7 +44,7 @@ export function CandidatesPanel({
   if (waiting) {
     return (
       <section className="candidates-panel" aria-busy="true">
-        <p className="candidates-kicker">What moved or changed here</p>
+        <p className="candidates-kicker">Between the visits of this place</p>
         <p className="candidates-empty">
           The service reads every image of this field, about half a minute.
         </p>
@@ -56,9 +56,9 @@ export function CandidatesPanel({
   const list = data.candidates;
 
   return (
-    <section className="candidates-panel" aria-label="What moved or changed here">
-      <p className="candidates-kicker">What moved or changed here</p>
-      <h3 className="candidates-title">Candidates from the service</h3>
+    <section className="candidates-panel" aria-label="Between the visits of this place">
+      <p className="candidates-kicker">Between the visits of this place</p>
+      <h3 className="candidates-title">Measured by the tool</h3>
       {data.synthetic?.note && (
         <p className="candidates-synthetic" role="note">
           SYNTHETIC · {data.synthetic.note}

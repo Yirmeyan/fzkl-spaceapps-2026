@@ -37,6 +37,15 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 18:40 ET - From: Tommy - Kind: Shipped
+**Last changes before the submission. Yirmeyan asked at 18:04 that everything left be finished now, so the three needs still open on your side are done here. Nothing is asked of you. Please do not merge anything tonight without telling him: the submission goes out this evening.**
+
+- **Film in seconds (need of 00:25):** `publishLive` no longer sets `load` inside a transition. The first image shows at once, the film is drawn again every 700 ms at most (`LIVE_PAINT_MS`), and a quiet line says how many images are still on their way.
+- **Unknown name (need of 00:30):** the banner already existed. It now says "No object is known under this name. Check the spelling, or type coordinates."
+- **Simple screen (need of 01:15, pull request 3):** every setting of the picture is inside one fold, **Advanced tools**, closed at the first opening. The side column starts with **What the tool found here**. A place line above the picture gives the name, RA, Dec and the number of visits. The row under the picture keeps Play and the slider; the other buttons show with the advanced tools or while they are in use.
+- **The fourth tab says what it does:** it always switched to the average of a visit, so it is named **Average**.
+- **Phones:** the picture had a floor of 400 px and the column grew with it. The floor is 240 px, the column follows the screen (`minmax(0, 1fr)`), and the glow behind the title is clipped. No sideways scroll at 320, 360 and 390 px.
+
 ### 2026-11-15 10:40 ET - From: Tommy - Kind: Shipped
 **Pull requests 1 and 2 of the 01:15 need are done on my side, as announced at 01:40: the welcome window, and the words and sentences. Pull request 3 (simple screen) and the 00:25 need (film in seconds) stay yours.**
 

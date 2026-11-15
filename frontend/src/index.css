@@ -131,6 +131,18 @@ select {
   padding: 0.75rem 1rem 0.75rem;
 }
 
+/* The soft glow behind the title is wider than a phone: it must not make the page scroll sideways. */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* A column of the page never grows wider than its track because of what it holds. */
+.viewer-pane,
+.side {
+  min-width: 0;
+}
+
 .sky-wash {
   position: absolute;
   inset: 0 -2rem auto;
@@ -412,6 +424,22 @@ select {
   color: var(--muted);
 }
 
+/* The place on the sky, right above its picture: a name, its coordinates, its visits. */
+.place-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.9rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.place-line strong {
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
 /* One sentence in plain English under a group of controls: what the chosen option does. */
 .targets-label,
 .targets-hint,
@@ -506,8 +534,9 @@ select {
 }
 
 @media (max-width: 980px) {
+  /* minmax(0, ...): the column follows the screen, not the picture it holds. */
   .workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -2616,6 +2645,21 @@ select {
 
 .status-banner.error {
   background: color-mix(in srgb, var(--bad) 28%, #0b1220);
+}
+
+/* The film already plays: this line only says that more images are on their way. */
+.status-banner.quiet {
+  width: auto;
+  margin: 0.6rem 0 0;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.82rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+}
+
+.status-banner.quiet progress {
+  width: 100%;
+  height: 4px;
 }
 
 .foot {

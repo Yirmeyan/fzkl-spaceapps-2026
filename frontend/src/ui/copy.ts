@@ -53,7 +53,10 @@ export const WAYS: Record<Way, Words> = {
     label: "Subtract",
     hint: "Subtract one visit from another. What stayed put disappears. What moved leaves a bright spot next to a dark one.",
   },
-  more: { label: "Advanced", hint: "Every other setting, for people who want to dig." },
+  more: {
+    label: "Average",
+    hint: "Average the images of a visit. Faint objects such as WISE 0855 come out of the noise.",
+  },
 };
 
 export const PLAYER = {
@@ -183,4 +186,25 @@ export const FLAGS = {
 
 export const FOUND = {
   open: { label: "Open this object", hint: "Center the tool on this object and load its colors." },
+  panel: {
+    label: "What the tool found here",
+    hint: "Objects that changed place or brightness between visits, measured automatically.",
+  },
 } satisfies Record<string, Words>;
+
+export const ADVANCED: Words = {
+  label: "Advanced tools",
+  hint: "Every setting of the picture: visits, colors, contrast, size, other surveys.",
+};
+
+export const PANELS = {
+  sky: "Where this is on the sky",
+  timeline: "Colors and brightness over time",
+};
+
+export const PLACE = {
+  hint: "The place on the sky you are looking at. The cross marks it.",
+  coordinates: (ra: number, dec: number) =>
+    `RA ${ra.toFixed(4)}° · Dec ${dec >= 0 ? "+" : "−"}${Math.abs(dec).toFixed(4)}°`,
+  visits: (count: number) => (count === 1 ? "1 visit" : `${count} visits`),
+};
