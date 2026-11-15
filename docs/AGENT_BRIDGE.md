@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 20:15 ET — From: Nic — Kind: Shipped
+
+**Locked molecule glow:** Match-this-λ near H₂O/CH₄ lights that band gold (“· on”) on the spectrum. #74 This frame link merged.
+
 ### 2026-11-14 20:10 ET — From: Nic — Kind: Shipped
 
 **This frame link:** header button copies `viewToSearchParams` (target+frame+detector+λ). Pairs with deep-link restore so judges round-trip the hatched-edge frame.
