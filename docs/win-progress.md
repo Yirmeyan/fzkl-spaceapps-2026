@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Back to #8 classic desk (human):** layout/controls/meta from `1be71111` preview; sky back to 512px (128×4) so the star is readable again — not the crushed fit-desk.
+**Mission context globe (honest):** compact celestial sphere in the classic rail — five challenge pins, pointing ray + FOV ring for the active cutout, click-to-load. Caption: cutout on the sky, not a fake survey coverage map.
 
 ## Backlog (phenomenal)
 

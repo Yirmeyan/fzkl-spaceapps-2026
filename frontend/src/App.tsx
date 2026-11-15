@@ -91,6 +91,7 @@ import { MatchVerdict } from "./ui/MatchVerdict";
 import { MissionBriefing } from "./ui/MissionBriefing";
 import { MotionInsight } from "./ui/MotionInsight";
 import { PassStackMovie } from "./ui/PassStackMovie";
+import { CHALLENGE_SKY_PINS, SkyContextGlobe } from "./ui/SkyContextGlobe";
 import { SpotTheMover } from "./ui/SpotTheMover";
 import { ViewerGuide } from "./ui/ViewerGuide";
 import { type StoryboardCell, VisitStoryboard } from "./ui/VisitStoryboard";
@@ -202,6 +203,17 @@ export default function App() {
   const [fieldPreset, setFieldPreset] = useState<FieldPreset>("default");
   const fieldPresetRef = useRef<FieldPreset>("default");
   fieldPresetRef.current = fieldPreset;
+  /** Sky context globe: open on desk, collapsed on narrow phones. */
+  const [skyContextOpen, setSkyContextOpen] = useState(
+    () => typeof window === "undefined" || !window.matchMedia("(max-width: 720px)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 720px)");
+    const sync = () => setSkyContextOpen(!mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   /** Instant FOV switch: both cutouts stay warm after first fetch. */
   const fieldCacheRef = useRef<Map<string, FieldCacheEntry>>(new Map());
   const fovPrefetchRef = useRef<string | null>(null);
@@ -374,9 +386,7 @@ export default function App() {
       } else {
         // Keep current sky on screen while the other FOV loads (or use cache).
         setLoad((prev) =>
-          prev.status === "ready"
-            ? prev
-            : { status: "loading", message: "Loading field of view…" },
+          prev.status === "ready" ? prev : { status: "loading", message: "Loading field of view…" },
         );
       }
       if (targetKey === "custom") {
@@ -3173,6 +3183,27 @@ export default function App() {
               </div>
             </dl>
           )}
+
+          <details
+            className="rail-card details sky-context-card"
+            open={skyContextOpen}
+            onToggle={(e) => setSkyContextOpen(e.currentTarget.open)}
+          >
+            <summary title="Where this cutout sits among the five challenge targets">
+              Sky context
+            </summary>
+            <SkyContextGlobe
+              pins={CHALLENGE_SKY_PINS}
+              activeKey={view.targetKey && view.targetKey !== "custom" ? view.targetKey : null}
+              activeRa={load.status === "ready" ? load.data.target.ra : null}
+              activeDec={load.status === "ready" ? load.data.target.dec : null}
+              fovDeg={FIELD_PRESETS[fieldPreset].fov}
+              onSelect={(key) => {
+                setBlinkPasses(false);
+                patchView({ targetKey: key, mode: "single", pass: null });
+              }}
+            />
+          </details>
 
           {(candidatesFile || candidatesWaiting) && (
             <details className="rail-card details rail-secondary" open>

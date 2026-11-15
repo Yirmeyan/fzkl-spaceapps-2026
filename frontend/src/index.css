@@ -3609,6 +3609,61 @@ select {
   content: "▾ ";
 }
 
+.app--classic .sky-context-card {
+  padding: 0.45rem 0.65rem 0.5rem;
+}
+
+.app--classic .sky-context-card > summary {
+  cursor: pointer;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  list-style: none;
+  margin: 0 0 0.35rem;
+}
+
+.app--classic .sky-context-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sky-context {
+  width: 100%;
+  height: 200px;
+  position: relative;
+}
+
+.sky-context-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  cursor: grab;
+  touch-action: none;
+  background: #070b12;
+}
+
+.sky-context-canvas:active {
+  cursor: grabbing;
+}
+
+.sky-context-caption {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+@media (max-width: 720px) {
+  .app--classic .sky-context-card:not([open]) {
+    padding-bottom: 0.35rem;
+  }
+
+  .app--classic .sky-context {
+    height: 160px;
+  }
+}
+
 .app--classic .foot {
   margin-top: 2rem;
   color: var(--muted);

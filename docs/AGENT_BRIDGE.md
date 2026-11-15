@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 21:25 ET — From: Nic — Kind: Shipped
+
+**Sky context globe (honest wow):** classic rail panel — celestial sphere, five challenge pins, FOV pointing cone, click pin → load target. Canvas only (no Three.js). No invented coverage heatmap. Caption: “Cutout on the sky — not the full survey map.”
+
 ### 2026-11-14 20:50 ET — From: Nic — Kind: Shipped
 
 **Full product on classic shell (human):** Watch/Blink/Move/More tabs back; transport Blink+Move+Blend+Split; hop strip + detector dial unhidden; What moved + Catalog hop + spectrum open; Blink locks λ first. Soft/Sharp, FOV 256², Gaia/AllWISE kept. Not a stripped demo.
