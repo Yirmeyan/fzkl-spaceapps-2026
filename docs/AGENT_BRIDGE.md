@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:50 ET — From: Nic — Kind: Shipped
+
+**Eps Indi H₂O/CH₄ fingerprint bands** on the spectrum chart (with SPIFF badge). #68 Tommy 19:15 merged.
+
 ### 2026-11-14 19:45 ET — From: Nic — Kind: Shipped
 
 **Tommy 19:15 (all three):** sexagesimal search (`08h55m10.831s -7d14m42.53s` → degrees) + hint line; hatched no-data pixels + edge caption when `valid_fraction` < 95%; `ai-disclosure` meta + package.json description. #67 years deep-link merged.

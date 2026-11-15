@@ -11,8 +11,18 @@ interface ChartsProps {
   highlightDetector?: number | null;
   /** Tommy SPIFF check: one-line trust mark under Spectrum (e.g. Epsilon Indi B). */
   spiffLine?: string | null;
+  /** Absorption band callouts on the spectrum (brown-dwarf fingerprint). */
+  bandMarkers?: SpectrumBand[] | null;
   activeIndex: number;
   onSelectFrame?: (index: number) => void;
+}
+
+export interface SpectrumBand {
+  label: string;
+  /** Center wavelength µm */
+  um: number;
+  /** Half-width for the soft band wash */
+  halfUm?: number;
 }
 
 const PASS_COLORS = ["#0f766e", "#d97706", "#7c3aed", "#2563eb", "#be123c"];
@@ -28,6 +38,7 @@ export function Charts({
   spectrumWaiting = false,
   highlightDetector = null,
   spiffLine = null,
+  bandMarkers = null,
   activeIndex,
   onSelectFrame,
 }: ChartsProps) {
@@ -102,6 +113,7 @@ export function Charts({
             yLabel="mJy"
             fixedX={[0.75, 5]}
             highlightDetector={highlightDetector}
+            bands={bandMarkers ?? undefined}
             onPick={(id) => {
               const idx = frames.findIndex((f) => f.frame.id === id);
               if (idx >= 0) onSelectFrame?.(idx);
@@ -257,6 +269,7 @@ function FluxSvg({
   onPick,
   fixedX,
   highlightDetector = null,
+  bands,
 }: {
   points: FluxPoint[];
   xLabel: string;
@@ -265,6 +278,7 @@ function FluxSvg({
   /** Spectrum always spans SPHEREx 0.75 to 5 µm when set. */
   fixedX?: [number, number];
   highlightDetector?: number | null;
+  bands?: SpectrumBand[];
 }) {
   const w = 320;
   const h = 140;
@@ -298,6 +312,45 @@ function FluxSvg({
 
   return (
     <svg className="flux-svg" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Flux chart">
+      {bands?.map((b) => {
+        const half = b.halfUm ?? 0.12;
+        const x0 = sx(Math.max(minX, b.um - half));
+        const x1 = sx(Math.min(maxX, b.um + half));
+        const cx = sx(b.um);
+        if (cx < padL || cx > w - padR) return null;
+        return (
+          <g key={`${b.label}-${b.um}`} className="spectrum-band">
+            <rect
+              x={x0}
+              y={padT}
+              width={Math.max(2, x1 - x0)}
+              height={h - padT - padB}
+              fill="rgba(56, 189, 248, 0.12)"
+              stroke="none"
+            />
+            <line
+              x1={cx}
+              x2={cx}
+              y1={padT}
+              y2={h - padB}
+              stroke="rgba(125, 211, 252, 0.85)"
+              strokeWidth="1"
+              strokeDasharray="3 2"
+            />
+            <text
+              x={cx + 3}
+              y={padT + 9}
+              className="spectrum-band-label"
+              fill="#7dd3fc"
+              fontSize="8"
+              fontFamily="IBM Plex Sans, sans-serif"
+              fontWeight="600"
+            >
+              {b.label}
+            </text>
+          </g>
+        );
+      })}
       {[...byPass.entries()].map(([pass, pts]) => {
         const sorted = [...pts].sort((a, b) => a.x - b.x);
         const d = sorted.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.x)},${sy(p.y)}`).join(" ");
