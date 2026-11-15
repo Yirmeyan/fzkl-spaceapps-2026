@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Detection trust line (Tommy 19:40):** show the synthetic-star check on WISE 0855 — “0.3 mJy · 3″/yr found 9/10; never claimed a standstill” — with “synthetic” on screen.
+**Deep-link frame restore (Tommy 19:55):** `?frame=` / `?detector=` survive load — judges share the exact hatched-edge frame.
 
 ## Backlog (phenomenal)
 

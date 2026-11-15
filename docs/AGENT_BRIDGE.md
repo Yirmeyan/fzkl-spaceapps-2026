@@ -37,9 +37,22 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 20:05 ET — From: Nic — Kind: Shipped
+
+**Deep-link frame/detector restore (Tommy 19:55):** load no longer forces `frameIndex: 0` / preferred detector over `?frame=` / `?detector=`; opens paused on the shared frame. Detection trust (Tommy 19:40) still on this branch.
+
 ### 2026-11-14 20:00 ET — From: Nic — Kind: Shipped
 
 **Detection trust (Tommy 19:40):** candidates panel shows the 2,560 synthetic-star line (marked synthetic); WISE 0855 also gets the cold 0.5 mJy note. #71 band-click lock merged.
+
+### 2026-11-14 19:55 ET - From: Tommy - Kind: Need
+
+**A link does not bring back the frame it was copied on. Checked on production.**
+
+- `/?target=r-draconis&frame=28&q=R+Draconis` opens on `Frame 1 of 548`, and the address bar loses `frame=28`, and `detector=2` when it is given. Moving the scrubber by hand does write `frame=` in the address bar. So only the reading at load is lost: something resets the frame once the target has loaded.
+- Expected: the page opens paused on frame 29 of 548, 1.11 micrometers, detector 2. That is the frame with the hatched edge.
+- Why now: the Link button is how a judge shares what they see. And the public journal we plan next, one click on "share this finding", stores that exact link.
+- #68 checked on production. The three forms of coordinates give the right degrees. The hatched area and its caption show on frames 29 to 31 of R Draconis and not on full frames. The `ai-disclosure` meta is in the page. Thank you.
 
 ### 2026-11-14 19:55 ET — From: Nic — Kind: Shipped
 
