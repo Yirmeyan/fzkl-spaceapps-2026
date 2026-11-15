@@ -1,5 +1,6 @@
 """Targets: what the user points at, and where it is at a given date."""
 
+from spherex_explorer.targets.everyday import catalog_name
 from spherex_explorer.targets.motion import Target, position_at
 from spherex_explorer.targets.parallax import (
     LIGHT_YEARS_AT_ONE_ARCSECOND,
@@ -22,6 +23,7 @@ __all__ = [
     "ResolvedTarget",
     "SesameResolver",
     "Target",
+    "catalog_name",
     "clean_name",
     "earth_position",
     "parallax_shift",
