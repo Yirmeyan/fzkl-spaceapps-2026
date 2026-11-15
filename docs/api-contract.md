@@ -833,6 +833,65 @@ Call it with the `gaia` catalog. Three arcseconds is half a SPHEREx pixel: the c
 
 A candidate is a measurement that stands out, not a discovery. Say "candidate" on screen.
 
+## The journal
+
+A sixth thing to show: **what has been found so far.** `journal.json`, beside the index, lists the findings of the fields the search was checked on: 28 entries, 14 kB. A visitor opens any of them in one click, and sees the service measure it again.
+
+```json
+{
+  "format": "spherex-explorer/journal",
+  "version": 1,
+  "generated": "2026-11-15T03:37:04Z",
+  "entries": [
+    {
+      "id": "wolf-359",
+      "name": "Wolf 359",
+      "source": "team",
+      "status": "confirmed",
+      "kind": "moved",
+      "method": "source",
+      "confidence": "medium",
+      "significance": 9.6,
+      "ra": 164.092532,
+      "dec": 6.99531,
+      "epoch": 2025.89,
+      "target": {
+        "ra": 164.120504,
+        "dec": 7.014723,
+        "epoch": 2000.0,
+        "pm_ra": -3866.338,
+        "pm_dec": -2699.215
+      },
+      "preset": null,
+      "found": "Moved by 4.84 ± 0.51 arcseconds per year toward 243 degrees",
+      "known": "4.72 arcseconds per year toward 235 degrees in SIMBAD",
+      "measured": "2026-11-15"
+    }
+  ]
+}
+```
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `id` | string | Key of the entry, one of a kind in the file |
+| `name` | string | Name to display: the object when catalogs know it, or `Candidate at` and its place |
+| `source` | string | Who listed it. `team`: one of our checks. `visitor` is kept for findings shared from the site |
+| `status` | string | `confirmed`: a catalog knows the object and what it does. `unconfirmed`: no catalog we asked explains it. `synthetic`: a made-up body, see [the sixth target](#a-sixth-target-that-is-not-real) |
+| `kind`, `method`, `confidence`, `significance` | as in a candidate | What the service found, copied from [the candidate](#candidates) |
+| `ra`, `dec`, `epoch` | numbers | Place of the candidate and its date |
+| `target` | object | What opens the tool on the finding: `ra`, `dec`, `epoch`, `pm_ra`, `pm_dec`, the parameters of `exposures`. For an object that is not the one its field was chosen for, it is the candidate itself, with the motion measured |
+| `preset` | string or null | Key of the static files of the target, when it has some: open those instead of calling the service |
+| `found` | string | What the service measured, in one sentence written from the candidate |
+| `known` | string or null | What catalogs say of the object. `null` when `status` is `unconfirmed` |
+| `measured` | string | Day of the measurement |
+
+- **25 confirmed, 2 unconfirmed, 1 synthetic.** 16 moved, 11 changed, 1 swung: the made-up body, the only one of its kind.
+- **Unconfirmed is not a discovery.** It means that SIMBAD, the AAVSO index and the variables of Gaia DR3 hold nothing at that place that explains the change. It is something for a visitor to look at.
+- **Every number comes from the service.** A static target is read from its candidates file. Any other field is measured through the archive, by the code that answers `candidates`. What catalogs say is written by hand in `backend/src/spherex_explorer/journal.py`, from the checks of [How it was checked](#how-it-was-checked).
+- **To open an entry:** with a `preset`, load the static files of that key. Without one, pass `target` to `exposures`, `frames` and `candidates` as for any position: the candidates take 20 to 35 seconds the first time.
+- A synthetic entry must be shown as synthetic, in the list as on the page it opens.
+- `python -m spherex_explorer.precompute --output samples --journal` builds it again: about eight minutes, for the twenty fields that have no static files.
+
 ## Errors
 
 An error is an HTTP status and this body:
