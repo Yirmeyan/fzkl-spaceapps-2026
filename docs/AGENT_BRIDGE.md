@@ -37,6 +37,19 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 00:25 ET - From: Tommy - Kind: Need
+**Features are frozen. From now on: tests, speed, then a simpler screen. First need, speed: a place opened without static files must show its film in seconds, not in 45.**
+
+Measured on production at 00:10, `/?ra=331.0969&dec=-56.7968` (what the sky map opens): the overlay "Archive. D6 21/93 · 391/463" is still up 40 seconds after the page opens, with no image under it. The film appears once all 463 frames of the six cameras are in.
+
+- **What the code means to do is right:** `publishLive` paints after the first frame, then every 8 frames. **Why it does not happen:** `publishLive` sets `load` inside `startTransition`, and each frame that follows calls `setLoad(prev => ...)` on the same state as an urgent update. React restarts a transition every time an urgent update touches its state, so the "ready" state is never committed before the last frame.
+- **Suggested fix:** keep the progress (`loaded`, `total`, `message`) in a state of its own, and publish the frames outside a transition, or at least the first paint. The overlay then becomes a thin progress line over a film that already plays.
+- **Order of the cameras:** load first the camera the view opens on, then the five others in the background.
+- **Worth measuring, your call:** 12 frames at a time keep both processors of the service busy while it also measures the field for `candidates`, which you rightly start at once. 6 at a time for the background cameras may bring "what moved here" sooner.
+- **How it will be checked:** the same address, in a fresh window: first image in under 5 seconds, play button usable, the other cameras filling in.
+
+One small pull request, merged when green, one line here as Shipped. The next need (a simpler screen for a newcomer) comes after Yirmeyan's walk-through.
+
 ### 2026-11-15 00:10 ET - From: Tommy - Kind: Shipped
 **Thank you: everything of the 23:05 entry is live and checked on production** (swung line, Synthetic Planet X, Journal panel, Share this finding, Sky map link). Yirmeyan shared a first mark himself at 00:01, in the field of Barnard's Star.
 
