@@ -80,6 +80,7 @@ gcloud services enable \
   iamcredentials.googleapis.com \
   sts.googleapis.com \
   cloudresourcemanager.googleapis.com \
+  firestore.googleapis.com \
   --project="$PROJECT_ID"
 
 # A service that was just enabled can refuse calls for a minute or two.
@@ -158,7 +159,23 @@ retry gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_EMAIL" \
   --project="$PROJECT_ID" \
   --member="serviceAccount:${DEPLOYER_EMAIL}" \
   --role="roles/iam.serviceAccountUser" > /dev/null
-echo "Done. The runtime identity has no permission: the service only reads public data."
+echo "Done."
+
+step "Database of the journal"
+# The marks visitors share are kept in the Firestore database of the project. Its place
+# cannot be changed afterwards: it is the region of the service.
+if gcloud firestore databases describe --database="(default)" --project="$PROJECT_ID" > /dev/null 2>&1; then
+  echo "The database exists."
+else
+  gcloud firestore databases create --location="$REGION" --project="$PROJECT_ID" > /dev/null
+  echo "Database created in ${REGION}."
+fi
+# The running service reads and writes that database, and nothing else in the project.
+retry gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${RUNTIME_EMAIL}" \
+  --role="roles/datastore.user" \
+  --condition=None > /dev/null
+echo "Done. The runtime identity can read and write the journal: the rest is public data."
 
 step "Trust between GitHub Actions and Google Cloud"
 if gcloud iam workload-identity-pools describe "$POOL" --project="$PROJECT_ID" --location=global > /dev/null 2>&1; then
