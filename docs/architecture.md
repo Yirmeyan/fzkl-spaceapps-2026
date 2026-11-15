@@ -113,7 +113,7 @@ Python service, in `backend/`:
 | `archive` | Finds the exposures of a position. Reads the useful bytes of a file: headers, row bands, flags, wavelength table. Handles retries and rate limits | Scientific interpretation |
 | `frames` | Pure functions that turn raw pixels into a frame: pixel window, mask, alignment on the common grid, wavelength, date | Network access |
 | `photometry` | Pure functions that measure the flux and its uncertainty at one point of an exposure | HTTP, the archive |
-| `detection` | Pure functions that follow every source of a view from one visit to the next and keep those that moved or changed. A star too bright to be measured is followed through its halo. Added after the MVP: see [Candidates](api-contract.md#candidates) | HTTP, the archive, the sky: it counts in pixels of the grid |
+| `detection` | Pure functions that follow every source of a view from one visit to the next and keep those that moved or changed. A star too bright to be measured is followed through its halo. A body of the outer solar system, which is at one place during a visit and at another during the next, is followed along the path its parallax draws. Added after the MVP: see [Candidates](api-contract.md#candidates) | HTTP, the archive, the sky: it counts in pixels of the grid |
 | `targets` | Resolves a name, propagates a proper motion to a date, and tells where the parallax puts a nearby object | Images |
 | `catalogs` | Asks VizieR for the sources of Gaia DR3 and of AllWISE around a place, reads its answer, remembers it for a day, and goes to a mirror when a site fails | What a source means for a view: that is the `pipeline` |
 | `config` | Reads settings from environment variables | Hard-coded values elsewhere |

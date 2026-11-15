@@ -275,7 +275,7 @@ Measures the target in every exposure that covers it and returns the fluxes, wit
 
 ### `GET /api/candidates`
 
-Measures the field around the target and returns its [candidates](#candidates): the sources that moved or changed between the visits of SPHEREx.
+Measures the field around the target and returns its [candidates](#candidates): the sources that moved, swung or changed between the visits of SPHEREx.
 
 | Parameter | Required | Default | Meaning |
 | --- | --- | --- | --- |
@@ -544,7 +544,7 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
         { "detector": 1, "file": "barnard-star-d1.json", "frames": 60, "wavelength_um": [0.7413, 1.1074], "bytes": 3962335 }
       ],
       "spectrum": { "file": "barnard-star-spectrum.json", "points": 364, "with_flux": 101, "bytes": 83927 },
-      "candidates": { "file": "barnard-star-candidates.json", "count": 1, "moved": 1, "changed": 0, "bytes": 1627 },
+      "candidates": { "file": "barnard-star-candidates.json", "count": 1, "moved": 1, "swung": 0, "changed": 0, "bytes": 1663 },
       "catalog": { "file": "barnard-star-catalog.json", "sources": { "gaia": 85, "allwise": 184 }, "bytes": 37502 }
     }
   ]
@@ -566,7 +566,7 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
 | `spectrum.points`, `spectrum.with_flux` | integers | Number of points, and how many of them hold a flux |
 | `spectrum.bytes` | integer | Size of the spectrum file before compression in transit |
 | `candidates.file` | string | Name of the [candidates file](#candidates), relative to the index |
-| `candidates.count`, `candidates.moved`, `candidates.changed` | integers | Number of candidates, and how many of each kind |
+| `candidates.count`, `candidates.moved`, `candidates.swung`, `candidates.changed` | integers | Number of candidates, and how many of each kind |
 | `candidates.bytes` | integer | Size of the candidates file |
 | `catalog.file` | string | Name of the catalog file, relative to the index: the answer of [`GET /api/catalog`](#get-apicatalog) for the grid of the target, at the middle of the dates of its frames |
 | `catalog.sources` | object | Number of sources of each catalog in the file, by its `key` |
@@ -580,7 +580,7 @@ A target has one bundle per detector, named `<key>-d<detector>.json`, so that th
 
 ## Candidates
 
-A fifth question: **what moved or changed in this field?** The service follows every source of the default view from one visit of SPHEREx to the next and keeps the ones that stand out. The visitor no longer has to spot them by eye.
+A fifth question: **what moved or changed in this field?** The service follows every source of the default view from one visit of SPHEREx to the next and keeps the ones that stand out. The visitor no longer has to spot them by eye. It also looks for a body of the outer solar system, which does not stay around one place: see [a body that swings](#a-body-of-the-outer-solar-system-swings-with-the-seasons).
 
 The five test targets have the answer in a static file, `<key>-candidates.json`, of 1 to 2 kB. For any other position, [`GET /api/candidates`](#get-apicandidates) returns the same object without its first three fields.
 
@@ -596,7 +596,7 @@ The five test targets have the answer in a static file, `<key>-candidates.json`,
   "visits": [
     {"pass": 1, "time_mjd": 60804.640346, "time_iso": "2025-05-09T15:22:06Z", "frames": 121}
   ],
-  "limits": {"significance": 5.0, "shift_arcsec": 1.0, "change": 0.1},
+  "limits": {"significance": 5.0, "shift_arcsec": 1.0, "change": 0.1, "swing_distance_au": [1600, 24400]},
   "saturated": [],
   "candidates": [
     {
@@ -627,6 +627,7 @@ The five test targets have the answer in a static file, `<key>-candidates.json`,
         "distance_ly": 11.0,
         "distance_ly_range": [9.8, 12.6]
       },
+      "swing": null,
       "changes": []
     }
   ]
@@ -640,24 +641,25 @@ This is Epsilon Indi B, found with no position given. The catalog says 4.68 arcs
 | `target`, `grid` | objects | The view that was measured: always the default one, 0.1 degree on 128 pixels |
 | `frames`, `sources` | integers | Frames measured, and sources followed in them |
 | `visits[]` | objects | Each visit of SPHEREx: its `pass`, its mean date, its number of frames |
-| `limits` | object | The least that is claimed: `significance` in sigma, `shift_arcsec` for a motion, `change` as a share of the brightness |
+| `limits` | object | The least that is claimed: `significance` in sigma, `shift_arcsec` for a motion, `change` as a share of the brightness. `swing_distance_au` gives the two distances, in astronomical units, between which a body that swings was looked for. It is `null` when the field has fewer than two visits: nothing was looked for |
 | `saturated[]` | objects | Stars too bright to be measured: place (`ra`, `dec`, `xy`), `radius_arcsec` of the saturated heart, and the `detectors` it saturates |
-| `candidates[]` | objects | The sources that stand out, the surest first. An empty list is a result: nothing moved or changed above the limits |
+| `candidates[]` | objects | The sources that stand out, the surest first. An empty list is a result: nothing moved or changed above the limits, and no body swings between the two distances of `limits` |
 
 One candidate:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `kind` | string | `moved` or `changed`. Other kinds can be added: ignore the ones you do not know |
+| `kind` | string | `moved`, `swung` or `changed`. Other kinds can be added: ignore the ones you do not know |
 | `method` | string | What was measured: `source`, the object itself, or `halo`, the light around a star too bright to be measured. See [a star too bright](#a-star-too-bright-is-followed-through-its-halo). Other methods can be added |
 | `confidence` | string | `high` or `medium`. See below |
-| `significance` | number | How many times its uncertainty the motion, or the clearest change, is |
-| `is_target` | boolean | The candidate is where the catalog puts the target at the date of each visit |
-| `ra`, `dec`, `xy` | numbers | Mean place over the visits, on the sky and on the grid of the file |
+| `significance` | number | How many times its uncertainty the motion, or the clearest change, is. For `swung`, how far the body stands above the sky in the visit that shows it least |
+| `is_target` | boolean | The candidate is where the catalog puts the target at the date of each visit. For `swung`, where the Sun would see the body is where the target is at the middle of the visits |
+| `ra`, `dec`, `xy` | numbers | Mean place over the visits, on the sky and on the grid of the file. For `swung`, where the Sun would see the body: no frame shows it there |
 | `epoch` | number | Date of that place, as a Julian year: the middle of the sightings |
 | `detectors` | integers | Detectors the measurement rests on |
-| `track[]` | objects | Where the source was in each visit: `pass`, date, `ra`, `dec`, `xy`, `error_arcsec` along each axis, `detectors`. With the method `halo` it is the saturated heart at every visit, and `error_arcsec` is its radius |
-| `motion` | object or null | The fitted motion. Present for `moved` only |
+| `track[]` | objects | Where the source was in each visit: `pass`, date, `ra`, `dec`, `xy`, `error_arcsec` along each axis, `detectors`. With the method `halo` it is the saturated heart at every visit, and `error_arcsec` is its radius. For `swung`, the sightings are tens of arcseconds apart: this is where to look in the frames of each visit |
+| `motion` | object or null | The fitted motion. Present for `moved`. For `swung` it is the motion of the body itself, its swing taken out, and it is present when three visits or more could check it |
+| `swing` | object or null | The swing of the body with the seasons, and its distance. Present for `swung` only |
 | `changes[]` | objects | The clearest change of each detector that shows one, the clearest first. Empty unless the brightness changed |
 
 `motion`:
@@ -670,6 +672,14 @@ One candidate:
 | `pm_ra`, `pm_dec` | numbers | The same motion as a proper motion, in milliarcseconds per year, ready for `exposures` |
 | `parallax_arcsec`, `parallax_error_arcsec` | numbers or null | Swing of the object with the seasons, when the positions ask for one |
 | `distance_ly`, `distance_ly_range` | number, two numbers, or null | Distance the parallax gives, in light-years, and the distances one sigma allows. The range alone is `null` when the parallax is too unsure to bound the far side |
+
+`swing`:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `parallax_arcsec`, `parallax_error_arcsec` | numbers | How far the body is from where the Sun would see it, when the Earth is at a right angle to it, and the one sigma uncertainty |
+| `distance_au`, `distance_au_range` | integer, two integers | Distance that parallax gives, in astronomical units, and the distances one sigma allows. 206,265 divided by the parallax |
+| `swing_arcsec` | number | The widest gap between two sightings of `track`: what the eye sees on the frames |
 
 `changes[]`:
 
@@ -694,7 +704,7 @@ To show a candidate, draw `track` on the image: `xy` is on the default grid, and
 - **A change is compared at equal wavelengths.** Two frames are compared when they differ by less than half the width of their band, so that the color of a source is not taken for a change. A change must show in two detectors: a reflection of a bright star outside the field touches one.
 - **A cold object in front of a star** is followed in the detectors that show it move, when the others disagree. This is how WISE 0855 is found, in detectors 5 and 6 alone.
 
-`confidence` is `high` when the significance is 10 or more and, for a motion, when the source was followed over three visits or more. Otherwise it is `medium`.
+`confidence` is `high` when the significance is 10 or more and, for a motion or a swing, when the source was followed over three visits or more. Otherwise it is `medium`.
 
 ### A star too bright is followed through its halo
 
@@ -705,6 +715,46 @@ A star that saturates has no value left at its heart, and the spectrum call give
 - **What a halo does by itself.** The halo of a steady star is not perfectly steady. On fifteen saturated stars that are not known to change much, 205 comparisons of two visits, its usual wander is 4 percent in detectors 4 to 6 and 10 percent in detectors 1 to 3. The uncertainty of a change holds 5 and 15 percent for it, the scatter of the frames, and what the two rings disagree by. Now and then one detector alone jumps by much more, up to 50 percent in the giant Psi Ursae Majoris: the rule of the two detectors is there for that.
 - **What is read, and what is not.** The ratio is that of the star between two visits. It is not a flux: `changes` has no unit. A change the second ring cannot confirm is dropped, and so is a star whose rings leave the image by more than a third.
 - **One star, one candidate.** A star that saturates some detectors only is followed as a source in the others. When that already makes it a candidate, its halo is not reported a second time.
+
+### A body of the outer solar system swings with the seasons
+
+A star a few light-years away swings by a fraction of an arcsecond as the Earth goes around the Sun. A body a few thousand astronomical units away swings by tens of arcseconds: it is at one place during a visit, at another during the next, and back at the first one six months later. Around either place it is a source that comes and goes, and the detection above does not follow it. This is what a distant planet of the solar system would do, and what the name of the challenge asks about.
+
+```json
+{
+  "kind": "swung",
+  "method": "source",
+  "confidence": "high",
+  "significance": 79.2,
+  "is_target": false,
+  "ra": 199.985356,
+  "dec": 29.980124,
+  "epoch": 2025.94,
+  "xy": [79.74, 88.94],
+  "detectors": [1, 2, 3, 4, 5, 6],
+  "track": [
+    {"pass": 1, "time_mjd": 60831.330614, "time_iso": "2025-06-05T07:56:05Z", "ra": 199.976713, "dec": 29.986119, "xy": [89.32, 81.27], "error_arcsec": 0.847, "detectors": [1, 2, 3, 4, 5, 6]},
+    {"pass": 2, "time_mjd": 61034.548843, "time_iso": "2025-12-25T13:10:20Z", "ra": 199.994897, "dec": 29.97571, "xy": [69.16, 94.59], "error_arcsec": 0.847, "detectors": [1, 2, 3, 4, 5, 6]}
+  ],
+  "motion": {"shift_arcsec": 3.2, "days": 359.6, "rate_arcsec_per_year": 3.25, "rate_error_arcsec_per_year": 1.22, "angle_deg": 115.3, "pm_ra": 2936.0, "pm_dec": -1387.0, "parallax_arcsec": 34.288, "parallax_error_arcsec": 0.543, "distance_ly": 0.1, "distance_ly_range": [0.1, 0.1]},
+  "swing": {"parallax_arcsec": 34.29, "parallax_error_arcsec": 0.54, "distance_au": 6016, "distance_au_range": [5922, 6112], "swing_arcsec": 68.0},
+  "changes": []
+}
+```
+
+**This body does not exist.** It is a made-up one, added to the real frames of a quiet field to test the search: 1 millijansky in every detector, 6,000 astronomical units away, moving by 3.05 arcseconds per year on its own. The third sighting of its track is left out here. No real field gave a `swung` candidate.
+
+- **The body is followed, not the place.** For a parallax that is tried, the place of a body on every frame is known, but for where the Sun would see it. Each frame is read with that shift: the body stays where it is and adds up, while the stars slide. 44 parallaxes are tried, from 8.4 to 129 arcseconds, then the best one more finely.
+- **It must be there in every visit,** at 6 sigma or more near the place and at 5 sigma or more at one same place, all the detectors together or the two reddest alone. A cold body shows in those two only. A visit with less than a third of the frames of the richest one is not asked that much: it must only not contradict the others.
+- **And the sky must be empty where it is not.** Where the body is during one visit, the other visits must show nothing, or less than three tenths of it. Two stars that happen to sit along the line of the swing fail there: each is at its place in every visit. A visit that did not look at the place cannot say it is empty.
+- **Two bodies do not share a place.** Beside a bright body, its light and a source of the field can line up as a second, fainter one: the surer of the two is kept.
+- **Its places give its distance.** The center of light of the body is measured in each visit. The places are fitted with where the Sun would see it, its parallax, and its own motion when three visits or more allow it. The parallax is the distance: at 34 arcseconds, 6,000 astronomical units.
+- **Two visits show a swing and cannot check it.** The body then needs twice the evidence, a significance of 10, the claim is `medium` at most, and `motion` is `null`.
+- **A source at one of its places is not reported again.** The detection above may see the body, around one of its places, as a source that moved. That candidate is dropped: the swing says it better.
+- **What the distances mean.** Anything whose parallax is 8 arcseconds or more is within 0.4 light-year, a tenth of the way to the nearest star: it belongs to the Sun. From 1,600 to 24,000 astronomical units are the distances of the inner Oort cloud, where comets come from. A planet as near as the ones proposed so far, a few hundred astronomical units, swings by more than the view holds: this search does not reach it.
+- **Do not expect one.** The WISE mission found nothing as large as Saturn out to 10,000 astronomical units, nor as large as Jupiter out to 26,000 (Luhman 2014). What this adds is a search anyone can run on any field, and its answer when it finds nothing: `limits.swing_distance_au` says between which distances nothing swings.
+
+To show such a candidate, mark each sighting of `track` on the frames of its own visit, and say the distance. To study it as a target, give `exposures` its `ra`, `dec` and `epoch`: the view is then centered between its places.
 
 ### Is a candidate known?
 
@@ -753,7 +803,9 @@ Call it with the `gaia` catalog. Three arcseconds is half a SPHEREx pixel: the c
 - A source with a neighbor closer than 22 arcseconds and at least a third as bright, in the detectors that show both.
 - The motion or the flux of a star in the detectors it saturates. Only a change of its halo is, and in practice a change of a quarter or more: the halo of a steady star wanders by itself.
 - The halo of a star so bright that its saturated heart reaches more than 50 arcseconds from its center, or of a saturated star near the edge of the view. Such a star is listed in `saturated` and nothing more is said.
-- An object that crosses more than the field between two visits. A planet of the solar system would: its parallax is hundreds of times that of a star. Such an object shows in one visit only, which this version does not report.
+- A body of the solar system nearer than 1,600 astronomical units. Its swing, more than two arcminutes, does not fit in the view with a margin on each side: it shows in one visit only, which is not reported. Neptune is at 30, and the planets proposed beyond it at a few hundred.
+- A body that swings by less than 8 arcseconds, farther than 24,000 astronomical units, and by more than a source is followed: between the two searches, its two places overlap.
+- A body that swings and that the sky hides: at a place where a star sits in the other visits, or with a place closer than 22 arcseconds to the edge of the view.
 
 A candidate is a measurement that stands out, not a discovery. Say "candidate" on screen.
 
@@ -797,7 +849,7 @@ One frame that fails does not fail the view: show the others.
 
 Stable, safe to build on: the calls, the names of the parameters and of the fields, the units, the orientation, the two encodings, the error body and its codes.
 
-The candidates are new. The names of their fields are stable. Their thresholds, their limits and the kinds of candidates can still change.
+The candidates are new. The names of their fields are stable. Their thresholds, their limits and the kinds of candidates can still change. The kind `swung`, the field `swing` and `limits.swing_distance_au` were added on November 14, 2026: a client that does not know them can ignore them.
 
 Provisional, the values can change but not the shape:
 
@@ -906,6 +958,26 @@ The faintest object the detection finds, measured on November 14, 2026 by adding
 - **Why a bright star is sometimes missed.** Two of the 32 fields have two visits only, half a year apart: at 1.5 arcseconds per year a star moves by 0.8 arcsecond there, under the rule of 1 arcsecond. The others fell beside a real star of the field, where a position is refused.
 - **A near neighbor can mislead, about once in 200.** In 12 runs a candidate came out elsewhere than on the added star, once with a star that did not move. The two cases looked at are a real star of the field, 5 and 9 pixels of the view from the added one, whose measured position the added star disturbed.
 - **What this test does not say.** The added star is round, with the width real stars have in each detector, 9 to 10.5 arcseconds at half height on the grid of the view. It has one flux across a detector and a straight path, without parallax. The fields are quiet ones, far from the Milky Way. A real object in a crowded field does worse.
+
+A body that swings with the seasons, checked on November 14, 2026. None is known, so the check has two halves.
+
+- **Nothing in the real sky.** The 74 fields kept for tests were searched as they are: the 32 quiet fields, the fields of the nearby stars that move, those of the Milky Way, the saturated stars and the five test targets. None gives a `swung` candidate.
+- **Made-up bodies in real frames.** In each of the 32 quiet fields a body was added to every frame, at the place its distance and its own motion give at the date of the frame. One body at a time, 42 per field, 1,344 in all. Each moves as a body on a round orbit at its distance would, from 0.3 to 1.2 times as fast, in a direction drawn at random. The table counts the fields, out of 32, where the body came out as a `swung` candidate:
+
+| Body, and its distance in astronomical units | 2,000 | 3,000 | 5,000 | 8,000 | 12,000 | 18,000 | 25,000 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Six detectors, 0.1 millijansky | 2 | 2 | 5 | 6 | 6 | 6 | 3 |
+| Six detectors, 0.3 | 19 | 18 | 19 | 17 | 18 | 19 | 16 |
+| Six detectors, 1 | 23 | 27 | 25 | 25 | 28 | 24 | 24 |
+| Detectors 5 and 6, 0.5 | 7 | 7 | 6 | 4 | 10 | 5 | 8 |
+| Detectors 5 and 6, 1 | 18 | 21 | 18 | 19 | 25 | 19 | 15 |
+| Detectors 5 and 6, 3 | 26 | 19 | 23 | 22 | 24 | 22 | 24 |
+
+- **A bright body is found about three times in four:** 79 percent of those of 1 millijansky in the six detectors, 71 percent of the cold ones of 3 millijanskys, at any distance from 2,000 to 25,000 astronomical units. At a third of those fluxes, 56 and 60 percent. Fainter still, 13 and 21 percent.
+- **The distance is right.** Over the 674 bodies found, half of the distances are within 0.8 percent of the true one, and nine in ten within 4.6 percent. The true distance is inside the stated range for 78 percent of them, where 68 would be exact. The own motion found is within two stated sigma of the true one for 97 percent of the bodies seen in three visits or more.
+- **Why a bright body is missed.** A visit that lacks a detector, or that lasts two months: the body then crosses tens of pixels during the visit and leaves the view. A star at one of its places, where the sky cannot be found empty. Two visits only, where twice the evidence is asked.
+- **A second body beside a real one: 11 runs of 1,344.** With nothing hidden no field gives a body. With one hidden, its light and a source of the field can line up as a second, fainter body elsewhere. A body that shares a place with a surer one is dropped, which removes most of them.
+- **What this test does not say.** The bodies are round, with one flux across a detector, and they are the ones the search was built for. The fields are quiet ones. No body of the real sky was there to check the search against.
 
 The catalogs, checked on November 14, 2026 against the candidates of the five test targets. Each source of Gaia DR3 is moved from 2016 to the date of the candidate with its own motion:
 

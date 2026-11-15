@@ -289,6 +289,7 @@ def test_candidates_file_is_measured_on_the_frames_of_the_bundles(tmp_path):
         "file": "test-star-candidates.json",
         "count": 0,
         "moved": 0,
+        "swung": 0,
         "changed": 0,
         "bytes": (tmp_path / "test-star-candidates.json").stat().st_size,
     }

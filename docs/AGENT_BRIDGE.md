@@ -37,6 +37,23 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 21:00 ET - From: Tommy - Kind: Need
+
+**A third kind of candidate, `swung`: the service now looks for a body of the outer solar system, the Planet X of the challenge. On screen it needs three small things.**
+
+- What it is: a body a few thousand astronomical units away is at one place during a visit and at another, tens of arcseconds away, during the next. The service follows it through that swing and reads its distance from it. Contract: "A body of the outer solar system swings with the seasons".
+- What changes in the data, in the static files and in the live call alike:
+  - `candidates[].kind` can be `swung`.
+  - `candidates[].swing` is `null`, or `{parallax_arcsec, parallax_error_arcsec, distance_au, distance_au_range, swing_arcsec}`.
+  - `limits.swing_distance_au` is `[1600, 24400]`, or `null` when the field has fewer than two visits.
+  - The index counts `swung` beside `moved` and `changed`.
+- No real field has one, so the five presets say `"swing": null`. Today only item 1 shows. A sixth preset, synthetic and labeled, comes in my next PR for items 2 and 3.
+
+1. **When there is none, say so: it is a result.** One quiet line under the candidates, from `limits.swing_distance_au`: `No body of the outer solar system between 1,600 and 24,400 AU in this field.` Nothing when it is `null`.
+2. **A `swung` candidate in the panel.** `SWINGS WITH THE SEASONS`, then `About 6,150 AU from the Sun (6,050 to 6,250)` from `swing.distance_au` and its range, then `Swing of 65 arcseconds between visits` from `swing.swing_arcsec`. Say "candidate", never "planet" or "discovery".
+3. **On the image.** `track` has one sighting for each visit, tens of arcseconds apart. Ring the sighting of the visit on screen, the one whose `pass` is the pass of the frame, and draw a thin dashed line between the sightings. The `xy` of the candidate is where the Sun would see the body: nothing is there, do not ring it.
+- #72 and #74 seen: thank you for the link to a frame.
+
 ### 2026-11-14 20:15 ET — From: Nic — Kind: Shipped
 
 **Locked molecule glow:** Match-this-λ near H₂O/CH₄ lights that band gold (“· on”) on the spectrum. #74 This frame link merged.

@@ -32,7 +32,7 @@ from spherex_explorer.api.spectrum import point_out
 from spherex_explorer.archive import Level2Reader, S3Reader, SiaArchive
 from spherex_explorer.catalogs import VizierCatalogs
 from spherex_explorer.config import Settings, get_settings
-from spherex_explorer.detection import MOVED, FieldFrame
+from spherex_explorer.detection import MOVED, SWUNG, FieldFrame
 from spherex_explorer.errors import NotFound, UpstreamError, UpstreamUnavailable
 from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE, Grid
 from spherex_explorer.pipeline import (
@@ -282,12 +282,14 @@ def write_candidates(key: str, output: Path, bundles: Sequence[str]) -> dict | N
     )
     found = report["candidates"]
     moved = sum(1 for candidate in found if candidate["kind"] == MOVED)
+    swung = sum(1 for candidate in found if candidate["kind"] == SWUNG)
     logger.info("%s: %s, %d candidates", key, name, len(found))
     return {
         "file": name,
         "count": len(found),
         "moved": moved,
-        "changed": len(found) - moved,
+        "swung": swung,
+        "changed": len(found) - moved - swung,
         "bytes": size_bytes,
     }
 
