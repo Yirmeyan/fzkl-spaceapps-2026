@@ -27,8 +27,12 @@ export const DEFAULT_MAP_VIEW: MapView = {
   wavelength: 1.65,
 };
 
-/** The cube stops at 13 arcseconds a pixel: closer than this there is nothing more to see. */
-export const NARROWEST_FOV = 0.25;
+/**
+ * The all-sky cube has pixels of 13 arcseconds, twice those of SPHEREx, and nothing where
+ * a bright source saturates. Closer than this the map shows tiles and holes, not sky: the
+ * detail is in the explorer, which reads the images themselves.
+ */
+export const NARROWEST_FOV = 2;
 export const WIDEST_FOV = 360;
 
 function numberOr(raw: string | null, fallback: number): number {

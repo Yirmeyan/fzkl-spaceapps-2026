@@ -119,6 +119,7 @@ body {
 }
 
 .sky-card[hidden],
+.sky-closest[hidden],
 .sky-card p[hidden],
 .sky-pins[hidden],
 .sky-mark[hidden],
@@ -293,6 +294,24 @@ body {
 
 .sky-check {
   accent-color: var(--accent);
+}
+
+.sky-closest {
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 13px;
+  left: 50%;
+  max-width: calc(100% - 24px);
+  padding: 5px 14px;
+  pointer-events: none;
+  position: absolute;
+  text-align: center;
+  /* Under the coordinates the engine writes in the corner. */
+  top: 48px;
+  transform: translateX(-50%);
+  z-index: 1;
 }
 
 .sky-waiting {

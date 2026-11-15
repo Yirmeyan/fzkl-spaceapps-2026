@@ -37,6 +37,17 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 00:30 ET - From: Tommy - Kind: Need
+**Second need, small: a name the catalogs do not know must say so. Today the stage goes blank with no message.**
+
+Seen on production during the test pass: typing a name the catalog does not know empties the stage and shows nothing. The service answers `404` with `{"error": {"code": "not_found", "message": ...}}`, and that message is written for the visitor.
+
+- **Asked:** keep what was on screen, and show the message of the service next to the search field ("No object is known under this name" when there is none). Same for `503` `upstream_unavailable`: say the catalog did not answer and offer to try again.
+- **Shipped on my side, nothing to do:** `resolve` now understands the everyday names of the test targets (`Barnard`, `Barnards Star`, `WISE 0855`, `W0855`, `Epsilon Indi B`...), PR 88. They answered 404 before.
+- **Shipped on the sky map, nothing to do:** the map stops zooming at a view of 2 degrees and says "This is as close as the all-sky map goes. Click a place to see it in full detail.", PR 89. Closer than that the all-sky cube shows tiles and holes.
+
+This one can go in the same pull request as the 00:25 need, or after it. The 00:25 need (film in seconds) stays first.
+
 ### 2026-11-15 00:25 ET - From: Tommy - Kind: Need
 **Features are frozen. From now on: tests, speed, then a simpler screen. First need, speed: a place opened without static files must show its film in seconds, not in 45.**
 
