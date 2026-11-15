@@ -22,7 +22,7 @@ Goal: anyone non-technical sees **real stellar motion** and **real spectra** wit
 
 1. **(0–10 s) Barnard's Star hops** — preset loaded; **Play**, then blink visits (**B**) so the bright core jumps while the background stays. Turn on **Gaia DR3**: the violet ring follows the star. Hit **2010 → now** then **Play years**: the gold bead slides from AllWISE 2010 to SPHEREx now.
 2. **(10–20 s) Epsilon Indi B spectrum** — switch to **Epsilon Indi B**. Unsaturated; Infrared timeline opens with the green SPIFF badge: “Within 2 percent of the published SPIFF library.” One short line: “nearby brown dwarf, real SPHEREx flux — checked against another team’s published library.”
-3. **(20–30 s) WISE 0855 or R Draconis** — **WISE 0855**: AllWISE ring far east (2010); Gaia cannot see it — Planet X search shape. **R Draconis**: too bright for SPHEREx to measure, and the tool still tells it faded by half in a year, from its halo.
+3. **(20–30 s) WISE 0855 or R Draconis** — **WISE 0855**: open `?target=wise-0855&years=1` (or **Years link**) — Play years + “Too cold for Gaia… the Planet X shape.” **R Draconis**: too bright for SPHEREx to measure, and the tool still tells it faded by half in a year, from its halo.
 
 Backup if “is this fake?”: “NASA SPHEREx cutouts; orange marks are catalogue or measured positions on the same grid.”
 

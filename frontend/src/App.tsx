@@ -234,7 +234,8 @@ export default function App() {
   const [demoLine, setDemoLine] = useState("");
   const [showBriefing, setShowBriefing] = useState(() => {
     try {
-      if (new URLSearchParams(window.location.search).get("demo") === "1") return false;
+      const q = new URLSearchParams(window.location.search);
+      if (q.get("demo") === "1" || q.get("years") === "1") return false;
       return sessionStorage.getItem("spx-briefing-done") !== "1";
     } catch {
       return true;
@@ -249,6 +250,13 @@ export default function App() {
       new URLSearchParams(window.location.search).get("demo") === "1",
   );
   const demoAutoStarted = useRef(false);
+  /** Jury deep-link: ?years=1 arms AllWISE and plays the 2010→now trek once. */
+  const yearsFromUrl = useRef(
+    typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("years") === "1",
+  );
+  const yearsAutoStarted = useRef(false);
+  const [yearsLinkCopied, setYearsLinkCopied] = useState(false);
 
   function dismissBriefing(startDemo: boolean) {
     try {
@@ -1010,11 +1018,18 @@ export default function App() {
   }, []);
 
   function playFlightYears() {
-    if (!flightPath) return;
     setShowAllwise(true);
+    if (!flightPath) return;
     if (flightPlayRef.current != null) window.clearInterval(flightPlayRef.current);
     setFlightScrub(0);
     setFlightPlaying(true);
+    if (view.targetKey === "wise0855") {
+      setDiscoveryIsHalo(false);
+      setDiscoveryFlash(
+        "Too cold for Gaia. WISE saw it in 2010. SPHEREx sees it now — the Planet X shape.",
+      );
+      window.setTimeout(() => setDiscoveryFlash(null), 5200);
+    }
     const started = performance.now();
     const dur = 2400;
     flightPlayRef.current = window.setInterval(() => {
@@ -1029,6 +1044,22 @@ export default function App() {
         setFlightScrub(1);
       }
     }, 32);
+  }
+
+  function copyYearsLink() {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("years", "1");
+    const indexKey =
+      view.targetKey === "custom"
+        ? null
+        : (INDEX_KEY_BY_UI[view.targetKey || "wise0855"] ?? (view.targetKey || "wise-0855"));
+    if (indexKey) url.searchParams.set("target", indexKey);
+    const href = url.toString();
+    void navigator.clipboard.writeText(href).then(() => {
+      setYearsLinkCopied(true);
+      window.setTimeout(() => setYearsLinkCopied(false), 2000);
+    });
   }
 
   const blinkA = passes[0] ?? null;
@@ -1416,6 +1447,34 @@ export default function App() {
     window.setTimeout(() => runAutoDemo(), 400);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load.status]);
+
+  // Judge deep-link: ?years=1 → AllWISE on, then Play years when the path exists.
+  useEffect(() => {
+    if (!yearsFromUrl.current) return;
+    if (load.status !== "ready") return;
+    try {
+      sessionStorage.setItem("spx-briefing-done", "1");
+      setShowBriefing(false);
+    } catch {
+      /* ignore */
+    }
+    setShowAllwise(true);
+  }, [load.status]);
+
+  useEffect(() => {
+    if (!yearsFromUrl.current || yearsAutoStarted.current) return;
+    if (!flightPath || load.status !== "ready") return;
+    yearsAutoStarted.current = true;
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("years");
+      window.history.replaceState(null, "", `${u.pathname}${u.search}${u.hash}`);
+    } catch {
+      /* ignore */
+    }
+    window.setTimeout(() => playFlightYears(), 350);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flightPath, load.status]);
 
   function runAutoDemo() {
     if (load.status !== "ready") return;
@@ -3086,6 +3145,14 @@ export default function App() {
                     onClick={() => playFlightYears()}
                   >
                     Play years
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    title="Copy a link that auto-plays 2010→now for this target"
+                    onClick={() => copyYearsLink()}
+                  >
+                    {yearsLinkCopied ? "Copied" : "Years link"}
                   </button>
                 </div>
                 {showAllwise && flightPath && (

@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:40 ET — From: Nic — Kind: Shipped
+
+**`?years=1` jury deep-link + Years link copy:** auto AllWISE + Play years; WISE 0855 whispers the Planet X line. #66 scrub/Play years merged.
+
 ### 2026-11-14 19:35 ET — From: Nic — Kind: Shipped
 
 **Scrub / Play years on AllWISE path:** gold bead slides 2010→now; under-stage scrubber + Play years (2.4s ease). #64 SPIFF badge merged.
