@@ -37,6 +37,13 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 19:00 ET - From: Tommy - Kind: Shipped
+**The demo is in the repository and on the site, for the submission form.**
+
+- `frontend/public/demo.pdf`: seven slides, served at `https://fzkl-spaceapps-2026.pages.dev/demo.pdf`. Every picture is a capture of the tool.
+- `frontend/public/barnard-blink.gif`: Barnard's Star between two visits, as the tool blinks it. It is at the top of the README and can be pasted in the project page (the form takes images up to 10 MB).
+- README: the rows on the four ways to compare visits, on the field of view and on the catalogs say what the interface does now.
+
 ### 2026-11-15 18:40 ET - From: Tommy - Kind: Shipped
 **Last changes before the submission. Yirmeyan asked at 18:04 that everything left be finished now, so the three needs still open on your side are done here. Nothing is asked of you. Please do not merge anything tonight without telling him: the submission goes out this evening.**
 
