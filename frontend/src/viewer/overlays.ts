@@ -16,15 +16,22 @@ export interface FlightPath {
   to: [number, number];
   label: string;
   sourceId?: string;
+  fromYear: number;
+  toYear: number;
 }
 
-export function drawFlightPath(ctx: CanvasRenderingContext2D, path: FlightPath): void {
+/**
+ * Draw the AllWISE→now trek.
+ * `scrubT` 0 = 2010 bead, 1 = now (default). Judges can drag years along the path.
+ */
+export function drawFlightPath(ctx: CanvasRenderingContext2D, path: FlightPath, scrubT = 1): void {
   const [x0, y0] = path.from;
   const [x1, y1] = path.to;
   const dx = x1 - x0;
   const dy = y1 - y0;
   const len = Math.hypot(dx, dy);
   if (len < 2) return;
+  const t = Math.min(1, Math.max(0, scrubT));
 
   ctx.save();
   ctx.strokeStyle = "rgba(52, 211, 153, 0.95)";
@@ -55,6 +62,18 @@ export function drawFlightPath(ctx: CanvasRenderingContext2D, path: FlightPath):
   ctx.lineWidth = 0.8;
   ctx.stroke();
 
+  // Scrub bead — the year the judge is holding
+  const sx = x0 + dx * t;
+  const sy = y0 + dy * t;
+  const year = path.fromYear + (path.toYear - path.fromYear) * t;
+  ctx.fillStyle = "#fbbf24";
+  ctx.beginPath();
+  ctx.arc(sx, sy, 4.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#04120a";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
   const mx = (x0 + x1) / 2;
   const my = (y0 + y1) / 2;
   ctx.font = "bold 7px IBM Plex Sans, sans-serif";
@@ -62,9 +81,10 @@ export function drawFlightPath(ctx: CanvasRenderingContext2D, path: FlightPath):
   ctx.textBaseline = "bottom";
   ctx.lineWidth = 2.5;
   ctx.strokeStyle = "rgba(7, 11, 18, 0.85)";
-  ctx.strokeText(path.label, mx, my - 3);
+  const scrubLabel = t < 0.98 ? `${year.toFixed(1)}` : path.label;
+  ctx.strokeText(scrubLabel, t < 0.98 ? sx : mx, (t < 0.98 ? sy : my) - 5);
   ctx.fillStyle = "#e8eef6";
-  ctx.fillText(path.label, mx, my - 3);
+  ctx.fillText(scrubLabel, t < 0.98 ? sx : mx, (t < 0.98 ? sy : my) - 5);
   ctx.restore();
 }
 
@@ -110,6 +130,8 @@ export function allwiseFlightPath(
     to: nowXy,
     label: `${yearLabel} · ${rateLabel}`,
     sourceId: best.id,
+    fromYear: slice.epoch,
+    toYear: nowEpochYear,
   };
 }
 

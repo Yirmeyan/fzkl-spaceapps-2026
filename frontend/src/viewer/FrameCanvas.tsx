@@ -34,6 +34,7 @@ export interface FrameCanvasProps {
   catalogHighlightId?: string | null;
   catalogTimeMjd?: number | null;
   flightPath?: FlightPath | null;
+  flightScrub?: number;
   className?: string;
   displayPx?: number;
 }
@@ -60,6 +61,7 @@ export function FrameCanvas({
   catalogHighlightId = null,
   catalogTimeMjd = null,
   flightPath = null,
+  flightScrub = 1,
   className,
   displayPx,
 }: FrameCanvasProps) {
@@ -111,7 +113,7 @@ export function FrameCanvas({
       );
     }
     if (flightPath) {
-      drawFlightPath(ctx, flightPath);
+      drawFlightPath(ctx, flightPath, flightScrub);
     }
   }, [
     pixels,
@@ -135,6 +137,7 @@ export function FrameCanvas({
     catalogHighlightId,
     catalogTimeMjd,
     flightPath,
+    flightScrub,
   ]);
 
   return (

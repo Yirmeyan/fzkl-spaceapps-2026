@@ -188,6 +188,10 @@ export default function App() {
   /** Tommy F8: catalog overlay switches (off until first asked). */
   const [showGaia, setShowGaia] = useState(false);
   const [showAllwise, setShowAllwise] = useState(false);
+  /** 0 = AllWISE epoch, 1 = SPHEREx now — scrub bead on the flight path. */
+  const [flightScrub, setFlightScrub] = useState(1);
+  const [flightPlaying, setFlightPlaying] = useState(false);
+  const flightPlayRef = useRef<number | null>(null);
   const [catalogFile, setCatalogFile] = useState<CatalogResponse | null>(null);
   /** Gaia slice with optional tight-FOV refill when the view catalog is truncated. */
   const [gaiaForKnownAs, setGaiaForKnownAs] = useState<CatalogSlice | null>(null);
@@ -991,6 +995,41 @@ export default function App() {
       nowEpoch,
     );
   }, [showAllwise, catalogFile, load, filtered, view.frameIndex]);
+
+  useEffect(() => {
+    if (!showAllwise) {
+      setFlightScrub(1);
+      setFlightPlaying(false);
+    }
+  }, [showAllwise]);
+
+  useEffect(() => {
+    return () => {
+      if (flightPlayRef.current != null) window.clearInterval(flightPlayRef.current);
+    };
+  }, []);
+
+  function playFlightYears() {
+    if (!flightPath) return;
+    setShowAllwise(true);
+    if (flightPlayRef.current != null) window.clearInterval(flightPlayRef.current);
+    setFlightScrub(0);
+    setFlightPlaying(true);
+    const started = performance.now();
+    const dur = 2400;
+    flightPlayRef.current = window.setInterval(() => {
+      const u = Math.min(1, (performance.now() - started) / dur);
+      // Ease-out so the last years linger
+      const eased = 1 - (1 - u) ** 2;
+      setFlightScrub(eased);
+      if (u >= 1) {
+        if (flightPlayRef.current != null) window.clearInterval(flightPlayRef.current);
+        flightPlayRef.current = null;
+        setFlightPlaying(false);
+        setFlightScrub(1);
+      }
+    }, 32);
+  }
 
   const blinkA = passes[0] ?? null;
   const blinkB = passes.length >= 2 ? passes[passes.length - 1]! : null;
@@ -2298,8 +2337,46 @@ export default function App() {
                     }
                     catalogHighlightId={catalogHighlightId ?? flightPath?.sourceId ?? null}
                     flightPath={flightPath}
+                    flightScrub={flightScrub}
                     onFrameIndexChange={onPlayerFrame}
                   />
+                  {flightPath && (
+                    <fieldset className="flight-scrub">
+                      <legend className="sr-only">Scrub years along the AllWISE path</legend>
+                      <span className="flight-scrub-year">
+                        {Math.round(
+                          flightPath.fromYear +
+                            (flightPath.toYear - flightPath.fromYear) * flightScrub,
+                        )}
+                      </span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={flightScrub}
+                        onChange={(e) => {
+                          if (flightPlayRef.current != null) {
+                            window.clearInterval(flightPlayRef.current);
+                            flightPlayRef.current = null;
+                            setFlightPlaying(false);
+                          }
+                          setFlightScrub(Number(e.target.value));
+                        }}
+                        aria-label="Year along the flight path"
+                        title="Drag to slide from 2010 to now"
+                      />
+                      <button
+                        type="button"
+                        className={flightPlaying ? "active" : "primary"}
+                        onClick={() => playFlightYears()}
+                        disabled={flightPlaying}
+                        title="Animate the object from AllWISE 2010 to SPHEREx now"
+                      >
+                        {flightPlaying ? "Playing…" : "Play years"}
+                      </button>
+                    </fieldset>
+                  )}
                   {(showGaia || showAllwise) && catalogFile && load.status === "ready" && (
                     <button
                       type="button"
@@ -2994,15 +3071,27 @@ export default function App() {
                     className={showAllwise && flightPath ? "active" : ""}
                     disabled={catalogError != null && !catalogFile}
                     title="Draw the path from where WISE saw this object in 2010 to where SPHEREx sees it now"
-                    onClick={() => setShowAllwise(true)}
+                    onClick={() => {
+                      setShowAllwise(true);
+                      setFlightScrub(1);
+                    }}
                   >
                     2010 → now
+                  </button>
+                  <button
+                    type="button"
+                    className={flightPlaying ? "active" : ""}
+                    disabled={(catalogError != null && !catalogFile) || flightPlaying}
+                    title="Animate decades of motion along the AllWISE path"
+                    onClick={() => playFlightYears()}
+                  >
+                    Play years
                   </button>
                 </div>
                 {showAllwise && flightPath && (
                   <p className="micro flight-path-note">
                     Flight path {flightPath.label}
-                    {flightPath.sourceId ? ` · ${flightPath.sourceId}` : ""}
+                    {flightPath.sourceId ? ` · ${flightPath.sourceId}` : ""} · scrub or Play years
                   </p>
                 )}
                 {catalogWaiting && <p className="micro">Asking the catalogs…</p>}
