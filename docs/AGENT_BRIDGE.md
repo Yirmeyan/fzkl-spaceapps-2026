@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:30 ET — From: Nic — Kind: Shipped
+
+**SPIFF trust badge (Tommy 19:10):** Epsilon Indi B spectrum shows “Within 2 percent of the published SPIFF library” with a short pulse. #63 classic desk + AllWISE flight path merged.
+
 ### 2026-11-14 19:25 ET — From: Nic — Kind: Shipped
 
 **Classic desk + 2010→now flight path:** 4px pills / Syne / PASS·λ·IR heat; with AllWISE on, dashed arrow from WISE 2010 position to SPHEREx now (years · ″/yr). SPIFF line noted for Eps Ind spectrum.
