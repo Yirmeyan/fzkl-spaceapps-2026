@@ -147,3 +147,33 @@ def test_application_opens_its_name_resolver_when_it_starts():
         assert isinstance(app.state.resolver, SesameResolver)
 
     assert app.state.resolver is None
+
+
+@pytest.mark.parametrize(
+    ("typed", "asked"),
+    [
+        ("WISE 0855", "WISE J085510.83-071442.5"),
+        ("wise 0855-0714", "WISE J085510.83-071442.5"),
+        ("W0855", "WISE J085510.83-071442.5"),
+        ("Barnard", "Barnard's Star"),
+        ("barnards  star", "Barnard's Star"),
+        ("Barnard’s Star", "Barnard's Star"),
+        ("Epsilon Indi Ba", "eps Ind B"),
+    ],
+)
+def test_an_everyday_name_of_a_test_target_is_asked_under_its_catalog_name(typed, asked):
+    resolver = FakeResolver(BARNARD)
+    response = make_client(resolver).get("/api/resolve", params={"name": typed})
+
+    assert response.status_code == 200
+    assert resolver.asked == [clean_name(asked)]
+    # The answer keeps the name the visitor typed.
+    assert response.json()["name"] == " ".join(typed.split())
+
+
+def test_any_other_name_is_asked_as_it_was_typed():
+    resolver = FakeResolver(BARNARD)
+    make_client(resolver).get("/api/resolve", params={"name": "Luhman 16"})
+    make_client(resolver).get("/api/resolve", params={"name": "Barnard 68"})
+
+    assert resolver.asked == [clean_name("Luhman 16"), clean_name("Barnard 68")]

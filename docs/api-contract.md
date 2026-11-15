@@ -150,6 +150,8 @@ Never cached. It is the call to use to wake the service up and to check that it 
 
 Turns a name into a target, through the CDS Sesame name resolver.
 
+The everyday names of the test targets are understood: `Barnard`, `WISE 0855`, `Epsilon Indi B` and their usual spellings are asked for under the name catalogs know them by. Any other name is asked as it was typed.
+
 | Parameter | Required | Meaning |
 | --- | --- | --- |
 | `name` | Yes | Name of the object, 1 to 100 characters |

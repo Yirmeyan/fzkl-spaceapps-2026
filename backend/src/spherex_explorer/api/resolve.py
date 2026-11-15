@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from spherex_explorer.api.exposures import get_time_budget_s
 from spherex_explorer.errors import UpstreamUnavailable
-from spherex_explorer.targets import MAX_NAME_LENGTH, ResolvedTarget
+from spherex_explorer.targets import MAX_NAME_LENGTH, ResolvedTarget, catalog_name
 
 router = APIRouter(tags=["resolve"])
 
@@ -64,7 +64,8 @@ async def read_target(
 ) -> TargetOut:
     try:
         async with asyncio.timeout(time_budget_s):
-            target = await resolver.resolve(name)
+            # "WISE 0855" is asked for under the name catalogs know it by.
+            target = await resolver.resolve(catalog_name(name))
     except TimeoutError as exc:
         raise UpstreamUnavailable(
             "The CDS name resolver",
