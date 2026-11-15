@@ -2261,8 +2261,17 @@ select {
   animation: band-fade 1.2s ease both;
 }
 
+.spectrum-band--hot:hover rect {
+  fill: rgba(56, 189, 248, 0.28);
+}
+
 .spectrum-band-label {
   pointer-events: none;
+}
+
+.band-hint {
+  margin-top: -0.15rem !important;
+  color: #7dd3fc !important;
 }
 
 @keyframes band-fade {

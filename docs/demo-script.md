@@ -21,7 +21,7 @@ Goal: anyone non-technical sees **real stellar motion** and **real spectra** wit
 ## Manual 30-second path (preferred for video)
 
 1. **(0–10 s) Barnard's Star hops** — preset loaded; **Play**, then blink visits (**B**) so the bright core jumps while the background stays. Turn on **Gaia DR3**: the violet ring follows the star. Hit **2010 → now** then **Play years**: the gold bead slides from AllWISE 2010 to SPHEREx now.
-2. **(10–20 s) Epsilon Indi B spectrum** — switch to **Epsilon Indi B**. Unsaturated; Infrared timeline opens with the green SPIFF badge plus H₂O / CH₄ band markers on the chart. One short line: “nearby brown dwarf — water and methane in the infrared, within 2% of SPIFF.”
+2. **(10–20 s) Epsilon Indi B spectrum** — switch to **Epsilon Indi B**. Unsaturated; Infrared timeline opens with SPIFF badge + H₂O / CH₄ bands — **tap CH₄** to lock the sky movie to that color. “Water and methane in the infrared, within 2% of SPIFF.”
 3. **(20–30 s) WISE 0855 or R Draconis** — **WISE 0855**: open `?target=wise-0855&years=1` (or **Years link**) — Play years + “Too cold for Gaia… the Planet X shape.” **R Draconis**: too bright for SPHEREx to measure, and the tool still tells it faded by half in a year, from its halo.
 
 Backup if “is this fake?”: “NASA SPHEREx cutouts; orange marks are catalogue or measured positions on the same grid.”
