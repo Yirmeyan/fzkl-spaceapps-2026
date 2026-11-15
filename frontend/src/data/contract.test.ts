@@ -66,7 +66,7 @@ describe("contract helpers", () => {
     expect(tinted[6]).not.toBe(plain[6]);
   });
 
-  it("renders OVERFLOW NaN cores as bright pixels and holes as sky background", () => {
+  it("renders OVERFLOW NaN cores as bright pixels and holes as hatched gray", () => {
     const size = 4;
     const pixels = new Float32Array(size * size).fill(1);
     pixels[5] = Number.NaN;
@@ -80,7 +80,10 @@ describe("contract helpers", () => {
     expect(rgba[5 * 4]).toBeGreaterThan(200);
     expect(rgba[5 * 4 + 3]).toBe(255);
     expect(rgba[6 * 4 + 3]).toBe(255);
-    // Hole matches a pixel whose value equals the frame background (residual 0).
+    // Hole is neutral gray (not a heat-scale sky color).
+    expect(rgba[6 * 4]).toBeGreaterThan(70);
+    expect(rgba[6 * 4]).toBeLessThan(140);
+    expect(Math.abs(rgba[6 * 4]! - rgba[6 * 4 + 1]!)).toBeLessThanOrEqual(8);
     const sky = renderFrameToRgba(
       Float32Array.from([bg]),
       new Uint8Array([0]),
@@ -90,9 +93,7 @@ describe("contract helpers", () => {
       bg,
       "heat",
     );
-    expect(rgba[6 * 4]).toBe(sky[0]);
-    expect(rgba[6 * 4 + 1]).toBe(sky[1]);
-    expect(rgba[6 * 4 + 2]).toBe(sky[2]);
+    expect(rgba[6 * 4]).not.toBe(sky[0]);
   });
 
   it("skyToPixel matches targetAt for the sample grid center motion", () => {

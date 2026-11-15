@@ -58,6 +58,7 @@ import {
   skyToPixel,
   targetAt,
 } from "./data/contract";
+import { parseCoordinateQuery } from "./data/coords";
 import { type DecodedBundle, type DecodedFrame, decodeBundle } from "./data/decode";
 import {
   candidatesFileUrl,
@@ -136,21 +137,6 @@ type LoadState =
   | { status: "loading"; message: string; loaded?: number; total?: number }
   | { status: "error"; message: string; retryable?: boolean }
   | { status: "ready"; data: DecodedBundle; source: "sample" | "live" };
-
-function parseCoordinateQuery(raw: string): Target | null {
-  const trimmed = raw.trim();
-  const decimal = trimmed.match(/^([+-]?\d+(?:\.\d+)?)\s*[,\s]\s*([+-]?\d+(?:\.\d+)?)$/);
-  if (decimal) {
-    return {
-      ra: Number(decimal[1]),
-      dec: Number(decimal[2]),
-      epoch: 2000.0,
-      pm_ra: null,
-      pm_dec: null,
-    };
-  }
-  return null;
-}
 
 export default function App() {
   const [view, setView] = useState<ViewState>(() => readViewFromUrl());
@@ -2073,7 +2059,7 @@ export default function App() {
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Name or RA, Dec"
             autoComplete="off"
-            title="Type a star name or sky coordinates (RA, Dec in degrees)"
+            title="Type a star name or sky coordinates (degrees or sexagesimal)"
           />
           <button
             type="submit"
@@ -2083,6 +2069,7 @@ export default function App() {
             Go
           </button>
         </form>
+        <p className="search-hint">Try: Luhman 16 · 133.7951, -7.2451 · 08h55m10.8s -07d14m43s</p>
       </section>
 
       <nav className="mode-tabs" aria-label="What do you want to do?">
@@ -2621,6 +2608,11 @@ export default function App() {
 
           {display && view.mode === "single" && display.kind === "single" && (
             <>
+              {display.meta && display.meta.frame.valid_fraction < 0.95 && (
+                <p className="edge-nodata" role="status">
+                  Edge of the detector: no data in the hatched area.
+                </p>
+              )}
               {!overlayActive && (
                 <FrameCaption
                   frames={filtered}
