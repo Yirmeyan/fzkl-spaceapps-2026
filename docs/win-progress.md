@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Classic chrome (human):** Planet X eyebrow + always-on tagline; target pills/SOON; boxed FPS; FrameCaption under Play (frame · day · visit + phase-change flash).
+**Back to #8 classic desk (human):** layout/controls/meta from `1be71111` preview; sky back to 512px (128×4) so the star is readable again — not the crushed fit-desk.
 
 ## Backlog (phenomenal)
 

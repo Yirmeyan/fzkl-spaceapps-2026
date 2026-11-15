@@ -233,7 +233,7 @@ export function SkyPlayer({
       style={{
         width: css,
         height: css,
-        maxWidth: "100%",
+        // Classic #8: keep the chosen CSS size — maxWidth:100% was crushing the star.
         imageRendering: "pixelated",
         background: "#05080e",
       }}

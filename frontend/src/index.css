@@ -3167,3 +3167,356 @@ select {
     transform: scale(1.35);
   }
 }
+
+/* ——— Classic desk (#8 / 1be71111 preview): readable sky, compact pills, open rail ——— */
+.app--classic {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 3rem;
+  min-height: auto;
+  max-height: none;
+  overflow: visible;
+  display: block;
+}
+
+.app--classic .sky-wash {
+  height: 28rem;
+  opacity: 0.7;
+}
+
+.app--classic .top {
+  margin-bottom: 1.25rem;
+}
+
+.app--classic .brand {
+  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.05;
+  color: #e8eef6;
+}
+
+.app--classic .tagline {
+  display: block;
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  max-width: 36rem;
+  font-size: 0.95rem;
+}
+
+.app--classic .eyebrow {
+  display: none;
+}
+
+.app--classic .jury-tools {
+  position: relative;
+}
+
+.app--classic .jury-tools > summary {
+  list-style: none;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: transparent;
+}
+
+.app--classic .jury-tools > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app--classic .jury-tools[open] > summary {
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.app--classic .jury-tools[open] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.app--classic .targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+  align-items: center;
+}
+
+.app--classic .target-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font-size: 0.92rem;
+  font-weight: 500;
+  min-height: 0;
+  color: #e8eef6;
+}
+
+.app--classic .target-btn.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  color: #fff;
+}
+
+.app--classic .soon {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+}
+
+.app--classic .search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.app--classic .search-hint {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.app--classic .mode-tabs {
+  display: none;
+}
+
+.app--classic .main,
+.app--classic .workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 1.25rem;
+  align-items: start;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  animation: none;
+}
+
+@media (max-width: 860px) {
+  .app--classic .main,
+  .app--classic .workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app--classic .viewer-pane,
+.app--classic .stage {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 360px;
+  overflow: visible;
+  max-height: none;
+  justify-content: flex-start;
+}
+
+.app--classic .stage-bar,
+.app--classic .stage-title,
+.app--classic .source-pill {
+  /* Classic had no stage title chrome — keep measure probe only */
+}
+
+.app--classic .stage-measure.is-square {
+  /* Let the canvas own the size; do not crush below classic 512 */
+  min-width: min(100%, 512px);
+}
+
+.app--classic .viewer-guide {
+  width: 100%;
+  font-size: 0.88rem;
+  color: var(--muted);
+  background: #0a101a;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.65rem 0.8rem;
+}
+
+.app--classic .viewer-guide-title {
+  margin: 0 0 0.35rem;
+  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-size: 0.95rem;
+  color: #e8eef6;
+}
+
+.app--classic .viewer-guide ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.app--classic .viewer-guide li {
+  margin-bottom: 0.3rem;
+}
+
+.app--classic .viewer-guide strong {
+  color: #e8eef6;
+}
+
+.app--classic .viewer-guide-tip {
+  display: none;
+}
+
+.app--classic .transport {
+  width: 100%;
+  gap: 0.75rem;
+}
+
+.app--classic .transport input[type="range"] {
+  flex: 1;
+  min-width: 120px;
+  accent-color: #3b82f6;
+}
+
+.app--classic .fps-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #0a101a;
+  padding: 0.2rem 0.45rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.app--classic .side,
+.app--classic .rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  overflow: visible;
+}
+
+.app--classic .controls {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.app--classic .controls fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.app--classic .controls legend {
+  padding: 0;
+  margin-bottom: 0.35rem;
+  width: 100%;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.app--classic .controls button {
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.app--classic .contrast-field label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.app--classic .contrast-field input[type="range"] {
+  flex: 1;
+  accent-color: #3b82f6;
+}
+
+.app--classic .wave-chip {
+  font-size: 0.8rem;
+  color: var(--muted);
+  align-self: center;
+}
+
+.app--classic .diff-picks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 0.75rem;
+}
+
+.app--classic .meta {
+  margin: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+}
+
+.app--classic .meta > div {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0.5rem;
+}
+
+.app--classic .meta dt {
+  margin: 0;
+  color: var(--muted);
+}
+
+.app--classic .meta dd {
+  margin: 0;
+}
+
+.app--classic .quality {
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.app--classic .frame-caption {
+  width: 100%;
+}
+
+.app--classic .hop-proof-wrap,
+.app--classic .detector-dial {
+  display: none;
+}
+
+.app--classic .foot {
+  margin-top: 2rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}

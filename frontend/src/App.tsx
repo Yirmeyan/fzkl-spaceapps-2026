@@ -212,7 +212,7 @@ export default function App() {
   const [skyTarget, setSkyTarget] = useState<TargetExtras | null>(() => readSkyFromUrl());
   const skyTargetRef = useRef(skyTarget);
   skyTargetRef.current = skyTarget;
-  const [displayPx, setDisplayPx] = useState(400);
+  const [displayPx, setDisplayPx] = useState(512);
   const [splitVisits, setSplitVisits] = useState(false);
   /** Which visits the Split panels show (defaults: first / last). */
   const [splitPassA, setSplitPassA] = useState<number | null>(null);
@@ -322,18 +322,22 @@ export default function App() {
     const el = measureRef.current;
     if (!el) return;
     const update = () => {
-      // Classic desk: square fits the viewport with chrome. no page scroll.
-      // Eyepiece / Split: grow so the sky stays readable.
+      // Classic #8 desk: 128² data × 4 = 512 CSS px (star readable, not crushed).
+      const gridSize = load.status === "ready" ? load.data.grid.size : 128;
+      const classic = gridSize * 4;
       const colW = el.clientWidth;
       const maxByWidth = Math.floor(colW - 12);
-      const maxByHeight = Math.floor(
-        window.innerHeight * (eyepiece ? 0.78 : splitVisits ? 0.64 : 0.52),
-      );
-      // Split: size one tile; stage will hold two side by side.
-      const cap = eyepiece ? 720 : splitVisits ? 420 : 440;
-      const floor = eyepiece ? 360 : splitVisits ? 300 : 280;
-      const px = Math.max(floor, Math.min(cap, maxByWidth, maxByHeight));
-      setDisplayPx(px);
+      if (eyepiece) {
+        const maxByHeight = Math.floor(window.innerHeight * 0.78);
+        setDisplayPx(Math.max(480, Math.min(720, maxByWidth, maxByHeight)));
+        return;
+      }
+      if (splitVisits) {
+        setDisplayPx(Math.max(300, Math.min(420, Math.floor(maxByWidth / 2) - 24)));
+        return;
+      }
+      // Prefer classic 512; only shrink if the column is truly narrower.
+      setDisplayPx(Math.max(400, Math.min(classic, maxByWidth || classic)));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -343,7 +347,7 @@ export default function App() {
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [eyepiece, splitVisits]);
+  }, [eyepiece, splitVisits, load]);
 
   const loadFromService = useCallback(
     async (target: Target, signal: AbortSignal, targetKey: string = "custom") => {
@@ -1991,9 +1995,7 @@ export default function App() {
   const cinema = load.status === "ready";
 
   return (
-    <div
-      className={`app app--fit${cinema ? " app--ready" : ""}${eyepiece ? " app--eyepiece" : ""}`}
-    >
+    <div className={`app app--classic${eyepiece ? " app--eyepiece" : ""}`}>
       <div className="sky-wash" aria-hidden="true" />
 
       {showBriefing && load.status === "ready" && !eyepiece && (
@@ -2006,48 +2008,50 @@ export default function App() {
 
       <header className="top">
         <div className="brand-block">
-          <p className="eyebrow">Planet X · SPHEREx</p>
-          <h1 className="brand">SPHEREx Explorer</h1>
+          <p className="brand">SPHEREx Explorer</p>
           <p className="tagline">Watch the near-infrared sky move — NASA Space Apps 2026</p>
         </div>
         <div className="top-actions">
           <HealthBadge />
-          {cinema && (
+          <details className="jury-tools">
+            <summary title="Demo and share tools">Jury</summary>
+            {cinema && (
+              <button
+                type="button"
+                className={eyepiece ? "primary" : "ghost"}
+                onClick={() => setEyepiece((v) => !v)}
+                title={eyepiece ? "Leave eyepiece (Esc or E)" : "Eyepiece: sky only (E)"}
+              >
+                {eyepiece ? "Leave eyepiece" : "Eyepiece"}
+              </button>
+            )}
             <button
               type="button"
-              className={eyepiece ? "primary" : "ghost"}
-              onClick={() => setEyepiece((v) => !v)}
-              title={eyepiece ? "Leave eyepiece (Esc or E)" : "Eyepiece: sky only (E)"}
+              className="ghost"
+              disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
+              onClick={() => runAutoDemo()}
+              title="Timed walkthrough for judges (J)"
             >
-              {eyepiece ? "Leave eyepiece" : "Eyepiece"}
+              Demo
             </button>
-          )}
-          <button
-            type="button"
-            className="ghost"
-            disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
-            onClick={() => runAutoDemo()}
-            title="Timed walkthrough for judges (J)"
-          >
-            Demo
-          </button>
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => copyJudgeLink()}
-            title="Copy a link that auto-starts the jury demo"
-          >
-            {linkCopied ? "Copied" : "Demo link"}
-          </button>
-          <button
-            type="button"
-            className={frameLinkCopied ? "active" : "ghost"}
-            disabled={load.status !== "ready"}
-            onClick={() => copyFrameLink()}
-            title="Copy a link to this exact frame (target, frame, detector, wavelength)"
-          >
-            {frameLinkCopied ? "Copied" : "This frame"}
-          </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => copyJudgeLink()}
+              title="Copy a link that auto-starts the jury demo"
+            >
+              {linkCopied ? "Copied" : "Demo link"}
+            </button>
+            <button
+              type="button"
+              className={frameLinkCopied ? "active" : "ghost"}
+              disabled={load.status !== "ready"}
+              onClick={() => copyFrameLink()}
+              title="Copy a link to this exact frame"
+            >
+              {frameLinkCopied ? "Copied" : "This frame"}
+            </button>
+          </details>
         </div>
       </header>
 
@@ -2055,146 +2059,55 @@ export default function App() {
 
       <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
 
-      <section
-        className={`picker${load.status === "ready" ? " picker-compact" : ""}`}
-        aria-label="Choose a star"
-      >
-        <div className="picker-head">
-          {load.status !== "ready" && <h2>Pick a star</h2>}
-          {load.status !== "ready" && (
-            <p>Start with Barnard's Star. or type any name; live resolve finds the sky position.</p>
-          )}
-        </div>
-        <div className="target-row">
-          {KNOWN_TARGETS.map((t) => {
-            const ready = t.inSampleIndex || !!t.bundleUrl || (t.ra != null && t.dec != null);
-            return (
-              <button
-                key={t.key}
-                type="button"
-                className={`target-btn${view.targetKey === t.key ? " active" : ""}`}
-                onClick={() => {
-                  setBlinkPasses(false);
-                  patchView({ targetKey: t.key, mode: "single", pass: null });
-                }}
-                disabled={!ready}
-                title={t.blurb}
-              >
-                <span className="target-name">{t.label}</span>
-                {!ready && <span className="soon">SOON</span>}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            className="ghost"
-            title="Short how-to: play, blink, blend, difference"
-            onClick={() => patchView({ showHelp: !view.showHelp })}
-          >
-            Help
-          </button>
-        </div>
-        <form className="search" onSubmit={onSearch}>
-          <label className="sr-only" htmlFor="sky-query">
-            Search by name or coordinates
-          </label>
-          <input
-            id="sky-query"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Name or RA, Dec"
-            autoComplete="off"
-            title="Type a star name or sky coordinates (degrees or sexagesimal)"
-          />
-          <button
-            type="submit"
-            className="primary"
-            title="Resolve the name and load SPHEREx images for that sky position"
-          >
-            Go
-          </button>
-        </form>
-        <p className="search-hint">Try: Luhman 16 · 133.7951, -7.2451 · 08h55m10.8s -07d14m43s</p>
-      </section>
-
-      <nav className="mode-tabs" aria-label="What do you want to do?">
-        {(
-          [
-            ["watch", "Watch", "Play infrared frames. each frame is a slightly different color"],
-            ["compare", "Blink", "Flip early ↔ late visits so the hop is obvious"],
-            ["difference", "Move", "Subtract two visits: bright/dark pair = motion"],
-            ["more", "More", "Average stack, tracking, and filters"],
-          ] as [UiMode, string, string][]
-        ).map(([id, label, tip]) => (
-          <button
-            key={id}
-            type="button"
-            className={uiMode === id ? "active" : ""}
-            title={tip}
-            onClick={() => setUiMode(id)}
-          >
-            {label}
-          </button>
-        ))}
+      <nav className="targets" aria-label="Challenge test targets">
+        {KNOWN_TARGETS.map((t) => {
+          const ready = t.inSampleIndex || !!t.bundleUrl || (t.ra != null && t.dec != null);
+          return (
+            <button
+              key={t.key}
+              type="button"
+              className={`target-btn${view.targetKey === t.key ? " active" : ""}`}
+              onClick={() => {
+                setBlinkPasses(false);
+                patchView({ targetKey: t.key, mode: "single", pass: null });
+              }}
+              disabled={!ready}
+              title={t.blurb}
+            >
+              {t.label}
+              {!ready && <span className="soon">SOON</span>}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          className="ghost"
+          title="Short how-to: play, blink, blend, difference"
+          onClick={() => patchView({ showHelp: !view.showHelp })}
+        >
+          Help
+        </button>
       </nav>
+      <form className="search" onSubmit={onSearch}>
+        <label className="sr-only" htmlFor="sky-query">
+          Object name or RA Dec
+        </label>
+        <input
+          id="sky-query"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Name or RA Dec (e.g. 269.45 4.69)"
+          autoComplete="off"
+          title="Type a star name or sky coordinates (degrees or sexagesimal)"
+        />
+        <button type="submit" title="Resolve the name and load SPHEREx images">
+          Go
+        </button>
+      </form>
+      <p className="search-hint">Try: Luhman 16 · 133.7951, -7.2451 · 08h55m10.8s -07d14m43s</p>
 
-      <main className={`workspace${cinema ? " workspace--fit" : ""}`}>
-        <section className="stage" ref={stageRef}>
-          <div className="stage-bar">
-            <div>
-              <h2 className="stage-title">
-                {targetName}
-                {load.status === "ready" && (
-                  <span
-                    className={`source-pill ${load.source === "live" ? "archive" : "sample"}`}
-                    title={
-                      load.source === "live"
-                        ? "Loaded from the SPHEREx archive API (past survey visits, not a live telescope stream)"
-                        : "Offline sample file bundled with the site"
-                    }
-                  >
-                    {load.source === "live" ? "ARCHIVE" : "SAMPLE"}
-                  </span>
-                )}
-              </h2>
-            </div>
-            <div className="stage-actions">
-              {(() => {
-                const known = targetByKey(view.targetKey);
-                const showArchive =
-                  known != null &&
-                  (known.inSampleIndex
-                    ? load.status === "ready" && load.source === "live"
-                    : known.ra != null);
-                if (!showArchive) return null;
-                return (
-                  <button
-                    type="button"
-                    className="ghost"
-                    disabled={load.status === "loading"}
-                    title="Load cutouts from the SPHEREx survey archive (past visits)."
-                    onClick={() => {
-                      const ac = new AbortController();
-                      void loadKnownTarget(view.targetKey || "barnard", ac.signal, true).catch(
-                        (err) => {
-                          const message =
-                            err instanceof ApiError
-                              ? err.message
-                              : err instanceof Error
-                                ? err.message
-                                : "Could not load from the SPHEREx archive";
-                          setLoad({ status: "error", message });
-                        },
-                      );
-                    }}
-                  >
-                    Archive
-                  </button>
-                );
-              })()}
-            </div>
-          </div>
-
+      <main className="main workspace">
+        <section className="viewer-pane stage" ref={stageRef}>
           {/* Invisible width probe: column width, not the square box (avoids circular sizing). */}
           <div className="stage-width-probe" ref={measureRef} aria-hidden="true" />
           <div
@@ -2658,6 +2571,9 @@ export default function App() {
                   Edge of the detector: no data in the hatched area.
                 </p>
               )}
+              {!eyepiece && (
+                <ViewerGuide targetName={targetName} pass={view.pass} mode={guideMode} />
+              )}
               <div className="transport">
                 <button
                   type="button"
@@ -2670,30 +2586,6 @@ export default function App() {
                 >
                   {view.playing ? "Pause" : "Play"}
                 </button>
-                <button
-                  type="button"
-                  className={ghostVisits ? "active" : ""}
-                  disabled={passes.length < 2}
-                  title="Overlay early and late visits (G)"
-                  onClick={() => {
-                    setExclusiveOverlay(ghostVisits ? null : "ghost");
-                    patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
-                  }}
-                >
-                  Blend
-                </button>
-                <button
-                  type="button"
-                  className={splitVisits ? "active" : ""}
-                  disabled={passes.length < 2}
-                  title="Compare two visits side by side (S)"
-                  onClick={() => {
-                    setExclusiveOverlay(splitVisits ? null : "split");
-                    patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
-                  }}
-                >
-                  Split
-                </button>
                 {!overlayActive && !blinkPasses && (
                   <input
                     type="range"
@@ -2704,7 +2596,7 @@ export default function App() {
                       patchView({ frameIndex: Number(e.target.value), playing: false })
                     }
                     disabled={filtered.length === 0}
-                    aria-label="Scrub through frames"
+                    aria-label="Frame"
                     title="Drag to pick a frame by hand"
                   />
                 )}
@@ -2721,6 +2613,30 @@ export default function App() {
                     />
                   </label>
                 )}
+                <button
+                  type="button"
+                  className={ghostVisits ? "active" : "ghost"}
+                  disabled={passes.length < 2}
+                  title="Overlay early and late visits (G)"
+                  onClick={() => {
+                    setExclusiveOverlay(ghostVisits ? null : "ghost");
+                    patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
+                  }}
+                >
+                  Blend
+                </button>
+                <button
+                  type="button"
+                  className={splitVisits ? "active" : "ghost"}
+                  disabled={passes.length < 2}
+                  title="Compare two visits side by side (S)"
+                  onClick={() => {
+                    setExclusiveOverlay(splitVisits ? null : "split");
+                    patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
+                  }}
+                >
+                  Split
+                </button>
                 {blinkPasses && (
                   <button
                     type="button"
@@ -2753,10 +2669,6 @@ export default function App() {
                 />
               )}
               {eyepiece && <p className="app--eyepiece-hint">Eyepiece on · Esc or E to leave</p>}
-              {/* After commands: short tip. Skip when candidates already tell the motion story. */}
-              {!eyepiece && !candidatesFile && !candidatesWaiting && (
-                <ViewerGuide targetName={targetName} mode={guideMode} />
-              )}
             </>
           )}
 
@@ -2770,14 +2682,237 @@ export default function App() {
             )}
         </section>
 
-        <aside className={`rail${cinema ? " rail--fit" : ""}`}>
-          {load.status === "ready" && (
-            <MotionInsight
-              grid={load.data.grid}
-              trail={trail}
-              targetName={load.data.target.name ?? targetName}
-              hasCatalogMotion={hasCatalogMotion}
-            />
+        <aside className="side rail">
+          <div className="controls">
+            <fieldset>
+              <legend>Pass</legend>
+              <button
+                type="button"
+                className={view.pass == null ? "active" : ""}
+                title="Include frames from every SPHEREx visit of this field"
+                onClick={() => {
+                  clearPresentationOverlays();
+                  patchView({ pass: null, frameIndex: 0, playing: false });
+                }}
+              >
+                All
+              </button>
+              {passes.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={view.pass === p ? "active" : ""}
+                  title={`Show only Visit ${p} frames`}
+                  onClick={() => {
+                    clearPresentationOverlays();
+                    patchView({ pass: p, frameIndex: 0, playing: false, mode: "single" });
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+            </fieldset>
+
+            <fieldset>
+              <legend>Mode</legend>
+              {(
+                [
+                  ["single", "Single"],
+                  ["stack", "Stack"],
+                  ["difference", "Difference"],
+                  ["track", "Track"],
+                ] as const
+              ).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={view.mode === mode && !passMovie ? "active" : ""}
+                  onClick={() => {
+                    clearPresentationOverlays();
+                    setBlinkPasses(false);
+                    setPassMovie(false);
+                    setUiMode(
+                      mode === "difference" ? "difference" : mode === "single" ? "watch" : "more",
+                    );
+                    patchView({
+                      mode,
+                      playing: mode === "single" ? view.playing : false,
+                    });
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </fieldset>
+
+            <fieldset>
+              <legend>Wavelength</legend>
+              <button
+                type="button"
+                className={view.waveUm == null ? "active" : ""}
+                title="Use every infrared wavelength in the movie"
+                onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
+              >
+                All λ
+              </button>
+              <button
+                type="button"
+                className={view.waveUm != null ? "active" : ""}
+                disabled={!display || !("meta" in display) || !display.meta}
+                title="Keep only frames near this frame’s wavelength"
+                onClick={() => {
+                  if (!display || !("meta" in display) || !display.meta) return;
+                  patchView({
+                    waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
+                    frameIndex: 0,
+                    playing: false,
+                  });
+                }}
+              >
+                Match this λ
+              </button>
+              {view.waveUm != null && (
+                <span className="wave-chip">
+                  {view.waveUm.toFixed(3)} ± {view.waveTolUm.toFixed(3)} µm · {filtered.length}{" "}
+                  frames
+                </span>
+              )}
+            </fieldset>
+
+            <fieldset className="contrast-field">
+              <legend>Contrast</legend>
+              <label>
+                <span className="sr-only">Contrast</span>
+                <input
+                  type="range"
+                  min={0.4}
+                  max={3}
+                  step={0.1}
+                  value={view.contrast}
+                  onChange={(e) => patchView({ contrast: Number(e.target.value) })}
+                  aria-label="Contrast"
+                />
+                <span>{view.contrast.toFixed(1)}×</span>
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>Color</legend>
+              <button
+                type="button"
+                className={view.colorMap === "heat" ? "active" : ""}
+                onClick={() => patchView({ colorMap: "heat" })}
+              >
+                IR heat
+              </button>
+              <button
+                type="button"
+                className={view.colorMap === "gray" ? "active" : ""}
+                onClick={() => patchView({ colorMap: "gray" })}
+              >
+                Gray
+              </button>
+            </fieldset>
+
+            {view.mode === "difference" && (
+              <fieldset className="diff-picks">
+                <legend>Passes A − B</legend>
+                <label>
+                  A
+                  <select
+                    value={view.diffPassA}
+                    onChange={(e) => patchView({ diffPassA: Number(e.target.value) })}
+                  >
+                    {passes.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  B
+                  <select
+                    value={view.diffPassB}
+                    onChange={(e) => patchView({ diffPassB: Number(e.target.value) })}
+                  >
+                    {passes.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </fieldset>
+            )}
+          </div>
+
+          {display && load.status === "ready" && display.meta && (
+            <dl className="meta">
+              <div>
+                <dt>Target</dt>
+                <dd>{load.data.target.name ?? targetName}</dd>
+              </div>
+              <div>
+                <dt>Date</dt>
+                <dd>{display.meta.frame.time_iso}</dd>
+              </div>
+              <div>
+                <dt>Wavelength</dt>
+                <dd>
+                  {display.meta.frame.wavelength_um.toFixed(4)} µm ±{" "}
+                  {(display.meta.frame.bandwidth_um / 2).toFixed(4)}
+                </dd>
+              </div>
+              <div>
+                <dt>Pass / detector</dt>
+                <dd>
+                  {display.meta.exposure.pass} / {display.meta.exposure.detector} ·{" "}
+                  {display.meta.exposure.collection}
+                </dd>
+              </div>
+              <div>
+                <dt>Target pixel</dt>
+                <dd>
+                  ({display.meta.frame.target_xy[0].toFixed(2)},{" "}
+                  {display.meta.frame.target_xy[1].toFixed(2)})
+                </dd>
+              </div>
+              <div>
+                <dt>Photometry</dt>
+                <dd>
+                  {display.meta.frame.photometry.flux_mjy != null
+                    ? `${display.meta.frame.photometry.flux_mjy.toFixed(3)} ± ${display.meta.frame.photometry.error_mjy?.toFixed(3)} mJy`
+                    : "—"}{" "}
+                  <span className="quality">{display.meta.frame.photometry.quality}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Background / noise</dt>
+                <dd>
+                  {display.meta.frame.background?.toFixed(3) ?? "—"} /{" "}
+                  {display.meta.frame.noise?.toFixed(3) ?? "—"} MJy/sr
+                </dd>
+              </div>
+              <div>
+                <dt>Valid</dt>
+                <dd>{(display.meta.frame.valid_fraction * 100).toFixed(0)}%</dd>
+              </div>
+              <div>
+                <dt>Grid</dt>
+                <dd>
+                  {load.data.grid.size}² · {load.data.grid.fov_deg}° · {view.mode} ·{" "}
+                  {filtered.length} frames
+                </dd>
+              </div>
+              <div>
+                <dt>Frame</dt>
+                <dd>
+                  {Math.min(view.frameIndex, Math.max(filtered.length - 1, 0)) + 1} of{" "}
+                  {filtered.length || "—"}
+                </dd>
+              </div>
+            </dl>
           )}
 
           {(candidatesFile || candidatesWaiting) && (
@@ -2824,47 +2959,17 @@ export default function App() {
             </div>
           )}
 
-          {display && load.status === "ready" && display.meta && (
-            <div className="rail-card frame-facts">
-              <p className="control-label">This frame</p>
-              <dl className="meta meta--compact">
-                <div>
-                  <dt>Date</dt>
-                  <dd>{display.meta.frame.time_iso}</dd>
-                </div>
-                <div>
-                  <dt>Visit / detector</dt>
-                  <dd>
-                    {display.meta.exposure.pass} / {display.meta.exposure.detector} ·{" "}
-                    {display.meta.exposure.collection}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Wavelength</dt>
-                  <dd>
-                    {display.meta.frame.wavelength_um.toFixed(4)} µm ±{" "}
-                    {(display.meta.frame.bandwidth_um / 2).toFixed(4)}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Frame</dt>
-                  <dd>
-                    {Math.min(view.frameIndex, Math.max(filtered.length - 1, 0)) + 1} of{" "}
-                    {filtered.length || "—"}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Photometry</dt>
-                  <dd>
-                    <span className="quality">{display.meta.frame.photometry.quality}</span>
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          )}
+          <details className="rail-card details adjust-fold">
+            <summary title="Extra tools">More tools</summary>
 
-          <details className="rail-card details adjust-fold" open>
-            <summary title="Visits, colors, cameras, contrast">Controls</summary>
+            {load.status === "ready" && (
+              <MotionInsight
+                grid={load.data.grid}
+                trail={trail}
+                targetName={load.data.target.name ?? targetName}
+                hasCatalogMotion={hasCatalogMotion}
+              />
+            )}
 
             {load.status === "ready" && storyboard && (
               <div className="storyboard-fold-inner">
@@ -2885,20 +2990,11 @@ export default function App() {
             )}
 
             <div className="control-panel">
-              <p className="rail-hint">Only the controls for the selected step apply.</p>
-
-              {uiMode === "watch" && (
+              {false && uiMode === "watch" && (
                 <div className="control-block">
                   {overlayActive ? (
                     <>
-                      <p className="lead">
-                        {ghostVisits
-                          ? "Blend visits is on. early and late visits are overlaid."
-                          : splitVisits
-                            ? "Side-by-side is on. early and late visits are shown together."
-                            : "Challenge overlay is on."}{" "}
-                        Visit and color filters do not apply until you leave this view.
-                      </p>
+                      <p className="lead">Overlay on.</p>
                       <button
                         type="button"
                         className="primary"
@@ -2910,64 +3006,7 @@ export default function App() {
                         Back to movie
                       </button>
                     </>
-                  ) : (
-                    <>
-                      <p className="control-label">Pass</p>
-                      <div className="chip-row">
-                        <button
-                          type="button"
-                          className={view.pass == null ? "active" : ""}
-                          title="Include frames from every SPHEREx visit of this field"
-                          onClick={() => patchView({ pass: null, frameIndex: 0 })}
-                        >
-                          All
-                        </button>
-                        {passes.map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            className={view.pass === p ? "active" : ""}
-                            title={`Show only Visit ${p} frames`}
-                            onClick={() => patchView({ pass: p, frameIndex: 0 })}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="control-label">Wavelength</p>
-                      <div className="chip-row">
-                        <button
-                          type="button"
-                          className={view.waveUm == null ? "active" : ""}
-                          title="Use every infrared wavelength in the movie"
-                          onClick={() => patchView({ waveUm: null, frameIndex: 0 })}
-                        >
-                          All λ
-                        </button>
-                        <button
-                          type="button"
-                          className={view.waveUm != null ? "active" : ""}
-                          disabled={!display || !("meta" in display) || !display.meta}
-                          title="Keep only frames near this frame’s wavelength"
-                          onClick={() => {
-                            if (!display || !("meta" in display) || !display.meta) return;
-                            patchView({
-                              waveUm: Number(display.meta.frame.wavelength_um.toFixed(4)),
-                              frameIndex: 0,
-                              playing: false,
-                            });
-                          }}
-                        >
-                          Match this λ
-                        </button>
-                      </div>
-                      <p className="micro">
-                        {view.waveUm == null
-                          ? `Playing ${filtered.length} frames across many infrared colors.`
-                          : `Locked near ${view.waveUm.toFixed(2)} µm · ${filtered.length} frames.`}
-                      </p>
-                    </>
-                  )}
+                  ) : null}
                 </div>
               )}
 

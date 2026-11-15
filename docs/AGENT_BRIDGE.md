@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 20:45 ET — From: Nic — Kind: Shipped
+
+**Classic desk restore (human → #8 / Pages `1be71111`):** compact target pills, PASS/MODE/λ/Contrast/Color rail, full Date/Frame meta, ViewerGuide bullets, Play+FPS. Sky display back to **512 CSS px** (grid×4) — fit-desk was crushing the star into mush.
+
 ### 2026-11-14 20:35 ET — From: Nic — Kind: Shipped
 
 **Classic chrome (human):** Planet X eyebrow + tagline stay visible when ready; target pills + SOON; boxed FPS; FrameCaption under transport (frame · day · visit + “phase just changed” flash).
