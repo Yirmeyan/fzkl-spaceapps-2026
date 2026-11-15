@@ -11,6 +11,7 @@ import type {
   HealthResponse,
   Target,
 } from "./contract";
+import type { JournalEntry, JournalLiveResponse } from "./journal";
 
 const apiBase = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "") ?? "";
 
@@ -220,4 +221,51 @@ export async function fetchBundle(url: string, signal?: AbortSignal): Promise<Bu
     throw new ApiError("invalid_request", "Not a SPHEREx explorer bundle", 422);
   }
   return bundle;
+}
+
+/** GET /api/journal — visitor marks (Tommy 23:00). Keep ≤20s. */
+export async function fetchJournalLive(signal?: AbortSignal): Promise<JournalLiveResponse> {
+  return getJson<JournalLiveResponse>("/api/journal", { signal }, 1);
+}
+
+export type JournalShareCategory = "moved" | "changed" | "appears-once" | "other";
+
+export interface JournalShareBody {
+  ra: number;
+  dec: number;
+  category: JournalShareCategory;
+  target: {
+    ra: number;
+    dec: number;
+    epoch?: number;
+    pm_ra?: number | null;
+    pm_dec?: number | null;
+  };
+  preset?: string;
+  detector?: number;
+  pass?: number;
+  frame?: string;
+}
+
+export interface JournalShareResult {
+  status: number;
+  entry: JournalEntry;
+}
+
+/** POST /api/journal — share a framed place with no free text. */
+export async function postJournalMark(
+  body: JournalShareBody,
+  signal?: AbortSignal,
+): Promise<JournalShareResult> {
+  const res = await fetch(`${apiBase}/api/journal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (res.status === 200 || res.status === 201) {
+    const entry = (await res.json()) as JournalEntry;
+    return { status: res.status, entry };
+  }
+  throw await parseError(res);
 }

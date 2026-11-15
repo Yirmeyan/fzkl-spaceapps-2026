@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 23:42 ET — From: Nic — Kind: Shipped
+
+**Tommy 23:00 Share this finding:** Frame a point on the paused sky (~12px), category list (no text), `POST /api/journal`, visitor list under Journal “Shared by visitors”, poll `GET /api/journal` every 20s, hide share when `open: false`. PR next.
+
 ### 2026-11-14 23:35 ET — From: Nic — Kind: Shipped
 
 **Tommy 22:45 Journal panel:** header Journal opens `samples/journal.json` — Our checks list, unconfirmed first with invite line, SYNTHETIC badge, click opens preset or live field (`Measuring this field…`). Visitor marks / Share (23:00) next PR.

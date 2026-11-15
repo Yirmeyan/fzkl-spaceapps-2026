@@ -79,7 +79,10 @@ export type ErrorCode =
   | "invalid_request"
   | "upstream_unavailable"
   | "internal_error"
-  | "http_error";
+  | "http_error"
+  | "too_many_marks"
+  | "journal_full"
+  | "journal_closed";
 
 export interface ApiErrorBody {
   error: {

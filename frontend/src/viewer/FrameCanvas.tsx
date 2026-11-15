@@ -35,6 +35,8 @@ export interface FrameCanvasProps {
   catalogTimeMjd?: number | null;
   flightPath?: FlightPath | null;
   flightScrub?: number;
+  /** Visitor / share mark on the sky (Tommy 23:00), ~12 px frame. */
+  markXy?: [number, number] | null;
   className?: string;
   displayPx?: number;
   /** Soft upscale (default) vs crisp nearest-neighbor blocks. */
@@ -64,6 +66,7 @@ export function FrameCanvas({
   catalogTimeMjd = null,
   flightPath = null,
   flightScrub = 1,
+  markXy = null,
   className,
   displayPx,
   smoothScale = true,
@@ -118,6 +121,14 @@ export function FrameCanvas({
     if (flightPath) {
       drawFlightPath(ctx, flightPath, flightScrub);
     }
+    if (markXy) {
+      const half = 6;
+      ctx.save();
+      ctx.strokeStyle = "rgba(251, 191, 36, 0.95)";
+      ctx.lineWidth = 1.4;
+      ctx.strokeRect(markXy[0] - half, markXy[1] - half, half * 2, half * 2);
+      ctx.restore();
+    }
   }, [
     pixels,
     mask,
@@ -141,6 +152,7 @@ export function FrameCanvas({
     catalogTimeMjd,
     flightPath,
     flightScrub,
+    markXy,
   ]);
 
   return (
