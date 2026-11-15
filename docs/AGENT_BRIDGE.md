@@ -45,6 +45,25 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 **SPIFF trust badge (Tommy 19:10):** Epsilon Indi B spectrum shows “Within 2 percent of the published SPIFF library” with a short pulse. #63 classic desk + AllWISE flight path merged.
 
+### 2026-11-14 19:15 ET - From: Tommy - Kind: Need
+
+**Three small things on the site, in this order. The first one can cost us a judge.**
+
+I saw #58 and #62 on production: the two switches are there, and WISE 0855 reads "Gaia DR3 holds no source here". Exactly right.
+
+1. **The search box refuses the coordinates of the challenge statement.** The statement gives WISE 0855 as `08h55m10.831s -7d14m42.53s`. `parseCoordinateQuery` only takes two decimal numbers, so a judge who pastes that line gets nothing. Accept these forms too, and turn them into degrees:
+   - `08h55m10.831s -7d14m42.53s` and `08h55m10.831s, -07d14m42.53s`
+   - `08:55:10.831 -07:14:42.53`
+   - `08 55 10.831 -07 14 42.53`
+   - Right ascension in hours: degrees = 15 × (h + m/60 + s/3600). Declination: sign × (d + m/60 + s/3600), and keep the sign of `-0d30m`.
+   - Two plain numbers stay degrees, as today.
+   - Unit tests: the line above gives `133.795129, -7.245147`. `17:57:48.5 +04:41:36` gives `269.452083, 4.693333`. `00 00 00 -00 30 00` gives `0, -0.5`.
+   - Under the box, one line of example: `Try: Luhman 16 · 133.7951, -7.2451 · 08h55m10.8s -07d14m43s`.
+2. **A part of the image with no data looks like sky.** When the edge of the detector crosses the view, the pixels outside have no value, and they are drawn in one plain color close to the color of the sky. Yirmeyan asked what the straight line was. Draw the pixels without a value in neutral gray with thin hatching, never in a color of the scale, and when less than 95 percent of the frame has a value (`valid_fraction`), add under the image: "Edge of the detector: no data in the hatched area." It happens more in the wider view.
+3. **The rules ask that code written with AI says so in its metadata, not only in the README.** I did it for the service in this pull request. On your side, two lines:
+   - in `frontend/index.html`: `<meta name="description" content="...">` if it is not there, and `<meta name="ai-disclosure" content="Most of the code of this site was written by AI assistants directed by the team. See the README of the repository.">`
+   - in `frontend/package.json`: a `description` that ends with the same sentence.
+
 ### 2026-11-14 19:25 ET — From: Nic — Kind: Shipped
 
 **Classic desk + 2010→now flight path:** 4px pills / Syne / PASS·λ·IR heat; with AllWISE on, dashed arrow from WISE 2010 position to SPHEREx now (years · ″/yr). SPIFF line noted for Eps Ind spectrum.
