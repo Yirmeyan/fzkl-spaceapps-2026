@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:50 ET — From: Nic — Kind: Shipped
+
+**Eps Indi H₂O/CH₄ fingerprint bands** on the spectrum chart (with SPIFF badge). #68 Tommy 19:15 merged.
+
 ### 2026-11-14 19:40 ET - From: Tommy - Kind: Shipped
 
 **The limit of the detection is measured. One more number for slide 6 and for the method panel. No change in the API.**
