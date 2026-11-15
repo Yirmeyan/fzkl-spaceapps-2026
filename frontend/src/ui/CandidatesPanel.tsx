@@ -1,5 +1,10 @@
 import type { CandidatesFile } from "../data/candidates";
-import { candidateLines, emptyCandidatesSentence } from "../data/candidates";
+import {
+  candidateKindLabel,
+  candidateLines,
+  emptyCandidatesSentence,
+  noSwingSentence,
+} from "../data/candidates";
 import type { CatalogSlice } from "../data/catalog";
 
 interface CandidatesPanelProps {
@@ -53,6 +58,11 @@ export function CandidatesPanel({
     <section className="candidates-panel" aria-label="What moved or changed here">
       <p className="candidates-kicker">What moved or changed here</p>
       <h3 className="candidates-title">Candidates from the service</h3>
+      {data.synthetic?.note && (
+        <p className="candidates-synthetic" role="note">
+          SYNTHETIC · {data.synthetic.note}
+        </p>
+      )}
       {list.length === 0 ? (
         <p className="candidates-empty">{emptyCandidatesSentence(data.limits, data.sources)}</p>
       ) : (
@@ -69,7 +79,7 @@ export function CandidatesPanel({
                   onClick={() => onPick(i)}
                 >
                   <span className="candidates-kind">
-                    {c.kind}
+                    {candidateKindLabel(c.kind)}
                     {c.is_target ? " · target" : ""}
                   </span>
                   <span className="candidates-line">{lines.what}</span>
@@ -108,6 +118,12 @@ export function CandidatesPanel({
           {data.saturated.length === 1 ? " star" : " stars"}).
         </p>
       )}
+      {(() => {
+        const swingLine = noSwingSentence(data.limits);
+        const hasSwung = list.some((c) => c.kind === "swung");
+        if (!swingLine || hasSwung) return null;
+        return <p className="candidates-no-swing">{swingLine}</p>;
+      })()}
       {showDetectionTrust && (
         <aside className="detection-trust" aria-label="How detection was checked">
           <p className="detection-trust-kicker">How it was checked · synthetic</p>

@@ -4,9 +4,11 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   type CandidatesFile,
+  candidateKindLabel,
   candidateLines,
   discoveryFlashLine,
   emptyCandidatesSentence,
+  noSwingSentence,
 } from "./candidates";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -119,5 +121,33 @@ describe("candidates", () => {
     expect(lines.catalog).toBeNull();
     expect(lines.howMeasured).toMatch(/halo of light/);
     expect(discoveryFlashLine(c)).toBe("About 2.2× fainter between Visit 1 and Visit 3");
+  });
+
+  it("formats a swung candidate from the synthetic Planet X sample", () => {
+    const raw = JSON.parse(
+      readFileSync(join(root, "samples", "synthetic-planet-x-candidates.json"), "utf8"),
+    ) as CandidatesFile;
+    expect(raw.synthetic?.note).toMatch(/does not exist/i);
+    expect(raw.candidates).toHaveLength(1);
+    const c = raw.candidates[0]!;
+    expect(c.kind).toBe("swung");
+    expect(candidateKindLabel(c.kind)).toBe("swings with the seasons");
+    const lines = candidateLines(c, null, null);
+    expect(lines.what).toMatch(/6,148 AU/);
+    expect(lines.howFar).toMatch(/65 arcseconds/);
+    // Limits still name the search window; the panel hides this line when a swung candidate exists.
+    expect(noSwingSentence(raw.limits)).toMatch(/1,600 and 24,400 AU/);
+  });
+
+  it("states when no outer-solar-system body was found", () => {
+    expect(
+      noSwingSentence({
+        significance: 5,
+        shift_arcsec: 1,
+        change: 0.1,
+        swing_distance_au: [1600, 24400],
+      }),
+    ).toMatch(/1,600 and 24,400 AU/);
+    expect(noSwingSentence({ significance: 5, shift_arcsec: 1, change: 0.1 })).toBeNull();
   });
 });

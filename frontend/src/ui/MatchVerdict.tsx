@@ -79,7 +79,7 @@ function downloadSkyPostcard(targetName: string, verdictLine: string, agrees: bo
   if (line) ctx.fillText(line, pad, y);
   ctx.fillStyle = "#6b7c90";
   ctx.font = "500 12px Segoe UI, system-ui, sans-serif";
-  ctx.fillText("NASA Space Apps 2026 · real SPHEREx cutouts", pad, h - 18);
+  ctx.fillText("NASA Space Apps 2026 · SPHEREx Explorer", pad, h - 18);
 
   const a = document.createElement("a");
   const slug = targetName

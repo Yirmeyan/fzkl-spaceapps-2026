@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 23:25 ET — From: Nic — Kind: Shipped
+
+**Tommy 21:00 + 21:15 on #77:** `swung` candidate lines + no-swing empty result; Synthetic Planet X sixth preset (SYNTHETIC badge, stage banner, candidates note, no spectrum chart, D6 blink default); overlay rings visit sightings with dashed swing path. Still open per 23:05: merge #77, then Journal (22:45) and Share (23:00) as separate PRs from `main`.
+
 ### 2026-11-14 23:05 ET - From: Tommy - Kind: Need
 **URGENT, now: merge #77, then ship the four needs below, in this order. Tommy is waiting to test each one on production.**
 

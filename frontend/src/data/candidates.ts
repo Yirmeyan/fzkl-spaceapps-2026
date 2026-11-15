@@ -88,6 +88,23 @@ export interface CandidateChange {
   wavelength_um: [number, number];
 }
 
+/** Outer-solar-system swing (Tommy #78 / contract). Present for `swung` only. */
+export interface CandidateSwing {
+  parallax_arcsec: number;
+  parallax_error_arcsec: number;
+  distance_au: number;
+  distance_au_range: [number, number];
+  swing_arcsec: number;
+}
+
+/** Synthetic sixth target metadata (Tommy #79). */
+export interface CandidatesSynthetic {
+  note: string;
+  distance_au?: number;
+  parallax_arcsec?: number;
+  flux_mjy?: Record<string, number>;
+}
+
 export interface Candidate {
   kind: string;
   /**
@@ -105,6 +122,7 @@ export interface Candidate {
   detectors: number[];
   track: CandidateTrackPoint[];
   motion: CandidateMotion | null;
+  swing?: CandidateSwing | null;
   changes: CandidateChange[];
 }
 
@@ -112,6 +130,8 @@ export interface CandidatesLimits {
   significance: number;
   shift_arcsec: number;
   change: number;
+  /** AU range searched for a swinging body; null when fewer than two visits. */
+  swing_distance_au?: [number, number] | null;
 }
 
 export interface SaturatedStar {
@@ -133,6 +153,7 @@ export interface CandidatesFile {
   limits: CandidatesLimits;
   saturated: SaturatedStar[];
   candidates: Candidate[];
+  synthetic?: CandidatesSynthetic;
 }
 
 export async function fetchCandidatesFile(
@@ -201,6 +222,17 @@ export function candidateLines(
       howMeasured,
     };
   }
+  if (c.kind === "swung" && c.swing) {
+    const s = c.swing;
+    const [lo, hi] = s.distance_au_range;
+    return {
+      what: `About ${Math.round(s.distance_au).toLocaleString("en-US")} AU from the Sun (${Math.round(lo).toLocaleString("en-US")} to ${Math.round(hi).toLocaleString("en-US")})`,
+      howFar: `Swing of ${s.swing_arcsec.toFixed(0)} arcseconds between visits`,
+      sure,
+      catalog: null,
+      howMeasured,
+    };
+  }
   return {
     what: c.is_target ? "This is the loaded target" : "Another object in this field",
     howFar: null,
@@ -227,7 +259,23 @@ export function discoveryFlashLine(c: Candidate): string | null {
         : `About ${ch.ratio.toFixed(1)}× brighter`;
     return `${how} between Visit ${ch.from_pass} and Visit ${ch.to_pass}`;
   }
+  if (c.kind === "swung" && c.swing) {
+    return `Swing candidate · ~${Math.round(c.swing.distance_au).toLocaleString("en-US")} AU`;
+  }
   return null;
+}
+
+/** Quiet empty result when the service looked for an outer-solar-system swing. */
+export function noSwingSentence(limits: CandidatesLimits): string | null {
+  const range = limits.swing_distance_au;
+  if (range == null) return null;
+  const [lo, hi] = range;
+  return `No body of the outer solar system between ${lo.toLocaleString("en-US")} and ${hi.toLocaleString("en-US")} AU in this field.`;
+}
+
+export function candidateKindLabel(kind: string): string {
+  if (kind === "swung") return "swings with the seasons";
+  return kind;
 }
 
 /** @deprecated Prefer candidateLines for the panel. */

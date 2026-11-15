@@ -312,14 +312,18 @@ export default function App() {
     const url = new URL(window.location.href);
     url.search = `?${viewToSearchParams(view, skyTargetRef.current).toString()}`;
     const href = url.toString();
-    void navigator.clipboard.writeText(href).then(() => {
+    const synthetic = targetByKey(view.targetKey)?.synthetic === true;
+    const text = synthetic
+      ? `${href}\nSYNTHETIC TEST: a made-up body added to real SPHEREx frames. It does not exist.`
+      : href;
+    void navigator.clipboard.writeText(text).then(() => {
       setFrameLinkCopied(true);
       window.setTimeout(() => setFrameLinkCopied(false), 2000);
       setDiscoveryIsHalo(false);
       setDiscoveryFlash(
         `Frame link copied · frame ${view.frameIndex + 1}${
           view.detector != null ? ` · D${view.detector}` : ""
-        }`,
+        }${synthetic ? " · SYNTHETIC" : ""}`,
       );
       window.setTimeout(() => setDiscoveryFlash(null), 2400);
     });
@@ -776,7 +780,8 @@ export default function App() {
         if (entry && entry.detectors.length > 0) {
           // Spectrum file in parallel with first bundle (tens of kB): chart can paint
           // before multi-MB detector JSON finishes (Tommy Need item 2).
-          if (entry.spectrum) {
+          // Synthetic Planet X: spectrum file is empty sky at center — do not chart it (Tommy #79).
+          if (entry.spectrum && !entry.synthetic && !known.synthetic) {
             void (async () => {
               try {
                 const pts = await fetchSpectrumFile(spectrumFileUrl(entry.spectrum!.file), signal);
@@ -1334,6 +1339,22 @@ export default function App() {
         waveUm: null,
       });
       setPassMovie(true);
+      setTimelineOpen(false);
+      return;
+    }
+    if (key === "synthx") {
+      // Made-up body: hop between visits on detector 6 (Tommy #79).
+      patchView({
+        targetKey: key,
+        query: label,
+        frameIndex: 0,
+        pass: null,
+        detector: 6,
+        mode: "single",
+        playing: false,
+        waveUm: null,
+      });
+      setBlinkPasses(true);
       setTimelineOpen(false);
       return;
     }
@@ -2236,7 +2257,7 @@ export default function App() {
       <HelpPanel open={view.showHelp} onClose={() => patchView({ showHelp: false })} />
 
       <nav className="targets" aria-label="Challenge test targets">
-        {KNOWN_TARGETS.map((t) => {
+        {KNOWN_TARGETS.filter((t) => !t.synthetic).map((t) => {
           const ready = t.inSampleIndex || !!t.bundleUrl || (t.ra != null && t.dec != null);
           return (
             <button
@@ -2252,6 +2273,25 @@ export default function App() {
             >
               {t.label}
               {!ready && <span className="soon">SOON</span>}
+            </button>
+          );
+        })}
+        {KNOWN_TARGETS.filter((t) => t.synthetic).map((t) => {
+          const ready = t.inSampleIndex || !!t.bundleUrl || (t.ra != null && t.dec != null);
+          return (
+            <button
+              key={t.key}
+              type="button"
+              className={`target-btn target-btn--synthetic${view.targetKey === t.key ? " active" : ""}`}
+              onClick={() => {
+                setBlinkPasses(false);
+                patchView({ targetKey: t.key, mode: "single", pass: null });
+              }}
+              disabled={!ready}
+              title={t.blurb}
+            >
+              {t.label}
+              <span className="synthetic-badge">SYNTHETIC</span>
             </button>
           );
         })}
@@ -2330,6 +2370,11 @@ export default function App() {
                 : undefined
             }
           >
+            {(targetByKey(view.targetKey)?.synthetic || candidatesFile?.synthetic) && (
+              <p className="synthetic-banner" role="status">
+                SYNTHETIC TEST: a made-up body added to real SPHEREx frames. It does not exist.
+              </p>
+            )}
             {display?.meta?.frame.wavelength_um != null && (
               <p className="wave-aurora-chip" aria-live="polite">
                 Infrared color · {display.meta.frame.wavelength_um.toFixed(2)} µm

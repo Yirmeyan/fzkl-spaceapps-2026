@@ -20,6 +20,8 @@ export interface KnownTarget {
   pm_dec?: number;
   /** True when samples/index.json ships this target (B4 five-target set). */
   inSampleIndex: boolean;
+  /** Made-up body on real frames (Tommy #79). Must be labeled SYNTHETIC everywhere. */
+  synthetic?: boolean;
 }
 
 export const KNOWN_TARGETS: KnownTarget[] = [
@@ -64,6 +66,14 @@ export const KNOWN_TARGETS: KnownTarget[] = [
     bundleUrl: null,
     inSampleIndex: true,
   },
+  {
+    key: "synthx",
+    label: "Synthetic Planet X",
+    blurb: "Made-up outer-solar-system body on real SPHEREx frames. Labeled SYNTHETIC.",
+    bundleUrl: null,
+    inSampleIndex: true,
+    synthetic: true,
+  },
 ];
 
 export function targetByKey(key: string): KnownTarget | undefined {
@@ -77,4 +87,5 @@ export const TARGET_MISSION_TIP: Record<string, string> = {
   wise0855: "The faint one: single frames hide it. Try More, then Average stack on D6.",
   rwaur: "The variable: compare visits. The spectrum curves cross by pass.",
   rdra: "The saturated one: images only. Too bright for a flux number.",
+  synthx: "SYNTHETIC TEST: a made-up body on real frames. Step visits on detector 6 to see it hop.",
 };

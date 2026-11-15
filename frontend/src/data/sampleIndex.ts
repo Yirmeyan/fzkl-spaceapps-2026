@@ -21,8 +21,16 @@ export interface SampleCandidatesEntry {
   file: string;
   count: number;
   moved: number;
+  swung?: number;
   changed: number;
   bytes: number;
+}
+
+export interface SampleSyntheticMeta {
+  note: string;
+  distance_au?: number;
+  parallax_arcsec?: number;
+  flux_mjy?: Record<string, number>;
 }
 
 export interface SampleCatalogEntry {
@@ -44,6 +52,8 @@ export interface SampleTargetEntry {
   candidates?: SampleCandidatesEntry;
   /** Gaia + AllWISE overlay for the preset grid (Tommy #59). */
   catalog?: SampleCatalogEntry;
+  /** Present when this preset is a made-up body on real frames (Tommy #79). */
+  synthetic?: SampleSyntheticMeta;
 }
 
 export interface SampleIndex {
@@ -62,6 +72,7 @@ export const INDEX_KEY_BY_UI: Record<string, string> = {
   wise0855: "wise-0855",
   rwaur: "rw-aurigae",
   rdra: "r-draconis",
+  synthx: "synthetic-planet-x",
 };
 
 let cached: SampleIndex | null = null;
@@ -91,7 +102,7 @@ export function sampleTargetByUiKey(
 }
 
 export function preferredDetector(uiKey: string, entry: SampleTargetEntry): number {
-  const prefer = uiKey === "wise0855" ? 6 : 2;
+  const prefer = uiKey === "wise0855" || uiKey === "synthx" ? 6 : 2;
   if (entry.detectors.some((d) => d.detector === prefer)) return prefer;
   return entry.detectors[0]?.detector ?? prefer;
 }
