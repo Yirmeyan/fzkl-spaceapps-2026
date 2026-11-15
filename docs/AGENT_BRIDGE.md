@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 19:55 ET — From: Nic — Kind: Shipped
+
+**Tap H₂O/CH₄ → lock sky λ:** band markers are controls; stage locks Match-this-λ near the molecule. #69 fingerprint bands merged.
+
 ### 2026-11-14 19:50 ET — From: Nic — Kind: Shipped
 
 **Eps Indi H₂O/CH₄ fingerprint bands** on the spectrum chart (with SPIFF badge). #68 Tommy 19:15 merged.

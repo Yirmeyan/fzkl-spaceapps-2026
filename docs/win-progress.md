@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop’s wow
 
-**Brown-dwarf fingerprint:** Epsilon Indi B spectrum shows labeled H₂O / CH₄ absorption bands — the science story next to the SPIFF badge.
+**Tap a molecule, lock the sky:** click H₂O / CH₄ on Eps Indi’s spectrum to lock the movie to that infrared color — fingerprint becomes a control, not just a label.
 
 ## Backlog (phenomenal)
 
@@ -67,3 +67,4 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 | 19:40 | ?years=1 deep-link + Planet X whisper | 98 | 88 |
 | 19:45 | Tommy coords + hatched nodata + AI meta | 98 | 89 |
 | 19:50 | Eps Indi H₂O/CH₄ spectrum fingerprint | 98 | 89 |
+| 19:55 | Tap band → lock sky wavelength | 98 | 89 |

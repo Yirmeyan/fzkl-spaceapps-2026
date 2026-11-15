@@ -13,6 +13,8 @@ interface ChartsProps {
   spiffLine?: string | null;
   /** Absorption band callouts on the spectrum (brown-dwarf fingerprint). */
   bandMarkers?: SpectrumBand[] | null;
+  /** Click a band to lock the sky movie near that wavelength. */
+  onBandPick?: (um: number, label: string) => void;
   activeIndex: number;
   onSelectFrame?: (index: number) => void;
 }
@@ -39,6 +41,7 @@ export function Charts({
   highlightDetector = null,
   spiffLine = null,
   bandMarkers = null,
+  onBandPick,
   activeIndex,
   onSelectFrame,
 }: ChartsProps) {
@@ -114,11 +117,17 @@ export function Charts({
             fixedX={[0.75, 5]}
             highlightDetector={highlightDetector}
             bands={bandMarkers ?? undefined}
+            onBandPick={onBandPick}
             onPick={(id) => {
               const idx = frames.findIndex((f) => f.frame.id === id);
               if (idx >= 0) onSelectFrame?.(idx);
             }}
           />
+        )}
+        {bandMarkers && bandMarkers.length > 0 && (
+          <p className="chart-empty band-hint">
+            Tap H₂O or CH₄ to lock the sky to that infrared color.
+          </p>
         )}
         <DotStrip
           frames={waveStrip}
@@ -270,6 +279,7 @@ function FluxSvg({
   fixedX,
   highlightDetector = null,
   bands,
+  onBandPick,
 }: {
   points: FluxPoint[];
   xLabel: string;
@@ -279,6 +289,7 @@ function FluxSvg({
   fixedX?: [number, number];
   highlightDetector?: number | null;
   bands?: SpectrumBand[];
+  onBandPick?: (um: number, label: string) => void;
 }) {
   const w = 320;
   const h = 140;
@@ -319,7 +330,23 @@ function FluxSvg({
         const cx = sx(b.um);
         if (cx < padL || cx > w - padR) return null;
         return (
-          <g key={`${b.label}-${b.um}`} className="spectrum-band">
+          // biome-ignore lint/a11y/useSemanticElements: SVG band hit target
+          <g
+            key={`${b.label}-${b.um}`}
+            className={`spectrum-band${onBandPick ? " spectrum-band--hot" : ""}`}
+            role="button"
+            tabIndex={onBandPick ? 0 : undefined}
+            style={{ cursor: onBandPick ? "pointer" : undefined }}
+            onClick={() => onBandPick?.(b.um, b.label)}
+            onKeyDown={(e) => {
+              if (!onBandPick) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onBandPick(b.um, b.label);
+              }
+            }}
+          >
+            <title>{`Lock sky near ${b.label} (${b.um.toFixed(1)} µm)`}</title>
             <rect
               x={x0}
               y={padT}

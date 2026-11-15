@@ -3239,6 +3239,27 @@ export default function App() {
                       ]
                     : null
                 }
+                onBandPick={(um, label) => {
+                  clearPresentationOverlays();
+                  const pool =
+                    load.status === "ready"
+                      ? filterFrames(load.data.frames, {
+                          pass: view.pass,
+                          detector: view.detector,
+                        })
+                      : [];
+                  const near = filterNearWavelength(pool, um, view.waveTolUm);
+                  const idx = near.length > 0 ? closestFrameIndex(near, um) : 0;
+                  patchView({
+                    waveUm: Number(um.toFixed(4)),
+                    frameIndex: idx,
+                    playing: false,
+                    mode: "single",
+                  });
+                  setDiscoveryIsHalo(false);
+                  setDiscoveryFlash(`Sky locked near ${label} · ${um.toFixed(1)} µm`);
+                  window.setTimeout(() => setDiscoveryFlash(null), 2800);
+                }}
                 activeIndex={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
                 onSelectFrame={(index) => {
                   clearPresentationOverlays();
