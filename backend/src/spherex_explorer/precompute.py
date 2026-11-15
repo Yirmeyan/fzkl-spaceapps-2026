@@ -39,12 +39,14 @@ from spherex_explorer.config import Settings, get_settings
 from spherex_explorer.detection import MOVED, SWUNG, FieldFrame
 from spherex_explorer.errors import NotFound, UpstreamError, UpstreamUnavailable
 from spherex_explorer.frames import DEFAULT_FOV_DEG, DEFAULT_SIZE, Grid
+from spherex_explorer.journal import JOURNAL_FIELDS, JournalField, entries_of
 from spherex_explorer.pipeline import (
     ExposureArchive,
     FrameSource,
     ListedExposure,
     SkyCatalogs,
     build_frame,
+    find_field_candidates,
     list_exposures,
     measure_spectrum,
     report_field,
@@ -60,6 +62,8 @@ INDEX_FORMAT = "spherex-explorer/index"
 SPECTRUM_FORMAT = "spherex-explorer/spectrum"
 CANDIDATES_FORMAT = "spherex-explorer/candidates"
 CATALOG_FORMAT = "spherex-explorer/catalog"
+JOURNAL_FORMAT = "spherex-explorer/journal"
+JOURNAL_FILE = "journal.json"
 FORMAT_VERSION = 1
 INDEX_FILE = "index.json"
 _ANGLE_DECIMALS = 6
@@ -555,6 +559,81 @@ async def run(
                         write_index(output, [{"key": target.key, "catalog": catalog}])
 
 
+async def write_journal(output: Path, fields: Sequence[JournalField], measure) -> int:
+    """Write the journal: the findings of the fields given, in their order.
+
+    A field with static files is read from its candidates file. Any other is measured:
+    `measure(field)` gives the answer of `candidates` for it. A field that cannot be
+    measured is left out, and so is one that shows nothing today.
+    """
+    entries: list[dict] = []
+    for field in fields:
+        measured = _now()
+        try:
+            if field.preset is not None:
+                path = output / f"{field.preset}-candidates.json"
+                report = json.loads(path.read_text(encoding="utf-8"))
+                measured = report["generated"]
+            else:
+                report = await measure(field)
+        except (OSError, ValueError, KeyError, NotFound, UpstreamError, UpstreamUnavailable) as exc:
+            logger.warning("%s: left out of the journal: %s", field.key, exc)
+            continue
+        found = entries_of(field, report, measured[:10])
+        logger.info("%s: %d entries", field.key, len(found))
+        entries += found
+    _write(
+        output / JOURNAL_FILE,
+        {
+            "format": JOURNAL_FORMAT,
+            "version": FORMAT_VERSION,
+            "generated": _now(),
+            "entries": entries,
+        },
+    )
+    return len(entries)
+
+
+async def run_journal(settings: Settings, output: Path) -> None:
+    """Measure the fields of the journal with the code of the service, and write it."""
+    limits = httpx2.Limits(
+        max_connections=settings.storage_concurrency + 8,
+        max_keepalive_connections=settings.storage_concurrency,
+    )
+    async with httpx2.AsyncClient(
+        timeout=settings.archive_timeout_s,
+        limits=limits,
+        headers={"User-Agent": f"spherex-explorer/{__version__}"},
+    ) as client:
+        archive = SiaArchive(
+            client,
+            url=settings.sia_url,
+            collections=settings.sia_collection_list,
+            bucket=settings.archive_bucket,
+            radius_deg=settings.search_radius_deg,
+            timeout_s=settings.archive_timeout_s,
+            budget_s=settings.archive_budget_s,
+            attempts=settings.archive_attempts,
+            max_exposures=settings.max_exposures,
+        )
+        frames = Level2Reader(
+            S3Reader(
+                client,
+                base_url=settings.storage_url,
+                timeout_s=settings.storage_timeout_s,
+                attempts=settings.storage_attempts,
+                concurrency=settings.storage_concurrency,
+            )
+        )
+
+        async def measure(field: JournalField) -> dict:
+            report = await find_field_candidates(archive, frames, field.target)
+            return candidates_out(report).model_dump(by_alias=True)
+
+        count = await write_journal(output, JOURNAL_FIELDS, measure)
+        logger.info("%s: %d entries", JOURNAL_FILE, count)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build the files of the test targets.")
     parser.add_argument("--output", type=Path, required=True, help="Folder the files go to.")
@@ -581,14 +660,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Build the catalog files only, for the views of the bundles already there.",
     )
+    parser.add_argument(
+        "--journal",
+        action="store_true",
+        help="Build the journal only: the findings of the fields the search was checked on.",
+    )
     arguments = parser.parse_args(argv)
     if not arguments.output.is_dir():
         parser.error(f"{arguments.output} is not a folder")
     if arguments.parallel < 1:
         parser.error("--parallel must be at least 1")
-    partial = (arguments.spectra_only, arguments.candidates_only, arguments.catalogs_only)
+    partial = (
+        arguments.spectra_only,
+        arguments.candidates_only,
+        arguments.catalogs_only,
+        arguments.journal,
+    )
     if sum(partial) > 1:
-        parser.error("--spectra-only, --candidates-only and --catalogs-only cannot go together")
+        parser.error(
+            "--spectra-only, --candidates-only, --catalogs-only and --journal cannot go together"
+        )
 
     logging.basicConfig(level="INFO", format="%(asctime)s %(levelname)s %(message)s")
     logging.getLogger("httpx2").setLevel("WARNING")
@@ -598,6 +689,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         rebuild_candidates(arguments.output, arguments.target)
         return 0
     try:
+        if arguments.journal:
+            asyncio.run(run_journal(get_settings(), arguments.output))
+            return 0
         if arguments.catalogs_only:
             if not (arguments.output / INDEX_FILE).is_file():
                 parser.error(f"{arguments.output} has no {INDEX_FILE}: build the bundles first")

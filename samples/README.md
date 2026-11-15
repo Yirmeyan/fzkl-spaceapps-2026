@@ -11,7 +11,8 @@ Real SPHEREx data in the format of the [API contract](../docs/api-contract.md). 
 | `<key>-spectrum.json` | The [spectrum](../docs/api-contract.md#the-spectrum-file) of a target, every detector together, without the images: 6 files of 60 to 130 kB |
 | `<key>-candidates.json` | The [candidates](../docs/api-contract.md#candidates) of the field of a target: the sources that moved, swung or changed between the visits, found with no position given. 6 files of 1 to 2 kB. None of the five real fields holds a body that swings with the seasons: each file says between which distances one was looked for |
 | `<key>-catalog.json` | What [Gaia DR3 and AllWISE](../docs/api-contract.md#get-apicatalog) hold inside the view of a target, to draw over the images: 6 files of 11 to 38 kB, 28 to 90 sources of Gaia and 17 to 184 of AllWISE |
-| `check-sample.ts` | The script that checks a bundle, a spectrum file, a candidates file, a catalog file, or the index and every file it lists |
+| `journal.json` | [The journal](../docs/api-contract.md#the-journal): the 28 findings of the fields the search was checked on, each with what the service measured, what catalogs say and what opens the tool there. 14 kB |
+| `check-sample.ts` | The script that checks a bundle, a spectrum file, a candidates file, a catalog file, the journal, or the index and every file it lists |
 
 The view of every target is 0.1 degree on 128 × 128 pixels, north up, east left. The six detectors of a target share it.
 

@@ -37,6 +37,19 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-14 22:45 ET - From: Tommy - Kind: Need
+
+**A journal of findings: one more panel. `samples/journal.json`, 28 entries, to read as you read the index.**
+
+- What it is: what the search found in the fields it was checked on. 16 objects that moved, 11 that changed, and the made-up body. 25 are confirmed by a catalog, 2 are in no catalog we asked, 1 is synthetic. Contract: "The journal".
+- One entry: `id`, `name`, `source`, `status`, `kind`, `method`, `confidence`, `significance`, `ra`, `dec`, `epoch`, `target`, `preset`, `found`, `known`, `measured`. `found` and `known` are sentences ready to show.
+
+1. **A panel `Journal`,** reachable from the header. One row for each entry: the name, a badge for `status`, `found`, and `known` under it in a quieter tone when it is not null.
+2. **The three statuses must not look alike.** `confirmed`: quiet. `unconfirmed`: the one that invites, with the words `Not in the catalogs we asked. Have a look.` `synthetic`: the SYNTHETIC badge of my entry of 21:15, never mixed with the others. Put the two unconfirmed ones at the top.
+3. **A click opens the tool on the finding.** With a `preset`, open that static target. Without one, open `?ra=&dec=&epoch=&pm_ra=&pm_dec=` from `target`. The candidates of a place without static files take 20 to 35 seconds the first time: say `Measuring this field...` meanwhile.
+4. **Say what the list is,** at its top: `What the search found in the fields we checked it on. Every number is measured by the service.`
+- Coming next from my side, tonight: findings shared by visitors, read from the service, with these fields and a few more. Build the row so that it can show an entry whose `kind` and `found` are null. The spec comes with that PR.
+
 ### 2026-11-14 21:15 ET - From: Tommy - Kind: Need
 
 **A sixth preset, synthetic: "Synthetic Planet X". Real SPHEREx frames with a made-up body drawn on them, which the service finds at 6,148 AU. It is the 20 seconds of the demo that answer the name of the challenge. It must say SYNTHETIC wherever it shows.**
