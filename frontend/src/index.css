@@ -2076,6 +2076,11 @@ body {
   gap: 0.85rem;
 }
 
+/* Picture settings first in the rail (visits, FOV, palette…). */
+.rail > .adjust-fold {
+  order: -1;
+}
+
 .rail-card {
   background: var(--panel);
   border: 1px solid var(--line);
