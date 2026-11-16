@@ -143,12 +143,12 @@ Every source and dependency, with its license, is in [`docs/sources.md`](docs/so
 
 The Space Apps rules ask teams to say how they used AI. Here it is, plainly.
 
-- **Most of the code, the tests and the documentation of this repository were written by AI assistants directed by the team.** The service, the data pipeline, the static files and their checks were written with Claude, by Anthropic. The explorer page was written with Cursor Agent. The sky map page, the welcome window, the words of the interface and the last simplifications of the first screen were written with Claude.
+- **Most of the code, the tests and the documentation of this repository were written by AI assistants directed by the team.** The service, the data pipeline, the static files and their checks were written with Claude, by Anthropic. The explorer page was written with Cursor Agent. The sky map page, the welcome window, the guided tour, the words of the interface and the last simplifications of the first screen were written with Claude.
 - **The idea and the decisions are the team's.** The team chose the challenge and the idea, set the priorities (speed first, then a correct handling of SPHEREx, then the spectrum, then comfort), approved the architecture plan and every change to the contract, and decided what to build and what to drop.
 - **Every scientific claim above comes from a check we can rerun,** not from what a model remembers: the tests of this repository, and the comparisons listed under "What we checked".
 - **No image or video of the tool is generated.** Every picture it shows is SPHEREx data. The pictures of the demo slides and the animation at the top of this page are captures of the tool.
 - **The demo slides and the texts of the submission were drafted with Claude and reviewed by the team.**
-- **The same statement travels with the code.** It is in the description of the Python package, in the description of the service at [`/api/docs`](https://spherex-explorer-139331018511.us-east4.run.app/api/docs), in the description and the topics of this repository, and at the foot of every page of the site.
+- **The same statement travels with the code.** It is in the description of the Python package, in the description of the service at [`/api/docs`](https://spherex-explorer-139331018511.us-east4.run.app/api/docs), and in a metadata tag of every page of the site.
 
 ## License
 
