@@ -76,10 +76,7 @@ export function Charts({
       <section className="chart-panel">
         <h3>Spectrum</h3>
         {spiffLine && !saturatedEverywhere && (
-          <p
-            className="spiff-badge"
-            title="Checked against SPIFF (Gagné et al. 2026) — Tommy bridge"
-          >
+          <p className="spiff-badge" title="Checked against the SPIFF library (Gagné et al. 2026)">
             {spiffLine}
           </p>
         )}

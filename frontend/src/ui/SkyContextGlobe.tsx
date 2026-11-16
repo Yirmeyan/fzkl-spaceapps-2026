@@ -368,7 +368,7 @@ export function SkyContextGlobe({
         />
       </div>
       <p className="sky-context-caption">
-        Cutout on the sky — not the full survey map. Drag to turn · click a star.
+        Where this place is on the sky. This is not the full sky map. Drag to turn · click a star.
       </p>
     </div>
   );
