@@ -1822,9 +1822,11 @@ body {
 
 .frame-caption-pass {
   margin: 0 0 0.2rem;
-  font-family: Syne, "IBM Plex Sans", sans-serif;
+  /* Syne's g is a short blunt hook. At 16px the tail collapses and looks sliced off. */
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.45;
   color: var(--accent);
 }
 
@@ -1962,8 +1964,10 @@ body {
 
 .viewer-guide-title {
   margin: 0 0 0.25rem;
-  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
   color: var(--ink);
 }
 
@@ -3571,8 +3575,12 @@ body {
 
 .app--classic .viewer-guide-fold > summary {
   cursor: pointer;
-  font-family: Syne, "IBM Plex Sans", sans-serif;
-  font-size: 0.92rem;
+  display: block;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
+  padding: 0.15rem 0 0.2rem;
   color: #e8eef6;
   list-style: none;
 }
@@ -3624,8 +3632,10 @@ body {
 
 .app--classic .viewer-guide-title {
   margin: 0 0 0.35rem;
-  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
   color: #e8eef6;
 }
 

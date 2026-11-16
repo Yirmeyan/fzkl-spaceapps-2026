@@ -48,6 +48,7 @@ export interface SkyPlayerProps {
 /**
  * Static when paused: one blit, then the canvas is left alone (no rAF).
  * Playback uses setInterval only. never requestAnimationFrame at display Hz.
+ * Contrast changes must not re-render every loaded frame — lazy per-index cache.
  */
 export function SkyPlayer({
   frames,
@@ -81,6 +82,8 @@ export function SkyPlayer({
   const cacheRef = useRef<(ImageData | null)[]>([]);
   const indexRef = useRef(frameIndex);
   const cacheKeyRef = useRef("");
+  const framesRef = useRef(frames);
+  framesRef.current = frames;
   const trailRef = useRef(trail);
   trailRef.current = trail;
   const candidatesRef = useRef({
@@ -127,37 +130,43 @@ export function SkyPlayer({
     return ctxRef.current;
   }
 
-  function ensureCache() {
-    if (cacheKeyRef.current === cacheKey && cacheRef.current.length === frames.length) {
-      return;
+  /** Render only the asked frame. Contrast scrub must not rebuild hundreds of ImageData. */
+  function imageFor(index: number): ImageData | null {
+    const list = framesRef.current;
+    if (index < 0 || index >= list.length || size <= 0) return null;
+    if (cacheKeyRef.current !== cacheKey || cacheRef.current.length !== list.length) {
+      cacheKeyRef.current = cacheKey;
+      cacheRef.current = new Array(list.length).fill(null);
     }
-    cacheKeyRef.current = cacheKey;
-    cacheRef.current = frames.map((f) => {
-      const rgba = renderFrameToRgba(
-        f.pixels,
-        f.mask,
-        size,
-        lo,
-        hi,
-        f.frame.background,
-        colorMap,
-        tintMask,
-      );
-      const copy = new Uint8ClampedArray(rgba.length);
-      copy.set(rgba);
-      return new ImageData(copy, size, size);
-    });
+    const hit = cacheRef.current[index];
+    if (hit) return hit;
+    const f = list[index];
+    if (!f) return null;
+    const rgba = renderFrameToRgba(
+      f.pixels,
+      f.mask,
+      size,
+      lo,
+      hi,
+      f.frame.background,
+      colorMap,
+      tintMask,
+    );
+    const copy = new Uint8ClampedArray(rgba.length);
+    copy.set(rgba);
+    const image = new ImageData(copy, size, size);
+    cacheRef.current[index] = image;
+    return image;
   }
 
   function blit(index: number) {
     const ctx = ensureCtx();
     if (!ctx || size <= 0) return;
-    ensureCache();
-    const image = cacheRef.current[index];
+    const image = imageFor(index);
     if (!image) return;
     ctx.putImageData(image, 0, 0);
 
-    const f = frames[index];
+    const f = framesRef.current[index];
     if (!f) return;
     drawTargetOverlay(ctx, f.frame.target_xy, trailRef.current);
     const overlay = candidatesRef.current;
@@ -228,7 +237,7 @@ export function SkyPlayer({
     if (!playing || frames.length < 2) return;
 
     const id = window.setInterval(() => {
-      const next = (indexRef.current + 1) % frames.length;
+      const next = (indexRef.current + 1) % framesRef.current.length;
       indexRef.current = next;
       blit(next);
       onChangeRef.current?.(next);
