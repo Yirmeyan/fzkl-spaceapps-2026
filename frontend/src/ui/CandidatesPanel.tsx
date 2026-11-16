@@ -134,7 +134,7 @@ export function CandidatesPanel({
           </p>
           {coldDetectionNote && (
             <p className="detection-trust-cold">
-              Cold objects at 4–5 µm: limit about 0.5–1 mJy. WISE 0855 sits near 0.5 mJy — among the
+              Cold objects at 4–5 µm: limit about 0.5–1 mJy. WISE 0855 sits near 0.5 mJy, among the
               faintest cold finds this tool can make.
             </p>
           )}

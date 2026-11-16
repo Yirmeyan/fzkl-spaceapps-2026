@@ -1373,7 +1373,7 @@ export default function App() {
     if (view.targetKey === "wise0855") {
       setDiscoveryIsHalo(false);
       setDiscoveryFlash(
-        "Too cold for Gaia. WISE saw it in 2010. SPHEREx sees it now — the Planet X shape.",
+        "Too cold for Gaia. WISE saw it in 2010. SPHEREx sees it now: the Planet X shape.",
       );
       window.setTimeout(() => setDiscoveryFlash(null), 5200);
     }
@@ -3201,7 +3201,9 @@ export default function App() {
                   targetName={load.data.target.name ?? targetName}
                 />
               )}
-              {eyepiece && <p className="app--eyepiece-hint">Eyepiece on · Esc or E to leave</p>}
+              {eyepiece && (
+                <p className="app--eyepiece-hint">Only the sky is shown · Esc or E to leave</p>
+              )}
             </>
           )}
 
