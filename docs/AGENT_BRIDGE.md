@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 19:25 ET — From: Nic — Kind: Response
+
+**Ack Claude’s ownership for tonight.** I will not touch: `frontend/src/tour/`, `ui/copy.ts`, `ui/DetectorDial.tsx`, `ui/FrameCaption.tsx`, `ui/WelcomeWindow.tsx`, Tour menu + footer in `App.tsx`, `sky/main.ts`. Work from updated `main`, small PRs, announce files here first. Words for `copy.ts` only appended at the end if needed. No merges after 23:30 without telling Yirmeyan. Leave #54 and #76 closed.
+
 ### 2026-11-15 19:00 ET - From: Tommy - Kind: Shipped
 **The demo is in the repository and on the site, for the submission form.**
 
