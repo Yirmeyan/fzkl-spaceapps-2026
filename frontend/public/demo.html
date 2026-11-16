@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SPHEREx Explorer · Project demo · Team Foxtrot Zulu Kilo Lima</title>
+<meta name="description" content="Demo of SPHEREx Explorer, NASA Space Apps Challenge 2026, challenge Planet X and SPHEREx. Slides written with AI assistance and reviewed by the team. Every picture is a capture of the tool showing SPHEREx data.">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #03060b; }
+  body { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 14px 0; }
+  .slide { zoom: var(--fit, 1); flex: none; border-radius: 10px; }
+  video { display: block; border-radius: 10px; height: auto; }
+  body { font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif; color: #e8eef6; }
+  .slide { width: 1280px; height: 720px; padding: 54px 64px 46px; position: relative; overflow: hidden;
+           page-break-after: always; break-after: page; display: flex; flex-direction: column;
+           background: radial-gradient(ellipse 60% 55% at 8% 0%, rgba(45, 212, 191, 0.13), transparent 60%),
+                       radial-gradient(ellipse 50% 45% at 96% 6%, rgba(253, 186, 116, 0.10), transparent 58%), #070b12; }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  .kicker { font-size: 15px; letter-spacing: 0.16em; text-transform: uppercase; color: #2dd4bf; margin: 0 0 10px; }
+  h1 { font-size: 76px; line-height: 1; margin: 0 0 18px; letter-spacing: -0.02em; }
+  h2 { font-size: 44px; line-height: 1.08; margin: 0 0 22px; letter-spacing: -0.01em; }
+  p, li { font-size: 23px; line-height: 1.42; margin: 0 0 12px; color: #d7e0ec; }
+  ul { margin: 0; padding-left: 26px; }
+  strong { color: #ffffff; }
+  .accent { color: #fdba74; }
+  .cols { display: flex; gap: 44px; flex: 1; min-height: 0; align-items: center; }
+  .cols > .text { flex: 1 1 0; min-width: 0; }
+  .cols > .shot { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .frame { border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.14); background: #0f1724; padding: 8px;
+           box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); }
+  .frame img { display: block; border-radius: 10px; }
+  .caption { font-size: 14px; color: #93a4b8; margin: 0; text-align: center; }
+  .foot { position: absolute; left: 64px; right: 64px; bottom: 20px; display: flex; justify-content: space-between;
+          font-size: 13px; color: #6f8196; }
+  table { border-collapse: collapse; width: 100%; margin-top: 6px; }
+  th, td { text-align: left; padding: 9px 12px; font-size: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+  th { font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #93a4b8; }
+  td.num { font-variant-numeric: tabular-nums; color: #ffffff; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 8px 0 26px; }
+  .card { border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.14); background: #0f1724; padding: 22px 20px; }
+  .card .big { font-size: 58px; line-height: 1; color: #2dd4bf; font-weight: bold; margin: 0 0 12px; }
+  .card p { font-size: 17px; line-height: 1.35; margin: 0; }
+  .meta p { font-size: 21px; margin: 0 0 6px; }
+  .links p { font-size: 19px; margin: 0 0 6px; }
+  .tag { display: inline-block; font-size: 13px; letter-spacing: 0.12em; padding: 3px 9px; border-radius: 6px;
+         border: 1px solid #c084fc; color: #e9d5ff; vertical-align: middle; }
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="favicon.svg">
+<script>
+  // Each slide is drawn at 1280 by 720 and fitted to the width of the screen.
+  function fit() {
+    var room = document.documentElement.clientWidth - 28;
+    document.documentElement.style.setProperty("--fit", String(Math.min(1.5, room / 1280)));
+  }
+  fit();
+  window.addEventListener("resize", fit);
+</script>
+</head>
+<body>
+
+<section class="slide">
+  <div class="cols">
+    <div class="text">
+      <p class="kicker">NASA Space Apps Challenge 2026 · Planet X and SPHEREx</p>
+      <h1>SPHEREx Explorer</h1>
+      <h2 class="accent" style="font-size:36px">Type a place. Watch the sky change.</h2>
+      <div class="meta" style="margin-top:34px">
+        <p><strong>Team Foxtrot Zulu Kilo Lima</strong></p>
+        <p>Yirmeyan, Nicolas, Daler</p>
+        <p>Local event: Montréal, Canada</p>
+        <p style="margin-top:18px;color:#2dd4bf">fzkl-spaceapps-2026.pages.dev</p>
+      </div>
+    </div>
+    <div class="shot">
+      <div class="frame"><img src="barnard-blink.gif" width="452" alt="Barnard's Star jumps between two SPHEREx visits, shown by the tool"></div>
+      <p class="caption">Barnard's Star between two SPHEREx visits, one year apart. A capture of the tool.</p>
+    </div>
+  </div>
+  <div class="foot"><span>SPHEREx Explorer · project demo</span><span>1 / 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="cols">
+    <div class="text">
+      <p class="kicker">The problem</p>
+      <h2>SPHEREx sees every place again and again. Nobody could watch it.</h2>
+      <p>NASA's SPHEREx telescope photographs the whole sky every six months, in <strong>102 infrared colors</strong>. A moving star, a fading star or an unknown planet shows up as a change between two visits.</p>
+      <ul>
+        <li>Two images in a row are never the same color.</li>
+        <li>One image is a file of 62 MB.</li>
+        <li>The interesting objects do not stay where catalogs put them.</li>
+      </ul>
+      <p style="margin-top:14px">The challenge asks for a public tool that makes this as easy as WiseView made it for WISE.</p>
+    </div>
+    <div class="shot">
+      <div class="frame"><video src="demo-assets/film.mp4" width="372" autoplay loop muted playsinline preload="auto" aria-label="The film of one place playing in the tool"></video></div>
+      <p class="caption">The film of one place, playing in the tool.<br>Every image is SPHEREx data.</p>
+    </div>
+  </div>
+  <div class="foot"><span>SPHEREx Explorer · project demo</span><span>2 / 7</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">The tool</p>
+  <h2>Type a name or coordinates, and watch the place move.</h2>
+  <div class="cols" style="align-items:flex-start">
+    <div class="shot">
+      <div class="frame"><video src="demo-assets/blink.mp4" width="330" autoplay loop muted playsinline preload="auto" aria-label="Barnard's Star jumps between its first and last visit in the tool"></video></div>
+      
+    </div>
+    <div class="text">
+      <p><strong>Barnard's Star moved by 10 arcseconds in one year.</strong> The tool lines up every image of a place, detector by detector, so that what changes on screen is the sky and not the color.</p>
+      <ul>
+        <li><strong>Watch</strong> plays the images.</li>
+        <li><strong>Blink</strong> flips between two visits.</li>
+        <li><strong>Subtract</strong> erases what stayed put.</li>
+        <li><strong>Average</strong> brings out faint objects.</li>
+      </ul>
+      <p style="margin-top:14px">Any place in the sky works the same way, straight from NASA's public archive. A sentence under each button says what it does.</p>
+    </div>
+  </div>
+  <div class="foot"><span>SPHEREx Explorer · project demo</span><span>3 / 7</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">Beyond a viewer</p>
+  <h2>It finds what moved or changed, by itself.</h2>
+  <div class="cols" style="align-items:flex-start">
+    <div class="shot">
+      <div class="frame"><video src="demo-assets/journal.mp4" width="318" autoplay loop muted playsinline preload="auto" aria-label="The journal of the tool lists what the search found"></video></div>
+    </div>
+    <div class="text">
+      <p>The service follows every source of the field from visit to visit and lists the candidates, with a speed, a distance when it can be measured, and a confidence.</p>
+      <table>
+        <tr><th>Test target of the challenge</th><th>Measured</th><th>Catalog</th></tr>
+        <tr><td>Barnard's Star</td><td class="num">10.5″ per year</td><td class="num">10.39</td></tr>
+        <tr><td>Epsilon Indi B</td><td class="num">4.63″ per year</td><td class="num">4.68</td></tr>
+        <tr><td>WISE 0855</td><td class="num">7.5″ per year</td><td class="num">8.15</td></tr>
+        <tr><td>RW Aurigae</td><td class="num" colspan="2">Half as bright near 4 µm: a known variable</td></tr>
+        <tr><td>R Draconis</td><td class="num" colspan="2">Too bright: followed through its halo</td></tr>
+      </table>
+      <p style="margin-top:16px">Pointed at WISE 0855 with no hint, it finds the cold brown dwarf where <strong>ESA's Gaia catalog holds nothing</strong>.</p>
+    </div>
+  </div>
+  <div class="foot"><span>SPHEREx Explorer · project demo</span><span>4 / 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="cols">
+    <div class="shot">
+      <div class="frame"><video src="demo-assets/sky.mp4" width="520" autoplay loop muted playsinline preload="auto" aria-label="The sky map of the tool, where the guided tour picks Barnard's Star"></video></div>
+      <p class="caption">The sky map, where the guided tour picks a star. A capture of the tool.</p>
+    </div>
+    <div class="text">
+      <p class="kicker">Where to look</p>
+      <h2>The whole sky, and a public journal.</h2>
+      <p>The all-sky cube that SPHEREx published in November 2026, in <strong>99 wavelengths</strong>. The site opens on this map. Drag, zoom, and click anywhere: the tool opens on that place.</p>
+      <p><strong>28 findings</strong> of our own checks are pinned, each with what catalogs say of it.</p>
+      <p>A visitor who notices something adds a pin in one click. A mark is a place and a category, with nothing to write, so there is nothing to moderate.</p>
+    </div>
+  </div>
+  <div class="foot"><span>SPHEREx Explorer · project demo</span><span>5 / 7</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">Validity</p>
+  <h2>Can you trust it? Every number was checked.</h2>
+  <div class="cards">
+    <div class="card"><p class="big">0.998</p><p>Our flux over the 2MASS and AllWISE catalogs, on 8 steady stars.</p></div>
+    <div class="card"><p class="big">16 / 17</p><p>Nearby moving stars found with no position given, each speed within two sigma of its catalog.</p></div>
+    <div class="card"><p class="big">0</p><p>False candidates in 32 quiet fields holding 831 sources.</p></div>
+    <div class="card"><p class="big">634</p><p>Automated tests of the service, run on every change.</p></div>
+  </div>
+  <p><strong>NASA data at the heart:</strong> SPHEREx spectral images (Data Release 1 and Quick Release 3) and the SPHEREx all-sky cube, from the NASA/IPAC Infrared Science Archive. The service reads only 1 percent of each file.</p>
+  <p><strong>Space agency partner data:</strong> Gaia DR3 of the European Space Agency, drawn over the images and used to check every motion.</p>
+  <p>We also hid 2,560 made-up stars in real images to measure what the search misses, and we publish the misses with the hits.</p>
+  <div class="foot"><span>SPHEREx Explorer · project demo</span><span>6 / 7</span></div>
+</section>
+
+<section class="slide">
+  <div class="cols">
+    <div class="text">
+      <p class="kicker">Planet X, and what comes next</p>
+      <h2>A search for Planet X that anyone can run.</h2>
+      <p>A body of the outer solar system swings with the seasons. The service follows that swing and reads a distance from it, between <strong>1,600 and 24,000 astronomical units</strong>.</p>
+      <p>No such body is known, so we hid made-up ones in real images: <strong>79 percent</strong> of those of 1 millijansky were found. The example in the tool is labeled <span class="tag">SYNTHETIC</span>.</p>
+      <p>Each new SPHEREx release adds a visit to every place of the sky. The tool reads the archive live, so it grows with the mission.</p>
+      <div class="links" style="margin-top:18px">
+        <p><strong>Tool</strong> fzkl-spaceapps-2026.pages.dev · <strong>Sky map</strong> /sky</p>
+        <p><strong>Code</strong> github.com/Yirmeyan/fzkl-spaceapps-2026</p>
+      </div>
+    </div>
+    <div class="shot">
+      <div class="frame"><img src="demo-assets/synthetic.png" width="570" alt="The synthetic Planet X example in the tool"></div>
+      <p class="caption">The made-up example, labeled SYNTHETIC in the tool.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Every picture is a capture of the tool showing SPHEREx data.</span><span>7 / 7</span></div>
+</section>
+
+</body>
+</html>
