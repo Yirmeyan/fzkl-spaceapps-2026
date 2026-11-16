@@ -88,6 +88,8 @@ import {
   writeViewToUrl,
 } from "./state/url";
 import { browserStorage, rememberWelcome, welcomesAtOpening } from "./state/welcome";
+import { runTour } from "./tour/card";
+import { addressOfStep, stepFromSearch } from "./tour/steps";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
 import { CandidatesPanel } from "./ui/CandidatesPanel";
 import { CatalogLegend } from "./ui/CatalogLegend";
@@ -348,7 +350,8 @@ export default function App() {
   const [showWelcome, setShowWelcome] = useState(() =>
     welcomesAtOpening(window.location.search, browserStorage()),
   );
-  const [linkCopied, setLinkCopied] = useState(false);
+  /** Step of the guided tour that the address asked for when the page opened, if any. */
+  const [tourStep] = useState(() => stepFromSearch(window.location.search));
   const stageRef = useRef<HTMLElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const demoTimer = useRef<number | null>(null);
@@ -369,25 +372,18 @@ export default function App() {
     rememberWelcome(browserStorage());
     setShowWelcome(false);
     if (view.showHelp) patchView({ showHelp: false });
-    if (startTour) {
-      window.setTimeout(() => runAutoDemo(), 200);
-    }
+    if (startTour) startGuidedTour();
   }
 
-  function copyJudgeLink() {
-    const url = new URL(window.location.href);
-    url.search = "";
-    url.searchParams.set("demo", "1");
-    const indexKey =
-      view.targetKey === "custom"
-        ? null
-        : (INDEX_KEY_BY_UI[view.targetKey || "barnard"] ?? (view.targetKey || "barnard-star"));
-    if (indexKey) url.searchParams.set("target", indexKey);
-    const href = url.toString();
-    void navigator.clipboard.writeText(href).then(() => {
-      setLinkCopied(true);
-      window.setTimeout(() => setLinkCopied(false), 2000);
-    });
+  // The cards of the tour that belong to this page. They wait for the page to build itself.
+  useEffect(() => {
+    if (tourStep === null) return;
+    return runTour("explorer", tourStep, import.meta.env.BASE_URL);
+  }, [tourStep]);
+
+  /** The guided tour begins on the sky map: the address carries the step from page to page. */
+  function startGuidedTour() {
+    window.location.assign(addressOfStep(0, import.meta.env.BASE_URL));
   }
 
   const [frameLinkCopied, setFrameLinkCopied] = useState(false);
@@ -2304,11 +2300,7 @@ export default function App() {
       <div className="sky-wash" aria-hidden="true" />
 
       {(showWelcome || view.showHelp) && !eyepiece && demoPhase === "idle" && (
-        <WelcomeWindow
-          tourReady={load.status === "ready"}
-          onClose={() => closeWelcome(false)}
-          onTour={() => closeWelcome(true)}
-        />
+        <WelcomeWindow onClose={() => closeWelcome(false)} onTour={() => closeWelcome(true)} />
       )}
 
       <header className="top">
@@ -2353,8 +2345,7 @@ export default function App() {
             <button
               type="button"
               className="ghost"
-              disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
-              onClick={() => runAutoDemo()}
+              onClick={() => startGuidedTour()}
               title={TOP.guidedTour.hint}
             >
               {TOP.guidedTour.label}
@@ -2362,10 +2353,11 @@ export default function App() {
             <button
               type="button"
               className="ghost"
-              onClick={() => copyJudgeLink()}
-              title={TOP.tourLink.hint}
+              disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
+              onClick={() => runAutoDemo()}
+              title={TOP.example.hint}
             >
-              {linkCopied ? "Copied" : TOP.tourLink.label}
+              {TOP.example.label}
             </button>
             {cinema && (
               <button
@@ -2510,6 +2502,7 @@ export default function App() {
             key={id}
             type="button"
             className={uiMode === id ? "active" : ""}
+            data-tour-way={id}
             title={WAYS[id].hint}
             onClick={() => setUiMode(id)}
           >
@@ -3253,7 +3246,7 @@ export default function App() {
 
         <aside className="side rail">
           {(candidatesFile || candidatesWaiting) && (
-            <details className="rail-card details rail-secondary" open>
+            <details className="rail-card details rail-secondary" data-tour="found" open>
               <summary title={FOUND.panel.hint}>{FOUND.panel.label}</summary>
               <CandidatesPanel
                 data={candidatesFile}
@@ -3990,7 +3983,10 @@ export default function App() {
         </aside>
       </main>
 
-      <footer className="foot">Foxtrot Zulu Kilo Lima · Planet X and SPHEREx · AGPL-3.0</footer>
+      <footer className="foot">
+        Foxtrot Zulu Kilo Lima · Planet X and SPHEREx ·{" "}
+        <a href="https://github.com/Yirmeyan/fzkl-spaceapps-2026">Source code</a> · AGPL-3.0
+      </footer>
     </div>
   );
 }

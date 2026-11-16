@@ -7,12 +7,12 @@ type Writer = Pick<Storage, "setItem">;
 /**
  * Should the welcome window open by itself?
  *
- * Not when the address starts something on its own, the guided tour or the animation
- * of the years: that visitor came to watch. Not when the window was closed before.
+ * Not when the address starts something on its own, the guided tour, the example that
+ * plays by itself or the animation of the years: that visitor came to watch. Not when the window was closed before.
  */
 export function welcomesAtOpening(search: string, storage: Reader | null): boolean {
   const query = new URLSearchParams(search);
-  if (query.get("demo") === "1" || query.get("years") === "1") return false;
+  if (query.get("demo") === "1" || query.get("years") === "1" || query.has("tour")) return false;
   try {
     return storage?.getItem(WELCOME_KEY) !== "1";
   } catch {

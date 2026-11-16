@@ -1,0 +1,107 @@
+/* The guided tour: a card that points at one element of the page, and a ring around it. */
+.tour-ring {
+  position: fixed;
+  z-index: 900;
+  box-sizing: border-box;
+  pointer-events: none;
+  border: 2px solid #e8a045;
+  border-radius: 10px;
+  /* The wide shadow dims the rest of the page without catching the pointer. */
+  box-shadow:
+    0 0 0 4px rgba(232, 160, 69, 0.22),
+    0 0 0 200vmax rgba(4, 8, 14, 0.42);
+}
+
+.tour-ring[hidden] {
+  display: none;
+}
+
+.tour-card {
+  position: fixed;
+  z-index: 901;
+  box-sizing: border-box;
+  width: min(23rem, calc(100vw - 1.5rem));
+  margin: 0;
+  padding: 0.85rem 1rem 0.9rem;
+  border: 1px solid #e8a045;
+  border-radius: 10px;
+  background: #101a28;
+  color: #e8eef6;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.6);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.tour-card.is-docked {
+  right: 0.75rem;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  width: auto;
+}
+
+.tour-card.is-docked.is-top {
+  top: 0.75rem;
+  bottom: auto;
+}
+
+.tour-count {
+  margin: 0 0 0.2rem;
+  color: #e8a045;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tour-title {
+  margin: 0 0 0.35rem;
+  color: #f4f7fb;
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.tour-body {
+  margin: 0 0 0.8rem;
+  color: #c9d6e5;
+}
+
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tour-actions button {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #2c3d55;
+  border-radius: 6px;
+  background: transparent;
+  color: #e8eef6;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tour-actions button[hidden] {
+  display: none;
+}
+
+.tour-actions button:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+}
+
+.tour-actions .tour-close {
+  margin-right: auto;
+  padding-inline: 0.2rem;
+  border-color: transparent;
+  color: #8fa3bb;
+}
+
+.tour-actions .tour-next {
+  border-color: #e8a045;
+  background: #e8a045;
+  color: #14100a;
+  font-weight: 600;
+}

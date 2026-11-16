@@ -34,7 +34,9 @@ describe("welcomesAtOpening", () => {
     expect(welcomesAtOpening("", storage)).toBe(false);
   });
 
-  it("stays closed when the address starts the guided tour or the years", () => {
+  it("stays closed when the address starts the guided tour, the example or the years", () => {
+    expect(welcomesAtOpening("?tour=1", memory())).toBe(false);
+    expect(welcomesAtOpening("?target=barnard-star&tour=4", memory())).toBe(false);
     expect(welcomesAtOpening("?demo=1", memory())).toBe(false);
     expect(welcomesAtOpening("?target=barnard-star&years=1", memory())).toBe(false);
   });

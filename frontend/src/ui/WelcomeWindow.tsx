@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
+import { TOP } from "./copy";
 
 interface WelcomeWindowProps {
   /** The guided tour plays the images: its button waits until they are there. */
-  tourReady: boolean;
   onClose: () => void;
   onTour: () => void;
 }
@@ -14,7 +14,7 @@ const STOPS = "button:not([disabled]), a[href]";
  * three steps to start. Opens by itself at the first opening, and from "How it works".
  * The text is the one of docs/ui-copy.md.
  */
-export function WelcomeWindow({ tourReady, onClose, onTour }: WelcomeWindowProps) {
+export function WelcomeWindow({ onClose, onTour }: WelcomeWindowProps) {
   const card = useRef<HTMLDivElement>(null);
   // The page draws again at every image it receives: the listener below must not be
   // set again each time, or the focus would jump back to the first button.
@@ -120,13 +120,7 @@ export function WelcomeWindow({ tourReady, onClose, onTour }: WelcomeWindowProps
           <button type="button" className="primary welcome-start" onClick={onClose}>
             Start exploring
           </button>
-          <button
-            type="button"
-            className="ghost"
-            disabled={!tourReady}
-            title={tourReady ? "A short tour that plays by itself" : "The images are still loading"}
-            onClick={onTour}
-          >
+          <button type="button" className="ghost" title={TOP.guidedTour.hint} onClick={onTour}>
             Take the guided tour
           </button>
         </div>
