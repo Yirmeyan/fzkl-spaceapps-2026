@@ -7,7 +7,7 @@ This file is the reference for the labels, for the sentence under each control a
 
 ## Rules
 
-- **Three words carry the tool: visit, camera, infrared color.** The interface does not say pass, detector, λ, hop or FOV. The API keeps its own names.
+- **Three words carry the tool: visit, detector, infrared color.** Detector is the word of the mission, so the interface keeps it and explains it. It does not say pass, λ, hop or FOV. The API keeps its own names.
 - **Every group of controls shows one sentence under its label**, visible without hovering. A phone has no hover.
 - **The sentence shown is the one of the selected option.** Choosing another option changes the sentence.
 - **Every button carries its sentence** as its `title`. Its label stays the name a screen reader says.
@@ -36,7 +36,7 @@ Shown at the first opening, over the page that loads behind it. Reopened at any 
 > **Three words to know**
 >
 > - **Visit**: one return of SPHEREx to this place, about every six months.
-> - **Camera**: SPHEREx has six. Each one sees a range of infrared colors.
+> - **Detector**: SPHEREx has six, like six cameras behind one telescope. Each one sees a range of infrared colors.
 > - **Infrared color**: a wavelength, counted in micrometers (µm). Cooler objects glow at larger numbers.
 >
 > You can reopen this at any time with How it works.
@@ -67,7 +67,7 @@ Label above the buttons: **Five places to try, and one made-up example**. The se
 | Epsilon Indi B | Brown dwarfs, objects too small to shine like stars. Their infrared colors give them away. |
 | WISE 0855 | One of the coldest and faintest neighbors of the Sun, at the limit of what SPHEREx can see. |
 | RW Aurigae | A young star whose brightness changes from one visit to the next. |
-| R Draconis | A giant star so bright that it saturates the cameras. A test of the limits of the tool. |
+| R Draconis | A giant star so bright that it saturates the detectors. A test of the limits of the tool. |
 | Synthetic Planet X · SYNTHETIC | Not a real object. We added a made-up moving dot to real SPHEREx images, to show what a distant planet would look like here. |
 
 ## Search and place
@@ -93,7 +93,7 @@ Under the picture:
 
 | Today | Becomes | Sentence |
 |---|---|---|
-| Infrared color · 1.10 µm | Visit 1, Aug 2025 · camera 1 · infrared color 1.10 µm | |
+| Infrared color · 1.10 µm | Visit 1, Aug 2025 · detector 1 · infrared color 1.10 µm | |
 | Play | Play | Show the images one after the other. |
 | frame slider | | Drag to choose an image. |
 | HOP | First visit, difference, last visit | Tap a picture to show it large. |
@@ -101,19 +101,19 @@ Under the picture:
 | Share hop | removed | Copy link at the top does it, keeps the view, and works for a place opened by its coordinates. |
 | second row Blink, Move | shown with the advanced tools | The row under the picture keeps Play and the slider. |
 
-## Infrared cameras
+## Detectors
 
-Label: **Infrared cameras**. Sentence of the group: SPHEREx has six cameras. Each sees a different range of infrared colors. The coldest objects show up mostly in cameras 5 and 6.
+Label: **Detectors**. Sentence of the group: SPHEREx has six detectors, like six cameras behind one telescope. Each sees a different range of infrared colors. The coldest objects show up mostly in detectors 5 and 6.
 
 | Today | Becomes | Sentence |
 |---|---|---|
-| All | All cameras | Use the images of all six cameras. |
-| D1 0.9 µm | Camera 1 · 0.9 µm | Colors from 0.74 to 1.11 µm, the closest to visible light. 60 images. |
-| D2 1.4 µm | Camera 2 · 1.4 µm | Colors from 1.09 to 1.66 µm. 62 images. |
-| D3 2.0 µm | Camera 3 · 2.0 µm | Colors from 1.62 to 2.42 µm. 61 images. |
-| D4 3.1 µm | Camera 4 · 3.1 µm | Colors from 2.42 to 3.80 µm. 59 images. |
-| D5 4.1 µm | Camera 5 · 4.1 µm | Colors from 3.80 to 4.43 µm, where cold objects start to glow. 62 images. |
-| D6 4.7 µm | Camera 6 · 4.7 µm | Colors from 4.40 to 5.00 µm, where the coldest objects are brightest. 60 images. |
+| All | All detectors | Use the images of all six detectors. |
+| D1 0.9 µm | Detector 1 · 0.9 µm | Colors from 0.74 to 1.11 µm, the closest to visible light. 60 images. |
+| D2 1.4 µm | Detector 2 · 1.4 µm | Colors from 1.09 to 1.66 µm. 62 images. |
+| D3 2.0 µm | Detector 3 · 2.0 µm | Colors from 1.62 to 2.42 µm. 61 images. |
+| D4 3.1 µm | Detector 4 · 3.1 µm | Colors from 2.42 to 3.80 µm. 59 images. |
+| D5 4.1 µm | Detector 5 · 4.1 µm | Colors from 3.80 to 4.43 µm, where cold objects start to glow. 62 images. |
+| D6 4.7 µm | Detector 6 · 4.7 µm | Colors from 4.40 to 5.00 µm, where the coldest objects are brightest. 60 images. |
 
 The numbers of images are those of the place shown.
 
@@ -146,7 +146,7 @@ Closed at the first opening. Everything below lives there.
 | IR heat | Heat | Black to yellow, like a thermal camera. These colors are a choice: infrared has none. |
 | Gray | Gray | Black to white. |
 | LOOK · Soft | Smooth | A smoothed picture, easier on the eye. |
-| LOOK · Sharp | Pixels | The true square pixels of the camera. |
+| LOOK · Sharp | Pixels | The true square pixels of the detector. |
 | Path off / on | Path | Draw where the object was at each visit. |
 | FIELD OF VIEW | Size of the picture | |
 | 0.1° · 128² | Close · 0.1° | A tenth of a degree across, a fifth of the width of the full Moon. |

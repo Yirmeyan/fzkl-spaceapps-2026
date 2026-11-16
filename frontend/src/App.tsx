@@ -403,7 +403,7 @@ export default function App() {
       setDiscoveryIsHalo(false);
       setDiscoveryFlash(
         `Link copied · image ${view.frameIndex + 1}${
-          view.detector != null ? ` · camera ${view.detector}` : ""
+          view.detector != null ? ` · detector ${view.detector}` : ""
         }${synthetic ? " · SYNTHETIC" : ""}`,
       );
       window.setTimeout(() => setDiscoveryFlash(null), 2400);
@@ -594,7 +594,7 @@ export default function App() {
         if (di === 0) {
           setLoad({
             status: "loading",
-            message: `Loading the images of camera ${det}…`,
+            message: `Loading the images of detector ${det}…`,
             loaded: 0,
             total: grandTotal,
           });
@@ -3280,7 +3280,7 @@ export default function App() {
                 </dd>
               </div>
               <div>
-                <dt>Visit / camera</dt>
+                <dt>Visit / detector</dt>
                 <dd>
                   {display.meta.exposure.pass} / {display.meta.exposure.detector} ·{" "}
                   {display.meta.exposure.collection}
@@ -3995,9 +3995,9 @@ function AdvancedDetails({
           </dd>
         </div>
         <div>
-          <dt>Camera / visit</dt>
+          <dt>Detector / visit</dt>
           <dd>
-            Camera {e.detector} · Visit {e.pass} · {e.collection}
+            Detector {e.detector} · Visit {e.pass} · {e.collection}
           </dd>
         </div>
         <div>

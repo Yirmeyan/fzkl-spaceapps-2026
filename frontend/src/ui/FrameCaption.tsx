@@ -41,7 +41,7 @@ export function FrameCaption({
         <span className="frame-caption-sep">·</span>
         {cur.frame.wavelength_um.toFixed(3)} µm
         <span className="frame-caption-sep">·</span>
-        Camera {cur.exposure.detector}
+        Detector {cur.exposure.detector}
       </p>
       <p className="frame-caption-span">
         Sequence {shortDate(first.frame.time_iso)} → {shortDate(last.frame.time_iso)}

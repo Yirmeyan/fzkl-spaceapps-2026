@@ -16,8 +16,8 @@ function texts(value: unknown, found: string[] = []): string[] {
 const ALL = texts(copy);
 
 describe("the words of the explorer", () => {
-  it("keeps to one vocabulary: visit, camera, infrared color", () => {
-    const jargon = /\b(pass|passes|detectors?|hops?|fov|eyepiece)\b|λ/i;
+  it("keeps to one vocabulary: visit, detector, infrared color", () => {
+    const jargon = /\b(pass|passes|hops?|fov|eyepiece)\b|λ/i;
     expect(ALL.filter((text) => jargon.test(text))).toEqual([]);
   });
 
@@ -32,7 +32,7 @@ describe("the words of the explorer", () => {
       ...Object.values(copy.PLAYER),
       ...Object.values(copy.COMBINE.options),
       ...Object.values(copy.FOUND),
-      copy.CAMERAS.all,
+      copy.DETECTORS.all,
       copy.VISITS.all,
       copy.VISITS.one(2),
     ];
@@ -42,12 +42,12 @@ describe("the words of the explorer", () => {
     }
   });
 
-  it("says which camera, which colors and how many images", () => {
-    expect(copy.CAMERAS.hint(5, 3.8, 4.43, 62)).toBe(
-      "Camera 5: colors from 3.80 to 4.43 µm, 62 images of this place. Cold objects start to glow here.",
+  it("says which detector, which colors and how many images", () => {
+    expect(copy.DETECTORS.hint(5, 3.8, 4.43, 62)).toBe(
+      "Detector 5: colors from 3.80 to 4.43 µm, 62 images of this place. Cold objects start to glow here.",
     );
-    expect(copy.CAMERAS.hint(3, 1.62, 2.42, 61)).toBe(
-      "Camera 3: colors from 1.62 to 2.42 µm, 61 images of this place.",
+    expect(copy.DETECTORS.hint(3, 1.62, 2.42, 61)).toBe(
+      "Detector 3: colors from 1.62 to 2.42 µm, 61 images of this place.",
     );
   });
 });
