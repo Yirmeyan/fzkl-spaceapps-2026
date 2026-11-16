@@ -81,8 +81,10 @@ function optFloat(v: string | null): number | null {
 
 export function readViewFromUrl(search = window.location.search): ViewState {
   const q = new URLSearchParams(search);
-  const mode = (q.get("mode") as ComposeMode | null) ?? DEFAULT_VIEW.mode;
-  const validModes: ComposeMode[] = ["single", "stack", "difference", "track"];
+  const rawMode = (q.get("mode") as ComposeMode | null) ?? DEFAULT_VIEW.mode;
+  // Follow-the-target removed from UI; old ?mode=track links open Average.
+  const mode: ComposeMode = rawMode === "track" ? "stack" : rawMode;
+  const validModes: ComposeMode[] = ["single", "stack", "difference"];
   const ra = optFloat(q.get("ra"));
   const dec = optFloat(q.get("dec"));
   // Tommy item 3/4: ?ra=&dec= opens any position without a preset key.

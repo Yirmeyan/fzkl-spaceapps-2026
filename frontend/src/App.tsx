@@ -25,7 +25,6 @@ import {
   stackByPass,
   stackFrames,
   stackPassClean,
-  stackTrackingTarget,
 } from "./compose/stack";
 import { type CandidatesFile, fetchCandidatesFile, knownAs } from "./data/candidates";
 import {
@@ -106,6 +105,7 @@ import {
   PANELS,
   PLACE,
   PLAYER,
+  SEARCH_TRY,
   SIZE,
   STRIP,
   SURVEYS,
@@ -169,7 +169,7 @@ function meanPassTrail(frames: DecodedFrame[]): TrailPoint[] {
 function uiModeFromView(mode: ComposeMode, blink: boolean): UiMode {
   if (blink) return "compare";
   if (mode === "difference") return "difference";
-  if (mode === "stack" || mode === "track") return "more";
+  if (mode === "stack") return "more";
   return "watch";
 }
 
@@ -1182,7 +1182,7 @@ export default function App() {
     });
   }, []);
 
-  /** Stack / difference / track pixels — no contrast. Slider must not restack. */
+  /** Stack / difference pixels — no contrast. Slider must not restack. */
   const composed = useMemo(() => {
     if (load.status !== "ready") return null;
     const size = load.data.grid.size;
@@ -1227,19 +1227,6 @@ export default function App() {
         meta: active,
       };
     }
-    if (view.mode === "track") {
-      const tracked = stackTrackingTarget(filtered);
-      return {
-        kind: "compose" as const,
-        pixels: tracked.pixels,
-        mask: tracked.mask,
-        background: 0,
-        baseLimits: computeDisplayLimits([tracked]),
-        size,
-        targetXy: filtered[0]!.frame.target_xy,
-        meta: active,
-      };
-    }
     return null;
   }, [
     load,
@@ -1256,7 +1243,7 @@ export default function App() {
     if (load.status !== "ready") return null;
     const size = load.data.grid.size;
 
-    if (view.mode === "difference" || view.mode === "stack" || view.mode === "track") {
+    if (view.mode === "difference" || view.mode === "stack") {
       if (!composed) return null;
       if ("error" in composed && composed.error) {
         return {
@@ -2284,9 +2271,7 @@ export default function App() {
             ? "difference"
             : view.mode === "stack"
               ? "stack"
-              : view.mode === "track"
-                ? "track"
-                : "watch";
+              : "watch";
 
   return (
     <div className={`app app--classic${eyepiece ? " app--eyepiece" : ""}`}>
@@ -2457,15 +2442,35 @@ export default function App() {
           id="sky-query"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Name or RA Dec (e.g. 269.45 4.69)"
+          placeholder="Name or coordinates (e.g. 269.45, 4.69)"
           autoComplete="off"
-          title="Type a star name or sky coordinates (degrees or sexagesimal)"
+          title="Type a star name, degrees, or hours/degrees (08h… −07d…)"
         />
         <button type="submit" title="Resolve the name and load SPHEREx images">
           Go
         </button>
       </form>
-      <p className="search-hint">Try: Luhman 16 · 133.7951, -7.2451 · 08h55m10.8s -07d14m43s</p>
+      <fieldset className="search-try">
+        <legend className="search-try-label">{SEARCH_TRY.label}</legend>
+        <div className="search-try-chips">
+          {SEARCH_TRY.examples.map((ex) => (
+            <button
+              key={ex.kind}
+              type="button"
+              className="search-try-chip"
+              title={`Put “${ex.value}” in the search box`}
+              onClick={() => {
+                setSearchInput(ex.value);
+                document.getElementById("sky-query")?.focus();
+              }}
+            >
+              <span className="search-try-kind">{ex.kind}</span>
+              <span className="search-try-value">{ex.value}</span>
+            </button>
+          ))}
+        </div>
+        <p className="search-hint">{SEARCH_TRY.tip}</p>
+      </fieldset>
 
       <nav className="mode-tabs" aria-label="What do you want to do?">
         {(["watch", "compare", "difference", "more"] as const).map((id) => (
@@ -2888,7 +2893,7 @@ export default function App() {
               !spotStacks &&
               !passStackMovie &&
               display &&
-              (view.mode === "stack" || view.mode === "track") &&
+              view.mode === "stack" &&
               display.kind === "compose" && (
                 <FrameCanvas
                   pixels={display.pixels}
@@ -3416,7 +3421,7 @@ export default function App() {
 
               <fieldset>
                 <legend>{COMBINE.label}</legend>
-                {(["single", "stack", "difference", "track"] as const).map((mode) => (
+                {(["single", "stack", "difference"] as const).map((mode) => (
                   <button
                     key={mode}
                     type="button"
@@ -3789,17 +3794,6 @@ export default function App() {
                       }}
                     >
                       {COMBINE.averageMovie.label}
-                    </button>
-                    <button
-                      type="button"
-                      className={view.mode === "track" ? "active" : ""}
-                      onClick={() => {
-                        clearPresentationOverlays();
-                        setPassMovie(false);
-                        patchView({ mode: "track", playing: false });
-                      }}
-                    >
-                      Track
                     </button>
                   </div>
                   {view.pass != null && (

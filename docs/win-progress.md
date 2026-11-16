@@ -20,7 +20,7 @@ Stop loop only if Nic ≥ 90% **and** team ≥ 90%, or human says stop. Under-es
 
 ## This loop
 
-**This loop’s wow:** Share a finding shipped (#84). Follow-on: header Sky map → Tommy’s all-sky `sky.html` centered on the loaded field.
+**This loop’s wow:** Search format chips — put Name / degrees / hms–dms into the bar so people see how to type a place (sexagesimal was opaque).
 
 ## Backlog
 

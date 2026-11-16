@@ -216,3 +216,14 @@ export const PLACE = {
     `RA ${ra.toFixed(4)}° · Dec ${dec >= 0 ? "+" : "−"}${Math.abs(dec).toFixed(4)}°`,
   visits: (count: number) => (count === 1 ? "1 visit" : `${count} visits`),
 };
+
+/** Clickable examples under the search bar — same brown dwarf, three ways to type it. */
+export const SEARCH_TRY = {
+  label: "Put an example in the box",
+  tip: "h = hours of right ascension, d = degrees of declination. Same place as the decimal numbers.",
+  examples: [
+    { kind: "Name", value: "Luhman 16" },
+    { kind: "Degrees", value: "133.7951, -7.2451" },
+    { kind: "Hours · degrees", value: "08h55m10.8s -07d14m43s" },
+  ],
+} as const;
