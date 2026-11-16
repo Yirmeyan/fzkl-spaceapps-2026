@@ -25,17 +25,10 @@ export const TOP = {
     hint: "Copy the address of exactly what you see, to send it to someone.",
   },
   howItWorks: { label: "How it works", hint: "Reopen the introduction." },
-  tour: { label: "Tour", hint: "A guided tour that plays by itself, and a full screen view." },
   guidedTour: {
     label: "Guided tour",
     hint: "Nine short steps, from the sky map to this page. You only press Next.",
   },
-  example: {
-    label: "Play the example",
-    hint: "A short demonstration that plays by itself (J).",
-  },
-  fullScreen: { label: "Full screen", hint: "Show only the sky (E)." },
-  leaveFullScreen: { label: "Leave full screen", hint: "Back to the page (Esc or E)." },
 } satisfies Record<string, Words>;
 
 export const EXAMPLES = {

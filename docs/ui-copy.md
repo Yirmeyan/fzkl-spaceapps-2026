@@ -55,7 +55,7 @@ The two buttons stay in sight while the text scrolls, so the window closes at on
 | Share (menu) | Copy link | Copy the address of exactly what you see, to send it to someone. |
 | Help | How it works | Reopen the introduction. |
 
-The guided tour, the example that plays by itself and the full screen view are in a small menu named **Tour**, next to Copy link.
+The guided tour has its own button, next to Copy link. The buttons of the header always sit on one row under the title, so the header never changes shape.
 
 ## Examples
 
@@ -164,8 +164,8 @@ Closed at the first opening. Everything below lives there.
 | SKY CONTEXT | Where this is on the sky | |
 | Infrared timeline | Colors and brightness over time | The spectrum is the brightness in each infrared color. The light curve is the brightness at each visit. |
 | Copy verdict, Save postcard | unchanged | Copy the result as text. Save the picture with its result. |
-| Eyepiece | Full screen | Show only the sky. |
-| Timed walkthrough | Play the example | A short demonstration that plays by itself (J). |
+| Eyepiece | (no button) | The view that shows only the sky keeps its key, E. |
+| Timed walkthrough | (no button) | The demonstration that plays by itself is only reached by a link, `?demo=1`. |
 | (new) | Guided tour | Nine short steps, from the sky map to this page. You only press Next. |
 | Technical details | Technical details | The raw numbers, for reviewers. The state of the service is here. |
 
