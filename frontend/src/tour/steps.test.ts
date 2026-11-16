@@ -28,6 +28,20 @@ describe("the steps of the guided tour", () => {
     );
   });
 
+  it("names every control it presses", () => {
+    for (const step of TOUR_STEPS) {
+      for (const selector of [step.press ?? []].flat()) {
+        expect(selector.trim().length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("ends on the film, with Play pressed only when it is not running yet", () => {
+    const last = TOUR_STEPS.at(-1);
+    expect(last?.anchor).toBe(".transport");
+    expect([last?.press ?? []].flat()).toContain('.play-btn[aria-pressed="false"]');
+  });
+
   it("says what Next does on the card that leaves the sky map", () => {
     const last = TOUR_STEPS.findLastIndex((step) => step.page === "sky");
     expect(TOUR_STEPS[last]?.next).toBe("Open Barnard's Star");

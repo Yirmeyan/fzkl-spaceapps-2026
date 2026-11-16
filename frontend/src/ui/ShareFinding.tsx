@@ -1,6 +1,7 @@
 import type { JournalShareCategory } from "../data/client";
 
-const CATEGORIES: { value: JournalShareCategory; label: string }[] = [
+/** What a visitor can say of a place, in the words shown in the form and in the journal. */
+export const CATEGORIES: { value: JournalShareCategory; label: string }[] = [
   { value: "moved", label: "It moves" },
   { value: "changed", label: "It changes brightness" },
   { value: "appears-once", label: "It appears once" },

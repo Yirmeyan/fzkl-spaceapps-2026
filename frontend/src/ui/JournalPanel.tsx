@@ -1,4 +1,13 @@
 import { type JournalEntry, journalStatusLabel, sortJournalEntries } from "../data/journal";
+import { CATEGORIES } from "./ShareFinding";
+
+/** What a visitor said of a place: the choice made when sharing, then that nobody measured it. */
+function visitorSaid(entry: JournalEntry): string {
+  const chosen = CATEGORIES.find((category) => category.value === entry.category);
+  return chosen
+    ? `A visitor says: ${chosen.label.toLowerCase()}. Not measured yet.`
+    : "Shared by a visitor, not measured yet.";
+}
 
 interface JournalPanelProps {
   open: boolean;
@@ -20,7 +29,7 @@ function EntryRow({
 }) {
   const visitor = entry.source === "visitor";
   const found = visitor
-    ? "Shared by a visitor, not measured yet"
+    ? visitorSaid(entry)
     : (entry.found ?? "Finding listed without a measured sentence.");
   const known = visitor ? null : entry.known;
 
@@ -62,19 +71,19 @@ export function JournalPanel({
 
   return (
     <div className="journal-overlay" role="dialog" aria-modal="true" aria-label="Journal">
-      <div className="journal-panel">
+      <div className="journal-panel" data-tour="journal-panel">
         <header className="journal-panel-head">
           <div>
             <p className="journal-kicker">Journal</p>
             <h2 className="journal-title">What the search found</h2>
           </div>
-          <button type="button" className="ghost" onClick={onClose}>
+          <button type="button" className="ghost" data-tour="journal-close" onClick={onClose}>
             Close
           </button>
         </header>
         <p className="journal-lede">
-          What the search found in the fields we checked it on. Every number is measured by the
-          service.
+          What the search found in the fields we checked it on, and what visitors shared. Every
+          number is measured by the service. A click on a line opens that place.
         </p>
 
         {visitorEntries.length > 0 && (

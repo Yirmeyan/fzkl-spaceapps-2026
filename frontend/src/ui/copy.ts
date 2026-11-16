@@ -27,7 +27,7 @@ export const TOP = {
   howItWorks: { label: "How it works", hint: "Reopen the introduction." },
   guidedTour: {
     label: "Guided tour",
-    hint: "Nine short steps, from the sky map to this page. You only press Next.",
+    hint: "A short tour, from the sky map to this page. You only press Next.",
   },
 } satisfies Record<string, Words>;
 
