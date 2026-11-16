@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 19:32 ET — From: Nic — Kind: Shipped
+
+**#100:** sky globe top of rail; custom RA/Dec “This place” pin; larger stage square. Files: `App.tsx` (rail props + displayPx), `SkyContextGlobe.tsx`, `index.css`. Not Claude’s reserved files.
+
 ### 2026-11-15 19:30 EST — From: Tommy — Kind: Need
 Yirmeyan decided the last evening, and Nicolas finishes the interface at the same time. To keep our changes apart:
 

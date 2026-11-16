@@ -434,8 +434,7 @@ export default function App() {
     if (!el) return;
     const update = () => {
       // Same on-screen square for Close and Wide: FOV only changes the cutout content.
-      // 128² × 4 = 512 CSS px; a 256² wide field scales into that same box.
-      const classic = FIELD_PRESETS.default.size * 4;
+      // Fill the viewer column (leave a small gutter); no fixed 512 cap that leaves empty sides.
       const colW = el.clientWidth;
       const maxByWidth = Math.floor(colW - 12);
       if (eyepiece) {
@@ -447,9 +446,8 @@ export default function App() {
         setDisplayPx(Math.max(300, Math.min(420, Math.floor(maxByWidth / 2) - 24)));
         return;
       }
-      // Prefer classic 512; only shrink if the column is truly narrower.
       // A phone gets the picture at the width of its screen: no floor wider than a phone.
-      setDisplayPx(Math.max(240, Math.min(classic, maxByWidth || classic)));
+      setDisplayPx(Math.max(240, maxByWidth || FIELD_PRESETS.default.size * 4));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -3345,8 +3343,15 @@ export default function App() {
             <SkyContextGlobe
               pins={CHALLENGE_SKY_PINS}
               activeKey={view.targetKey && view.targetKey !== "custom" ? view.targetKey : null}
-              activeRa={load.status === "ready" ? load.data.target.ra : null}
-              activeDec={load.status === "ready" ? load.data.target.dec : null}
+              activeRa={load.status === "ready" ? load.data.target.ra : (skyTarget?.ra ?? null)}
+              activeDec={load.status === "ready" ? load.data.target.dec : (skyTarget?.dec ?? null)}
+              placeLabel={
+                load.status === "ready"
+                  ? (load.data.target.name ?? "This place")
+                  : skyTarget
+                    ? "This place"
+                    : null
+              }
               fovDeg={FIELD_PRESETS[fieldPreset].fov}
               onSelect={(key) => {
                 setBlinkPasses(false);
