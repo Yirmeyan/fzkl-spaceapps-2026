@@ -12,6 +12,8 @@ import { addressOfStep, TOUR_PARAM, TOUR_STEPS, type TourPage } from "./steps";
 /** How long the tour looks for an element that the page is still building. */
 const LOOK_FOR_MS = 10_000;
 const LOOK_EVERY_MS = 200;
+/** How long the tour keeps following an element after finding it, while the page scrolls to it. */
+const FOLLOW_FOR_MS = 1200;
 /** Time left to read the card before the tour presses a control for the visitor. */
 const PRESS_AFTER_MS = 600;
 /** How far the ring stands off the element it circles. */
@@ -137,10 +139,14 @@ export function runTour(page: TourPage, first: number, home: string): () => void
 
     let pressed = step.press === undefined;
     const since = Date.now();
+    let foundAt = 0;
     const look = (): void => {
       if (anchor === null) {
         anchor = document.querySelector(step.anchor);
-        if (anchor !== null) bring(anchor);
+        if (anchor !== null) {
+          foundAt = Date.now();
+          bring(anchor);
+        }
       }
       if (!pressed && step.press !== undefined) {
         const control = document.querySelector<HTMLElement>(step.press);
@@ -150,7 +156,8 @@ export function runTour(page: TourPage, first: number, home: string): () => void
         }
       }
       draw();
-      if ((anchor !== null && pressed) || Date.now() - since > LOOK_FOR_MS) {
+      const settled = anchor !== null && pressed && Date.now() - foundAt > FOLLOW_FOR_MS;
+      if (settled || Date.now() - since > LOOK_FOR_MS) {
         window.clearInterval(looking);
         looking = undefined;
       }
