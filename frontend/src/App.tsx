@@ -2589,15 +2589,6 @@ export default function App() {
                 )}
               </div>
             )}
-            {load.status === "ready" &&
-              liveProgress &&
-              liveProgress.loaded < liveProgress.total && (
-                <div className="status-banner quiet" role="status">
-                  More images are arriving from the archive: {liveProgress.loaded} of{" "}
-                  {liveProgress.total}. You can already play the ones that are here.
-                  <progress value={liveProgress.loaded} max={liveProgress.total} />
-                </div>
-              )}
             {load.status === "error" && (
               <div className="status-banner error">
                 <span>{load.message}</span>
@@ -2959,7 +2950,23 @@ export default function App() {
                   displayPx={displayPx}
                 />
               )}
+            {display &&
+              view.mode === "single" &&
+              display.kind === "single" &&
+              display.meta &&
+              display.meta.frame.valid_fraction < 0.95 && (
+                <p className="edge-nodata" role="status">
+                  Edge of the detector: no data in the hatched area.
+                </p>
+              )}
           </div>
+          {load.status === "ready" && liveProgress && liveProgress.loaded < liveProgress.total && (
+            <div className="status-banner quiet" role="status">
+              More images are arriving from the archive: {liveProgress.loaded} of{" "}
+              {liveProgress.total}. You can already play the ones that are here.
+              <progress value={liveProgress.loaded} max={liveProgress.total} />
+            </div>
+          )}
 
           {hopProof && (
             <div className="hop-proof-wrap">
@@ -2992,11 +2999,6 @@ export default function App() {
 
           {display && view.mode === "single" && display.kind === "single" && (
             <>
-              {display.meta && display.meta.frame.valid_fraction < 0.95 && (
-                <p className="edge-nodata" role="status">
-                  Edge of the detector: no data in the hatched area.
-                </p>
-              )}
               <div className="transport">
                 <button
                   type="button"
