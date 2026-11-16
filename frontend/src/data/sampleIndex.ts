@@ -46,13 +46,13 @@ export interface SampleTargetEntry {
   grid: Grid;
   passes: number;
   detectors: SampleDetectorEntry[];
-  /** Photometry-only spectrum file (Tommy #28). */
+  /** Photometry-only spectrum file. */
   spectrum?: SampleSpectrumEntry;
-  /** What moved or changed in the field (Tommy addition A / #42). */
+  /** What moved or changed in the field. */
   candidates?: SampleCandidatesEntry;
-  /** Gaia + AllWISE overlay for the preset grid (Tommy #59). */
+  /** Gaia + AllWISE overlay for the preset grid. */
   catalog?: SampleCatalogEntry;
-  /** Present when this preset is a made-up body on real frames (Tommy #79). */
+  /** Present when this preset is a made-up body on real frames. */
   synthetic?: SampleSyntheticMeta;
 }
 
@@ -65,7 +65,7 @@ export interface SampleIndex {
 
 const INDEX_URL = `${import.meta.env.BASE_URL}samples/index.json`;
 
-/** UI key → index.json key (Tommy B6). */
+/** UI key → index.json key. */
 export const INDEX_KEY_BY_UI: Record<string, string> = {
   barnard: "barnard-star",
   epsindi: "epsilon-indi-b",

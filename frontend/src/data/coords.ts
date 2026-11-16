@@ -1,7 +1,7 @@
 import type { Target } from "./contract";
 
 /**
- * Parse a sky search string into RA/Dec degrees (Tommy 19:15).
+ * Parse a sky search string into RA/Dec degrees.
  * Accepts decimal degrees, or sexagesimal RA (hours) + Dec.
  */
 export function parseCoordinateQuery(raw: string): Target | null {

@@ -71,7 +71,7 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-/** GET JSON with retries on 503 using Retry-After (Tommy live-feed Need). */
+/** GET JSON with retries on 503 using Retry-After. */
 async function getJson<T>(path: string, init?: RequestInit, max503Retries = 3): Promise<T> {
   let attempt = 0;
   for (;;) {
@@ -124,7 +124,7 @@ export async function fetchExposures(
   return getJson<ExposuresResponse>(`/api/exposures?${q}`, { signal });
 }
 
-/** GET /api/spectrum — photometry only, no pixels (Tommy Need item 3). */
+/** GET /api/spectrum — photometry only, no pixels. */
 export async function fetchSpectrum(
   target: Target,
   opts: { detector?: number } = {},
@@ -137,7 +137,7 @@ export async function fetchSpectrum(
 
 /**
  * GET /api/candidates — what moved or changed around any position (#44).
- * Up to six 503 retries: measurement can outlast one request (Tommy contract).
+ * Up to six 503 retries: measurement can outlast one request.
  */
 export async function fetchCandidates(
   target: Target,
@@ -147,7 +147,7 @@ export async function fetchCandidates(
   return getJson<CandidatesFile>(`/api/candidates?${q}`, { signal }, 6);
 }
 
-/** GET /api/catalog — Gaia DR3 + AllWISE in the current view (Tommy F8 / #57). */
+/** GET /api/catalog — Gaia DR3 + AllWISE in the current view. */
 export async function fetchCatalog(
   opts: { ra: number; dec: number; fov: number; epoch: number },
   signal?: AbortSignal,
@@ -223,7 +223,7 @@ export async function fetchBundle(url: string, signal?: AbortSignal): Promise<Bu
   return bundle;
 }
 
-/** GET /api/journal — visitor marks (Tommy 23:00). Keep ≤20s. */
+/** GET /api/journal — visitor marks. Keep ≤20s. */
 export async function fetchJournalLive(signal?: AbortSignal): Promise<JournalLiveResponse> {
   return getJson<JournalLiveResponse>("/api/journal", { signal }, 1);
 }

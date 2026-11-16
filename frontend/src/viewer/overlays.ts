@@ -4,7 +4,7 @@ import type { CatalogSlice, CatalogSource } from "../data/catalog";
 import type { Grid } from "../data/contract";
 import { skyToPixel, targetAt } from "../data/contract";
 
-/** Catalog ring colors — distinct from candidate yellow/cyan (Tommy F8). */
+/** Catalog ring colors — distinct from candidate yellow/cyan. */
 export const CATALOG_COLORS: Record<string, string> = {
   gaia: "#a78bfa",
   allwise: "#34d399",
@@ -200,7 +200,7 @@ export function drawTargetOverlay(
 }
 
 /**
- * Rings + motion arrows for service candidates (Tommy addition A).
+ * Rings + motion arrows for service candidates.
  * Uses track xy when the view grid matches the candidates file grid;
  * otherwise projects ra/dec through skyToPixel.
  */

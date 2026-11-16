@@ -4,7 +4,6 @@ Working agreements for the team during the hackathon: two developers, 48 hours, 
 
 ## Ground rules
 
-- Cursor agents: read [`AGENTS.md`](AGENTS.md) and update [`docs/AGENT_BRIDGE.md`](docs/AGENT_BRIDGE.md) every session (Nic ↔ Tommy needs).
 - Everything is in English: code, comments, commits, pull requests, documentation and user interface.
 - `main` always works. Nobody pushes to `main` directly.
 - One small, testable step per pull request.

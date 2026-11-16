@@ -285,7 +285,7 @@ function residualToRgb(
 /**
  * Render one frame to RGBA. Subtracts background, soft asinh between lo/hi.
  * Default heat colormap (IR false color). NaN+OVERFLOW → top of scale;
- * other NaN (no data) → neutral gray with thin hatching (Tommy 19:15) — never a scale color.
+ * other NaN (no data) → neutral gray with thin hatching — never a scale color.
  */
 export function renderFrameToRgba(
   pixels: Float32Array,
@@ -332,7 +332,7 @@ export function renderFrameToRgba(
     }
 
     let [r, g, b] = residualToRgb(raw - bg, lo, hi, soft, denom, colorMap);
-    // Tommy item 6: tint contamination flags so judges see the mask bits on screen.
+    // Tint contamination flags so that the mask bits show on screen.
     if (tintMask && m !== 0) {
       r = Math.min(255, Math.round(r * 0.45 + 200 * 0.55));
       g = Math.min(255, Math.round(g * 0.45 + 60 * 0.55));

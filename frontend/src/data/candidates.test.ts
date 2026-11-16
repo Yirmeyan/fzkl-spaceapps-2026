@@ -27,7 +27,7 @@ describe("candidates", () => {
     // Barnard's sample has no parallax yet; howFar stays null.
     expect(lines.howFar).toBeNull();
     expect(lines.sure).toMatch(/Candidate,/);
-    // Without a Gaia slice, the panel keeps no catalog line (Tommy 19:00).
+    // Without a Gaia slice, the panel keeps no catalog line.
     expect(lines.catalog).toBeNull();
   });
 

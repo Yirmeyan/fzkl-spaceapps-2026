@@ -87,7 +87,7 @@ export function readViewFromUrl(search = window.location.search): ViewState {
   const validModes: ComposeMode[] = ["single", "stack", "difference"];
   const ra = optFloat(q.get("ra"));
   const dec = optFloat(q.get("dec"));
-  // Tommy item 3/4: ?ra=&dec= opens any position without a preset key.
+  // ?ra=&dec= opens any position without a preset key.
   const fromSky = ra != null && dec != null;
   const targetRaw = q.get("target");
   return {
@@ -124,7 +124,7 @@ export function readSkyFromUrl(search = window.location.search): TargetExtras | 
   };
 }
 
-/** Build the query string for the current view (Tommy item 4). Pure for tests. */
+/** Build the query string for the current view. Pure for tests. */
 export function viewToSearchParams(
   state: ViewState,
   sky: TargetExtras | null = null,
@@ -161,7 +161,7 @@ export function viewToSearchParams(
 }
 
 /**
- * Persist the view in the address bar (Tommy item 4).
+ * Persist the view in the address bar.
  * Presets use ?target= (index key). Custom sky uses ?ra=&dec= (+ epoch / PM).
  */
 export function writeViewToUrl(

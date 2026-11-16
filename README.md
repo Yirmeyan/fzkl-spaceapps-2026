@@ -126,7 +126,7 @@ More in [`backend/README.md`](backend/README.md), [`samples/README.md`](samples/
 | [`docs/`](docs/) | Contract, architecture, deployment, sources | Both |
 | [`infra/`](infra/) | One-time setup of the hosting | Yirmeyan |
 
-How we work together is in [`CONTRIBUTING.md`](CONTRIBUTING.md). The two AI agents of the team coordinate through [`docs/AGENT_BRIDGE.md`](docs/AGENT_BRIDGE.md), as [`AGENTS.md`](AGENTS.md) explains.
+How we work together is in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Data and credits
 

@@ -6,7 +6,7 @@ const DEG = Math.PI / 180;
 
 /**
  * The source of a catalog that is the candidate, or null.
- * Contract: docs/api-contract.md § Is a candidate known? (Tommy 19:00).
+ * Contract: docs/api-contract.md, section "Is a candidate known?".
  */
 export function knownAs(
   candidate: Candidate,
@@ -36,7 +36,7 @@ export function knownAs(
   return best;
 }
 
-/** Panel / verdict line for a Gaia match (Tommy 19:00). */
+/** Panel / verdict line for a Gaia match. */
 export function gaiaKnowsLine(
   candidate: Candidate,
   match: { source: CatalogSource; separation: number } | null,
@@ -88,7 +88,7 @@ export interface CandidateChange {
   wavelength_um: [number, number];
 }
 
-/** Outer-solar-system swing (Tommy #78 / contract). Present for `swung` only. */
+/** Outer-solar-system swing. Present for `swung` only. */
 export interface CandidateSwing {
   parallax_arcsec: number;
   parallax_error_arcsec: number;
@@ -97,7 +97,7 @@ export interface CandidateSwing {
   swing_arcsec: number;
 }
 
-/** Synthetic sixth target metadata (Tommy #79). */
+/** Synthetic sixth target metadata. */
 export interface CandidatesSynthetic {
   note: string;
   distance_au?: number;
@@ -174,12 +174,12 @@ export interface CandidateLines {
   howFar: string | null;
   sure: string;
   catalog: string | null;
-  /** Extra tip when the measurement is on the saturated halo (Tommy 18:20). */
+  /** Extra tip when the measurement is on the saturated halo. */
   howMeasured: string | null;
 }
 
 /**
- * Short lines for the panel (Tommy 17:40 / 18:20 / 19:00).
+ * Short lines for the panel.
  * The Gaia line replaces the old resolver "Catalog: X″ per year".
  */
 export function candidateLines(

@@ -11,7 +11,7 @@ export interface KnownTarget {
    */
   bundleUrl: string | null;
   /**
-   * Optional fixed coordinates. Prefer index.json `target` (Tommy Need 15:14):
+   * Optional fixed coordinates. Prefer index.json `target`:
    * WISE 0855 in an old catalogue epoch is wrong by ~2 arcmin without PM.
    */
   ra?: number;
@@ -20,7 +20,7 @@ export interface KnownTarget {
   pm_dec?: number;
   /** True when samples/index.json ships this target (B4 five-target set). */
   inSampleIndex: boolean;
-  /** Made-up body on real frames (Tommy #79). Must be labeled SYNTHETIC everywhere. */
+  /** Made-up body on real frames. Must be labeled SYNTHETIC everywhere. */
   synthetic?: boolean;
 }
 
@@ -84,7 +84,7 @@ export function targetByKey(key: string): KnownTarget | undefined {
   return KNOWN_TARGETS.find((t) => t.key === key);
 }
 
-/** One-line stage tip: what this preset is for (Tommy B4). */
+/** One-line stage tip: what this preset is for. */
 export const TARGET_MISSION_TIP: Record<string, string> = {
   barnard: "The mover: watch the bright core hop between visits.",
   epsindi: "The spectrum: open Infrared timeline for water and methane bands.",
