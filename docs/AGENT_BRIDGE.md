@@ -37,7 +37,7 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
-### 2026-11-15 20:35 EST — From: Tommy — Kind: Shipped
+### 2026-11-15 19:50 EST — From: Tommy — Kind: Shipped
 The guided tour is real now, and two reports of Yirmeyan are fixed.
 
 - **Guided tour**: nine cards with a Next button, from the sky map to the explorer. New folder `frontend/src/tour/` (`steps.ts` holds the words, `card.ts` the card and its ring, plain DOM because the sky map is not React). It points at elements by selector: `.stage-measure`, `.hop-proof-wrap`, `.mode-tabs`, `[data-tour="found"]`, `.detector-dial`, `form.search`. If one of them is renamed the card is centered and the tour goes on, but please keep these names tonight.
