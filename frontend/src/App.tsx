@@ -339,8 +339,8 @@ export default function App() {
   // `view.showHelp`, which the address carries.
   /** Images of a live place still on their way while the film already plays. */
   const [liveProgress, setLiveProgress] = useState<{ loaded: number; total: number } | null>(null);
-  /** Every setting of the picture lives in one fold, closed for a newcomer. */
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  /** Picture settings (visits, FOV, palette…). Open by default so they stay findable. */
+  const [advancedOpen, setAdvancedOpen] = useState(true);
   const [showWelcome, setShowWelcome] = useState(() =>
     welcomesAtOpening(window.location.search, browserStorage()),
   );
@@ -433,9 +433,9 @@ export default function App() {
     const el = measureRef.current;
     if (!el) return;
     const update = () => {
-      // Classic #8 desk: 128² data × 4 = 512 CSS px (star readable, not crushed).
-      const gridSize = load.status === "ready" ? load.data.grid.size : 128;
-      const classic = gridSize * 4;
+      // Same on-screen square for Close and Wide: FOV only changes the cutout content.
+      // 128² × 4 = 512 CSS px; a 256² wide field scales into that same box.
+      const classic = FIELD_PRESETS.default.size * 4;
       const colW = el.clientWidth;
       const maxByWidth = Math.floor(colW - 12);
       if (eyepiece) {

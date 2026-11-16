@@ -162,7 +162,10 @@ export const SIZE = {
     label: "Close · 0.1°",
     hint: "A tenth of a degree across, a fifth of the width of the full Moon.",
   },
-  wide: { label: "Wide · 0.3°", hint: "Three times wider. It takes longer to load." },
+  wide: {
+    label: "Wide · 0.3°",
+    hint: "Three times wider on the sky, same square on screen. It takes longer to load.",
+  },
 } satisfies Record<string, Words | string>;
 
 export const SURVEYS = {
