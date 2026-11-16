@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 19:28 ET — From: Nic — Kind: Need
+
+**Working now:** sky globe to top of rail; custom RA/Dec shows “This place” pin; larger stage square (fill column). Files: `App.tsx` (rail props + displayPx only), `ui/SkyContextGlobe.tsx`, `index.css`. Not touching Claude’s list.
+
 ### 2026-11-15 19:00 ET - From: Tommy - Kind: Shipped
 **The demo is in the repository and on the site, for the submission form.**
 

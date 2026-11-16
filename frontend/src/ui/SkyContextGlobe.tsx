@@ -13,6 +13,8 @@ interface SkyContextGlobeProps {
   /** Live cutout center when custom / overrides pin. */
   activeRa?: number | null;
   activeDec?: number | null;
+  /** Label for a place that is not one of the challenge pins (typed coordinates). */
+  placeLabel?: string | null;
   fovDeg: number;
   onSelect: (key: string) => void;
 }
@@ -86,6 +88,7 @@ export function SkyContextGlobe({
   activeKey,
   activeRa = null,
   activeDec = null,
+  placeLabel = null,
   fovDeg,
   onSelect,
 }: SkyContextGlobeProps) {
@@ -133,7 +136,7 @@ export function SkyContextGlobe({
 
       const cx = w / 2;
       const cy = h / 2 + 4;
-      const R = Math.min(w, h) * 0.38;
+      const R = Math.min(w, h) * 0.46;
 
       const { yaw, pitch } = viewRef.current;
       const look = {
@@ -199,6 +202,12 @@ export function SkyContextGlobe({
       const activePin = pinsRef.current.find((p) => p.key === activeKey);
       const aimRa = activeRa ?? activePin?.ra ?? null;
       const aimDec = activeDec ?? activePin?.dec ?? null;
+      // Typed / live place that is not one of the five challenge pins.
+      const customPlace =
+        aimRa != null &&
+        aimDec != null &&
+        !activePin &&
+        !pinsRef.current.some((p) => Math.hypot(p.ra - aimRa, p.dec - aimDec) < 0.05);
 
       // Pins (back first), then ray through center, then front pins.
       const hits: { key: string; sx: number; sy: number }[] = [];
@@ -236,7 +245,30 @@ export function SkyContextGlobe({
         }
       };
 
+      const drawCustomPlace = (front: boolean) => {
+        if (!customPlace || aimRa == null || aimDec == null) return;
+        const p = project(raDecToVec(aimRa, aimDec), basis, cx, cy, R);
+        if (front ? p.depth < 0 : p.depth >= 0) return;
+        const rad = front ? 5.5 : 4;
+        const alpha = front ? 1 : 0.35;
+        ctx.beginPath();
+        ctx.arc(p.sx, p.sy, rad, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(232, 160, 69, ${alpha})`;
+        ctx.fill();
+        ctx.strokeStyle = front ? "#fff" : "rgba(255,255,255,0.2)";
+        ctx.lineWidth = front ? 1.4 : 0.9;
+        ctx.stroke();
+        if (front) {
+          const label = placeLabel?.trim() || "This place";
+          ctx.font = "600 10px IBM Plex Sans, sans-serif";
+          ctx.fillStyle = "#fff";
+          ctx.textAlign = "left";
+          ctx.fillText(label, p.sx + rad + 4, p.sy + 3);
+        }
+      };
+
       for (const pin of sorted) drawPin(pin, false);
+      drawCustomPlace(false);
 
       // Telescope at center + pointing ray (always, including far hemisphere)
       ctx.beginPath();
@@ -268,6 +300,7 @@ export function SkyContextGlobe({
 
       strokeGrid(false);
       for (const pin of sorted) drawPin(pin, true);
+      drawCustomPlace(true);
       hitRef.current = hits;
 
       raf = window.requestAnimationFrame(paint);
@@ -323,7 +356,7 @@ export function SkyContextGlobe({
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
     };
-  }, [activeKey, activeRa, activeDec, fovDeg]);
+  }, [activeKey, activeRa, activeDec, placeLabel, fovDeg]);
 
   return (
     <div className="sky-context-wrap">
