@@ -103,9 +103,15 @@ export function WelcomeWindow({ tourReady, onClose, onTour }: WelcomeWindowProps
         <h3>Three words to know</h3>
         <dl>
           <dt>Visit</dt>
-          <dd>One return of SPHEREx to this place, about every six months.</dd>
-          <dt>Camera</dt>
-          <dd>SPHEREx has six. Each one sees a range of infrared colors.</dd>
+          <dd>
+            One return of SPHEREx to this place. It comes back with each survey of the whole sky,
+            about every six months.
+          </dd>
+          <dt>Detector</dt>
+          <dd>
+            SPHEREx has six, like six cameras behind one telescope. Each one sees a range of
+            infrared colors.
+          </dd>
           <dt>Infrared color</dt>
           <dd>A wavelength, counted in micrometers (µm). Cooler objects glow at larger numbers.</dd>
         </dl>

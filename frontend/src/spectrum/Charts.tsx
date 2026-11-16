@@ -147,8 +147,8 @@ export function Charts({
       <section className="chart-panel">
         <h3>Light curve</h3>
         <p className="chart-empty">
-          Brightness over time inside one camera
-          {activeDet != null ? ` (camera ${activeDet})` : ""}. Never mixed across cameras.
+          Brightness over time inside one detector
+          {activeDet != null ? ` (detector ${activeDet})` : ""}. Never mixed across detectors.
         </p>
         {lightPoints.length > 0 ? (
           <FluxSvg
@@ -172,7 +172,7 @@ export function Charts({
             }}
           />
         ) : (
-          <p className="chart-empty">No flux points in this camera yet.</p>
+          <p className="chart-empty">No flux points in this detector yet.</p>
         )}
         <DotStrip
           frames={[...frames]
