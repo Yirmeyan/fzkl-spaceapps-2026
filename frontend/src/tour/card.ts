@@ -18,6 +18,8 @@ const FOLLOW_FOR_MS = 1200;
 const PRESS_AFTER_MS = 600;
 /** How far the ring stands off the element it circles. */
 const RING_MARGIN = 5;
+/** Room kept above the element on a phone, so that the ring is seen whole. */
+const PHONE_TOP_MARGIN = 14;
 
 function make<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -102,13 +104,24 @@ export function runTour(page: TourPage, first: number, home: string): () => void
    * docked under it: a slow scroll would make the card change ends on the way.
    */
   function bring(element: Element): void {
-    const narrow = window.innerWidth < DOCK_BELOW_WIDTH;
-    const calm = narrow || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (window.innerWidth < DOCK_BELOW_WIDTH) {
+      // scrollIntoView also moves a panel that scrolls inside the page, which the window cannot.
+      element.scrollIntoView({ block: "start", inline: "nearest", behavior: "auto" });
+      window.scrollBy({ top: -PHONE_TOP_MARGIN, behavior: "auto" });
+      return;
+    }
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     element.scrollIntoView({
-      block: narrow ? "start" : "center",
+      block: "center",
       inline: "nearest",
       behavior: calm ? "auto" : "smooth",
     });
+  }
+
+  /** On a phone, true when the element is no longer where the tour put it. */
+  function strayed(element: Element): boolean {
+    if (window.innerWidth >= DOCK_BELOW_WIDTH) return false;
+    return Math.abs(element.getBoundingClientRect().top - PHONE_TOP_MARGIN) > 2;
   }
 
   function stopLooking(): void {
@@ -147,6 +160,9 @@ export function runTour(page: TourPage, first: number, home: string): () => void
           foundAt = Date.now();
           bring(anchor);
         }
+      } else if (strayed(anchor)) {
+        // The page changed under the element, for example when images arrived: bring it back.
+        bring(anchor);
       }
       if (!pressed && step.press !== undefined) {
         const control = document.querySelector<HTMLElement>(step.press);
