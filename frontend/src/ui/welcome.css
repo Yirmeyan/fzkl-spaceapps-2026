@@ -1,0 +1,213 @@
+/* The welcome window. It carries its own styles, buttons included: the explorer and the
+   sky map both show it, and they share nothing else. */
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.welcome-veil {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  cursor: default;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 30%, rgba(15, 118, 110, 0.35), transparent 55%),
+    rgba(7, 11, 18, 0.88);
+}
+
+.welcome-card {
+  position: relative;
+  box-sizing: border-box;
+  width: min(36rem, 100%);
+  /* A phone shows the whole card, and the card scrolls when it is taller than the screen. */
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  /* No padding at the bottom: the row of buttons ends the card and brings its own. */
+  padding: 1.6rem 1.5rem 0;
+  border-radius: 22px;
+  background: #0f1724;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  color: #d7e0ec;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  animation: welcome-rise 500ms ease both;
+  overscroll-behavior: contain;
+}
+
+@keyframes welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.welcome-card:focus {
+  outline: none;
+}
+
+.welcome-card p {
+  margin: 0 0 0.7rem;
+}
+
+.welcome-card strong {
+  color: #ffffff;
+}
+
+.welcome-close {
+  font: inherit;
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: #e8eef6;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.welcome-eyebrow {
+  margin: 0 2.6rem 0.6rem 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #93a4b8;
+}
+
+.welcome-title {
+  margin: 0 0 0.8rem;
+  font-family: Syne, "IBM Plex Sans", sans-serif;
+  font-size: clamp(1.6rem, 4vw, 2.3rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #e8eef6;
+}
+
+.welcome-lead {
+  font-size: 1.05rem;
+}
+
+.welcome-card h3 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.welcome-card ol {
+  margin: 0;
+  padding-left: 1.3rem;
+}
+
+.welcome-card li {
+  margin-bottom: 0.3rem;
+}
+
+.welcome-card dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+}
+
+.welcome-card dt {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.welcome-card dd {
+  margin: 0;
+}
+
+/* The two buttons stay in sight while the text scrolls: the window closes at once. */
+.welcome-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 1rem -1.5rem 0;
+  padding: 0.8rem 1.5rem 1.2rem;
+  background: #0f1724;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* The two ways in have the same weight: neither button shades the other. */
+.welcome-actions button {
+  padding: 0.75rem 1.25rem;
+  border: 1px solid var(--action, #2dd4bf);
+  border-radius: 8px;
+  background: var(--action, #2dd4bf);
+  color: #04120a;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.welcome-actions button:hover {
+  background: color-mix(in srgb, var(--action, #2dd4bf) 88%, #fff);
+}
+
+.welcome-actions button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.welcome-card .welcome-foot {
+  margin: 1rem 0 0;
+  font-size: 0.82rem;
+  color: #93a4b8;
+}
+
+@media (max-width: 420px) {
+  .welcome {
+    padding: 0.5rem;
+  }
+
+  .welcome-card {
+    max-height: calc(100dvh - 1rem);
+    padding: 1.2rem 1rem 0;
+    border-radius: 16px;
+    font-size: 0.93rem;
+  }
+
+  .welcome-actions {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    margin: 0.8rem -1rem 0;
+    padding: 0.7rem 1rem 0.9rem;
+  }
+
+  .welcome-actions button {
+    flex: 1 1 auto;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+
+  .welcome-card dl {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .welcome-card dd {
+    margin-bottom: 0.4rem;
+  }
+}

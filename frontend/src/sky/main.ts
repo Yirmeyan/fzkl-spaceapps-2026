@@ -6,6 +6,7 @@
  */
 
 import "./sky.css";
+import { browserStorage, rememberWelcome, welcomesAtOpening } from "../state/welcome";
 import { runTour } from "../tour/card";
 import { addressOfStep, stepFromSearch, TOUR_TARGET } from "../tour/steps";
 import { type Engine, loadEngine, MapUnavailable, type Place, SkyMap } from "./engine";
@@ -96,7 +97,7 @@ function buildPage(root: HTMLElement): Page {
   );
   const tour = make("a", "sky-tour", "Guided tour");
   tour.href = addressOfStep(0, HOME);
-  tour.title = "Nine short steps, from this map to the explorer. You only press Next.";
+  tour.title = "A short tour, from this map to the explorer. You only press Next.";
   bar.append(home, title, lede, tour);
 
   const stage = make("main", "sky-stage");
@@ -556,6 +557,27 @@ const root = document.getElementById("sky-root");
 if (root) {
   void open(buildPage(root));
   // The cards of the guided tour that belong to the map, when the address asks for them.
+  // Otherwise the welcome window, once at each visit: a visitor who takes the tour or
+  // closes the window is not shown it again on the way to the explorer.
   const step = stepFromSearch(location.search);
-  if (step !== null) runTour("sky", step, HOME);
+  if (step !== null) {
+    rememberWelcome(browserStorage());
+    runTour("sky", step, HOME);
+  } else if (welcomesAtOpening(location.search, browserStorage())) {
+    // Loaded apart, so that the map does not wait for the window.
+    import("./welcome")
+      .then(({ showWelcome }) => {
+        showWelcome(
+          () => rememberWelcome(browserStorage()),
+          () => {
+            rememberWelcome(browserStorage());
+            runTour("sky", 0, HOME);
+          },
+        );
+      })
+      .catch((error: unknown) => {
+        // The map works without the window: said to the console, not to the visitor.
+        console.error("The welcome window could not be loaded.", error);
+      });
+  }
 }

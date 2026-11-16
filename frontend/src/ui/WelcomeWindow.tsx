@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { TOP } from "./copy";
+import "./welcome.css";
 
 interface WelcomeWindowProps {
-  /** The guided tour plays the images: its button waits until they are there. */
   onClose: () => void;
   onTour: () => void;
 }
@@ -11,7 +11,8 @@ const STOPS = "button:not([disabled]), a[href]";
 
 /**
  * What a newcomer needs before the first click: what SPHEREx is, what a visit is, and
- * three steps to start. Opens by itself at the first opening, and from "How it works".
+ * three steps to start. Opens by itself once at each visit, on the sky map or in the
+ * explorer, and from "How it works".
  * The text is the one of docs/ui-copy.md.
  */
 export function WelcomeWindow({ onClose, onTour }: WelcomeWindowProps) {
@@ -91,7 +92,10 @@ export function WelcomeWindow({ onClose, onTour }: WelcomeWindowProps) {
         </p>
         <h3>How to start</h3>
         <ol>
-          <li>Pick one of the examples, or type a star name or coordinates.</li>
+          <li>
+            Click any place on the sky map, pick one of the examples, or type a star name or
+            coordinates.
+          </li>
           <li>
             Press <strong>Play</strong> to watch the images.
           </li>
@@ -115,12 +119,14 @@ export function WelcomeWindow({ onClose, onTour }: WelcomeWindowProps) {
           <dt>Infrared color</dt>
           <dd>A wavelength, counted in micrometers (µm). Cooler objects glow at larger numbers.</dd>
         </dl>
-        <p className="welcome-foot">You can reopen this at any time with How it works.</p>
+        <p className="welcome-foot">
+          This window opens once at each visit. In the explorer, How it works reopens it.
+        </p>
         <div className="welcome-actions">
-          <button type="button" className="primary welcome-start" onClick={onClose}>
+          <button type="button" onClick={onClose}>
             Start exploring
           </button>
-          <button type="button" className="ghost" title={TOP.guidedTour.hint} onClick={onTour}>
+          <button type="button" title={TOP.guidedTour.hint} onClick={onTour}>
             Take the guided tour
           </button>
         </div>

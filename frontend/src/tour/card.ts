@@ -16,6 +16,8 @@ const LOOK_EVERY_MS = 200;
 const FOLLOW_FOR_MS = 1200;
 /** Time left to read the card before the tour presses a control for the visitor. */
 const PRESS_AFTER_MS = 600;
+/** Time between two controls pressed for the same card, so that the page follows. */
+const PRESS_EVERY_MS = 450;
 /** How far the ring stands off the element it circles. */
 const RING_MARGIN = 5;
 /** Room kept above the element on a phone, so that the ring is seen whole. */
@@ -66,7 +68,7 @@ export function runTour(page: TourPage, first: number, home: string): () => void
   let index = first;
   let anchor: Element | null = null;
   let looking: number | undefined;
-  let pressing: number | undefined;
+  let pressing: number[] = [];
   let frame = 0;
   let ended = false;
   // The page keeps growing while images arrive: the ring follows its element.
@@ -126,9 +128,9 @@ export function runTour(page: TourPage, first: number, home: string): () => void
 
   function stopLooking(): void {
     window.clearInterval(looking);
-    window.clearTimeout(pressing);
+    for (const timer of pressing) window.clearTimeout(timer);
     looking = undefined;
-    pressing = undefined;
+    pressing = [];
   }
 
   function show(to: number): void {
@@ -150,7 +152,8 @@ export function runTour(page: TourPage, first: number, home: string): () => void
     back.hidden = to === 0;
     next.textContent = step.next ?? (to === TOUR_STEPS.length - 1 ? "Finish" : "Next");
 
-    let pressed = step.press === undefined;
+    const presses = step.press === undefined ? [] : [step.press].flat();
+    let pressed = presses.length === 0;
     const since = Date.now();
     let foundAt = 0;
     const look = (): void => {
@@ -164,12 +167,16 @@ export function runTour(page: TourPage, first: number, home: string): () => void
         // The page changed under the element, for example when images arrived: bring it back.
         bring(anchor);
       }
-      if (!pressed && step.press !== undefined) {
-        const control = document.querySelector<HTMLElement>(step.press);
-        if (control !== null) {
-          pressed = true;
-          pressing = window.setTimeout(() => control.click(), PRESS_AFTER_MS);
-        }
+      // The last control is the one the card is about: the tour waits for it, then presses
+      // them all in order. One that is absent, such as a window already closed, is skipped.
+      if (!pressed && document.querySelector(presses[presses.length - 1] ?? "") !== null) {
+        pressed = true;
+        pressing = presses.map((selector, at) =>
+          window.setTimeout(
+            () => document.querySelector<HTMLElement>(selector)?.click(),
+            PRESS_AFTER_MS + at * PRESS_EVERY_MS,
+          ),
+        );
       }
       draw();
       const settled = anchor !== null && pressed && Date.now() - foundAt > FOLLOW_FOR_MS;

@@ -1,5 +1,6 @@
 /**
- * The guided tour: nine cards, from the sky map to the explorer. The visitor only presses Next.
+ * The guided tour: one card after the other, from the sky map to the explorer. The visitor
+ * only presses Next.
  *
  * The cards are data. A step names the page it belongs to, the element it points at and,
  * where the tour has to act for the visitor, the control it presses.
@@ -13,8 +14,11 @@ export interface TourStep {
   anchor: string;
   title: string;
   body: string;
-  /** Selector of a control the tour presses when the card opens, as the visitor would. */
-  press?: string;
+  /**
+   * Selectors of the controls the tour presses when the card opens, as the visitor would,
+   * in this order. The tour waits for the last one, and skips the others when they are absent.
+   */
+  press?: string | readonly string[];
   /** Words of the Next button when it does more than show the next card. */
   next?: string;
 }
@@ -24,6 +28,9 @@ export const TOUR_PARAM = "tour";
 
 /** The example the tour opens: it loads at once, from files that ship with the site. */
 export const TOUR_TARGET = "barnard-star";
+
+/** The Close button of the journal: the cards around the one of the journal press it. */
+const CLOSE_JOURNAL = '[data-tour="journal-close"]';
 
 export const TOUR_STEPS: readonly TourStep[] = [
   {
@@ -54,22 +61,9 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     page: "explorer",
-    anchor: ".hop-proof-wrap",
+    anchor: ".place-line",
     title: "Visits, six months apart",
-    body: "SPHEREx surveys the whole sky again and again, so it comes back to each place about every six months. Each return is a visit. Compare the first visit with the last one: what moved or changed in between stands out.",
-  },
-  {
-    page: "explorer",
-    anchor: ".mode-tabs",
-    title: "Four ways to compare visits",
-    body: "Watch plays the film. Blink flips between the first and the last visit: what jumps has moved. Subtract removes everything that stayed put. Average brings out faint objects. The tour has just pressed Blink: look at the star.",
-    press: '.mode-tabs [data-tour-way="compare"]',
-  },
-  {
-    page: "explorer",
-    anchor: '[data-tour="found"]',
-    title: "What the tool measured by itself",
-    body: "The service follows every source of the picture from visit to visit. It lists the ones that moved or changed, with a speed, a direction and a confidence. Nothing here is typed by hand, and each result is a candidate to check.",
+    body: "SPHEREx surveys the whole sky again and again, so it comes back to each place about every six months. Each return is a visit, and this line says how many this place has. What moved or changed between two visits is what we look for.",
   },
   {
     page: "explorer",
@@ -79,9 +73,45 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     page: "explorer",
-    anchor: "form.search",
+    anchor: '[data-tour="found"]',
+    title: "What the tool measured by itself",
+    body: "The service follows every source of the picture from visit to visit. It lists the ones that moved or changed, with a speed, a direction and a confidence. Nothing here is typed by hand, and each result is a candidate to check.",
+    press: CLOSE_JOURNAL,
+  },
+  {
+    page: "explorer",
+    anchor: '[data-tour="journal-panel"]',
+    title: "The journal, open to everyone",
+    body: "The journal lists what our search found in the fields we checked, each with what the catalogs say of it, and what visitors shared. A click on a line opens that place. To add yours, use Share a place under the picture: frame the point, say what you saw, and share. There is nothing to write.",
+    press: '[data-tour="journal"]',
+  },
+  {
+    page: "explorer",
+    anchor: ".mode-tabs",
+    title: "Four ways to compare visits",
+    body: "Watch plays the film. Blink flips between the first and the last visit: what jumps has moved. Subtract removes everything that stayed put. Average brings out faint objects. The tour has just pressed Blink: look at the star for a moment, it jumps.",
+    press: [CLOSE_JOURNAL, '.mode-tabs [data-tour-way="compare"]'],
+  },
+  {
+    page: "explorer",
+    anchor: '[data-tour="size"]',
+    title: "A wider view",
+    body: "Back on Watch, the tour has just pressed Wide. The picture is now three times wider, three fifths of the width of the full Moon. Close comes back to the star.",
+    press: ['.mode-tabs [data-tour-way="watch"]', '[data-tour="wide"]'],
+  },
+  {
+    page: "explorer",
+    anchor: '[data-tour="palette"]',
+    title: "Colors are a choice",
+    body: "Infrared light has no color for our eyes, so the picture is painted. Heat goes from black to yellow. The tour has just pressed Gray, the way astronomers often look at images.",
+    press: '[data-tour="gray"]',
+  },
+  {
+    page: "explorer",
+    anchor: ".transport",
     title: "Your turn",
-    body: "Type the name of a star or coordinates, pick an example, or go back to the sky map and click anywhere. The Journal lists what was already found, and Advanced tools holds every setting of the picture.",
+    body: "The tour has pressed Play and put the first colors back: the film is running. Type the name of a star or coordinates, pick an example, or go back to the sky map and click anywhere.",
+    press: ['.play-btn[aria-pressed="false"]', '[data-tour="heat"]'],
   },
 ];
 

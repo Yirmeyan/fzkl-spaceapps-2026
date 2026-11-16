@@ -378,6 +378,8 @@ export default function App() {
   // The cards of the tour that belong to this page. They wait for the page to build itself.
   useEffect(() => {
     if (tourStep === null) return;
+    // A visitor on the tour has had the introduction: the welcome window stays closed.
+    rememberWelcome(browserStorage());
     return runTour("explorer", tourStep, import.meta.env.BASE_URL);
   }, [tourStep]);
 
@@ -2294,6 +2296,7 @@ export default function App() {
             type="button"
             className="ghost"
             title={TOP.journal.hint}
+            data-tour="journal"
             onClick={() => setJournalOpen(true)}
           >
             {TOP.journal.label}
@@ -2970,7 +2973,118 @@ export default function App() {
             </div>
           )}
 
-          {hopProof && (
+          {display && view.mode === "single" && display.kind === "single" && (
+            <div className="transport">
+              <button
+                type="button"
+                className="primary play-btn"
+                aria-pressed={view.playing}
+                title="Step through infrared wavelengths for this visit (Space)"
+                onClick={() => {
+                  clearPresentationOverlays();
+                  patchView({ playing: !view.playing, mode: "single" });
+                }}
+              >
+                {view.playing ? "Pause" : "Play"}
+              </button>
+              {!overlayActive && !blinkPasses && (
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(filtered.length - 1, 0)}
+                  value={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
+                  onChange={(e) =>
+                    patchView({ frameIndex: Number(e.target.value), playing: false })
+                  }
+                  disabled={filtered.length === 0}
+                  aria-label="Frame"
+                  title="Drag to pick a frame by hand"
+                />
+              )}
+              {(advancedOpen || blinkPasses || ghostVisits || splitVisits) && (
+                <>
+                  {!overlayActive && !blinkPasses && (
+                    <label className="fps-field" title="Playback speed (1–30)">
+                      FPS
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={fpsDraft}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\D/g, "");
+                          setFpsDraft(raw);
+                          if (raw === "") return;
+                          const n = Number(raw);
+                          if (n >= 1 && n <= 30) patchView({ fps: n });
+                        }}
+                        onBlur={() => {
+                          const n = Number(fpsDraft);
+                          const next =
+                            Number.isFinite(n) && n >= 1 ? Math.min(30, Math.floor(n)) : 24;
+                          setFpsDraft(String(next));
+                          if (next !== view.fps) patchView({ fps: next });
+                        }}
+                        aria-label="Frames per second"
+                      />
+                    </label>
+                  )}
+                  <button
+                    type="button"
+                    className={blinkPasses ? "active" : "ghost"}
+                    disabled={passes.length < 2}
+                    title={`${WAYS.compare.hint} (B)`}
+                    onClick={() => {
+                      if (blinkPasses) {
+                        setBlinkPasses(false);
+                        blinkWaveRef.current = null;
+                        patchView({ pass: null, mode: "single", waveUm: null });
+                      } else {
+                        setUiMode("compare");
+                      }
+                    }}
+                  >
+                    {blinkPasses ? "Stop blink" : WAYS.compare.label}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={passes.length < 2}
+                    title={WAYS.difference.hint}
+                    onClick={() => setUiMode("difference")}
+                  >
+                    {WAYS.difference.label}
+                  </button>
+                  <button
+                    type="button"
+                    className={ghostVisits ? "active" : "ghost"}
+                    disabled={passes.length < 2}
+                    title={PLAYER.overlay.hint}
+                    onClick={() => {
+                      setExclusiveOverlay(ghostVisits ? null : "ghost");
+                      patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
+                    }}
+                  >
+                    {PLAYER.overlay.label}
+                  </button>
+                  <button
+                    type="button"
+                    className={splitVisits ? "active" : "ghost"}
+                    disabled={passes.length < 2}
+                    title={PLAYER.sideBySide.hint}
+                    onClick={() => {
+                      setExclusiveOverlay(splitVisits ? null : "split");
+                      patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
+                    }}
+                  >
+                    {PLAYER.sideBySide.label}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {hopProof && uiMode !== "watch" && (
             <div className="hop-proof-wrap">
               <HopProofStrip
                 size={hopProof.size}
@@ -3001,113 +3115,6 @@ export default function App() {
 
           {display && view.mode === "single" && display.kind === "single" && (
             <>
-              <div className="transport">
-                <button
-                  type="button"
-                  className="primary play-btn"
-                  title="Step through infrared wavelengths for this visit (Space)"
-                  onClick={() => {
-                    clearPresentationOverlays();
-                    patchView({ playing: !view.playing, mode: "single" });
-                  }}
-                >
-                  {view.playing ? "Pause" : "Play"}
-                </button>
-                {!overlayActive && !blinkPasses && (
-                  <input
-                    type="range"
-                    min={0}
-                    max={Math.max(filtered.length - 1, 0)}
-                    value={Math.min(view.frameIndex, Math.max(filtered.length - 1, 0))}
-                    onChange={(e) =>
-                      patchView({ frameIndex: Number(e.target.value), playing: false })
-                    }
-                    disabled={filtered.length === 0}
-                    aria-label="Frame"
-                    title="Drag to pick a frame by hand"
-                  />
-                )}
-                {(advancedOpen || blinkPasses || ghostVisits || splitVisits) && (
-                  <>
-                    {!overlayActive && !blinkPasses && (
-                      <label className="fps-field" title="Playback speed (1–30)">
-                        FPS
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={fpsDraft}
-                          onChange={(e) => {
-                            const raw = e.target.value.replace(/\D/g, "");
-                            setFpsDraft(raw);
-                            if (raw === "") return;
-                            const n = Number(raw);
-                            if (n >= 1 && n <= 30) patchView({ fps: n });
-                          }}
-                          onBlur={() => {
-                            const n = Number(fpsDraft);
-                            const next =
-                              Number.isFinite(n) && n >= 1 ? Math.min(30, Math.floor(n)) : 24;
-                            setFpsDraft(String(next));
-                            if (next !== view.fps) patchView({ fps: next });
-                          }}
-                          aria-label="Frames per second"
-                        />
-                      </label>
-                    )}
-                    <button
-                      type="button"
-                      className={blinkPasses ? "active" : "ghost"}
-                      disabled={passes.length < 2}
-                      title={`${WAYS.compare.hint} (B)`}
-                      onClick={() => {
-                        if (blinkPasses) {
-                          setBlinkPasses(false);
-                          blinkWaveRef.current = null;
-                          patchView({ pass: null, mode: "single", waveUm: null });
-                        } else {
-                          setUiMode("compare");
-                        }
-                      }}
-                    >
-                      {blinkPasses ? "Stop blink" : WAYS.compare.label}
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost"
-                      disabled={passes.length < 2}
-                      title={WAYS.difference.hint}
-                      onClick={() => setUiMode("difference")}
-                    >
-                      {WAYS.difference.label}
-                    </button>
-                    <button
-                      type="button"
-                      className={ghostVisits ? "active" : "ghost"}
-                      disabled={passes.length < 2}
-                      title={PLAYER.overlay.hint}
-                      onClick={() => {
-                        setExclusiveOverlay(ghostVisits ? null : "ghost");
-                        patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
-                      }}
-                    >
-                      {PLAYER.overlay.label}
-                    </button>
-                    <button
-                      type="button"
-                      className={splitVisits ? "active" : "ghost"}
-                      disabled={passes.length < 2}
-                      title={PLAYER.sideBySide.hint}
-                      onClick={() => {
-                        setExclusiveOverlay(splitVisits ? null : "split");
-                        patchView({ playing: false, mode: "single", pass: null, frameIndex: 0 });
-                      }}
-                    >
-                      {PLAYER.sideBySide.label}
-                    </button>
-                  </>
-                )}
-              </div>
               {!overlayActive && (
                 <FrameCaption
                   frames={filtered}
@@ -3507,12 +3514,13 @@ export default function App() {
                 <p className="control-hint">{CONTRAST.hint}</p>
               </fieldset>
 
-              <fieldset>
+              <fieldset data-tour="palette">
                 <legend>{PALETTE.label}</legend>
                 <button
                   type="button"
                   className={view.colorMap === "heat" ? "active" : ""}
                   title={PALETTE.heat.hint}
+                  data-tour="heat"
                   onClick={() => patchView({ colorMap: "heat" })}
                 >
                   {PALETTE.heat.label}
@@ -3521,6 +3529,7 @@ export default function App() {
                   type="button"
                   className={view.colorMap === "gray" ? "active" : ""}
                   title={PALETTE.gray.hint}
+                  data-tour="gray"
                   onClick={() => patchView({ colorMap: "gray" })}
                 >
                   {PALETTE.gray.label}
@@ -3562,7 +3571,7 @@ export default function App() {
                 </p>
               </fieldset>
 
-              <fieldset>
+              <fieldset data-tour="size">
                 <legend>{SIZE.label}</legend>
                 <button
                   type="button"
@@ -3576,6 +3585,7 @@ export default function App() {
                   type="button"
                   className={fieldPreset === "wide" ? "active" : ""}
                   title={SIZE.wide.hint}
+                  data-tour="wide"
                   onClick={() => applyFieldPreset("wide")}
                 >
                   {SIZE.wide.label}

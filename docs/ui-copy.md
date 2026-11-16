@@ -43,7 +43,7 @@ Shown at the first opening, over the page that loads behind it. Reopened at any 
 >
 > [ Start exploring ] [ Take the guided tour ]
 
-The two buttons stay in sight while the text scrolls, so the window closes at once on a phone. It also closes with the cross, with Escape and with a click outside. It does not open by itself when the address starts the guided tour.
+The two buttons have the same weight and stay in sight while the text scrolls, so the window closes at once on a phone. It also closes with the cross, with Escape and with a click outside. It opens by itself once at each visit, on the sky map or in the explorer, whichever page the visitor lands on, and not again between the two. It does not open when the address starts the guided tour.
 
 ## Top of the page
 
@@ -166,7 +166,7 @@ Closed at the first opening. Everything below lives there.
 | Copy verdict, Save postcard | unchanged | Copy the result as text. Save the picture with its result. |
 | Eyepiece | (no button) | The view that shows only the sky keeps its key, E. |
 | Timed walkthrough | (no button) | The demonstration that plays by itself is only reached by a link, `?demo=1`. |
-| (new) | Guided tour | Nine short steps, from the sky map to this page. You only press Next. |
+| (new) | Guided tour | A short tour, from the sky map to this page. You only press Next. |
 | Technical details | Technical details | The raw numbers, for reviewers. The state of the service is here. |
 
 ## Where the site opens
@@ -175,23 +175,34 @@ The bare address of the site opens the sky map: a visitor first sees the whole s
 
 ## Guided tour
 
-Nine cards, one after the other. The visitor only presses **Next**. Each card points at a real element of the page, with a ring around it, and never blocks the page. Back goes one card back, End tour and Escape close it. The words live in `frontend/src/tour/steps.ts`, where a test holds them to the rules of this page.
+Twelve cards, one after the other. The visitor only presses **Next**. Each card points at a real element of the page, with a ring around it, and never blocks the page. Back goes one card back, End tour and Escape close it. The words live in `frontend/src/tour/steps.ts`, where a test holds them to the rules of this page.
 
-The tour starts on the sky map and goes on in the explorer, on Barnard's Star, which loads at once from the files of the site. The address carries the step from one page to the other (`?tour=4`).
+The tour starts on the sky map and goes on in the explorer, on Barnard's Star, which loads at once from the files of the site. The address carries the step from one page to the other (`?tour=4`). Where a card says so, the tour presses the control for the visitor.
 
-| Step | Page | Points at | Title |
-| --- | --- | --- | --- |
-| 1 | Sky map | The map | The whole sky, seen by SPHEREx |
-| 2 | Sky map | The controls | Move around the sky |
-| 3 | Sky map | The map, with the pin of Barnard's Star pressed | Choose any place |
-| 4 | Explorer | The picture | A film of one place |
-| 5 | Explorer | First visit, difference, last visit | Visits, six months apart |
-| 6 | Explorer | The four tabs, with Blink pressed | Four ways to compare visits |
-| 7 | Explorer | What the tool found here | What the tool measured by itself |
-| 8 | Explorer | The detectors | Six detectors, six ranges of color |
-| 9 | Explorer | The search box | Your turn |
+| Step | Page | Points at | Title | The tour presses |
+| --- | --- | --- | --- | --- |
+| 1 | Sky map | The map | The whole sky, seen by SPHEREx | |
+| 2 | Sky map | The controls | Move around the sky | |
+| 3 | Sky map | The map | Choose any place | The pin of Barnard's Star |
+| 4 | Explorer | The picture | A film of one place | |
+| 5 | Explorer | The line of the place | Visits, six months apart | |
+| 6 | Explorer | The detectors | Six detectors, six ranges of color | |
+| 7 | Explorer | What the tool found here | What the tool measured by itself | |
+| 8 | Explorer | The journal | The journal, open to everyone | Journal |
+| 9 | Explorer | The four tabs | Four ways to compare visits | Close of the journal, then Blink |
+| 10 | Explorer | Size of the picture | A wider view | Watch, then Wide |
+| 11 | Explorer | Colors of the picture | Colors are a choice | Gray |
+| 12 | Explorer | The Play row | Your turn | Play, then Heat |
 
-The cards name the words of the mission and explain them: an exposure gives six images, one for each detector, and a visit comes with each survey of the whole sky.
+The tour ends with the film running. The cards name the words of the mission and explain them: an exposure gives six images, one for each detector, and a visit comes with each survey of the whole sky.
+
+## Layout of the explorer
+
+The Play row sits right under the picture. The three small pictures, first visit, difference and last visit, show under it in Blink, Subtract and Average, where visits are compared, and not in Watch.
+
+## Journal
+
+A mark shared by a visitor says what the visitor chose: "A visitor says: it moves. Not measured yet." The four choices are the ones of the form: It moves, It changes brightness, It appears once, Something else.
 
 ## Legend of the rings
 
