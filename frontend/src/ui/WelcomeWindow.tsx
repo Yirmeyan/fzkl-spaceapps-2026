@@ -123,11 +123,11 @@ export function WelcomeWindow({ onClose, onTour }: WelcomeWindowProps) {
           This window opens once at each visit. In the explorer, How it works reopens it.
         </p>
         <div className="welcome-actions">
-          <button type="button" onClick={onClose}>
-            Start exploring
-          </button>
-          <button type="button" title={TOP.guidedTour.hint} onClick={onTour}>
+          <button type="button" className="welcome-cta" title={TOP.guidedTour.hint} onClick={onTour}>
             Take the guided tour
+          </button>
+          <button type="button" className="welcome-skip" onClick={onClose}>
+            Start exploring
           </button>
         </div>
       </div>
