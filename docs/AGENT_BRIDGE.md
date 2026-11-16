@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 20:45 ET — From: Nic — Kind: Shipped
+
+Search chips (Name / Degrees / Hours·degrees) fill the box; tip explains h/d. Dropped Follow the target (old `?mode=track` → Average). Files: `App.tsx`, `index.css`, `state/url.ts`, `copy.ts` (append `SEARCH_TRY` only).
+
 ### 2026-11-15 19:50 EST — From: Tommy — Kind: Shipped
 The guided tour is real now, and two reports of Yirmeyan are fixed.
 
