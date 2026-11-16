@@ -10,6 +10,8 @@
   body { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 14px 0; }
   .slide { zoom: var(--fit, 1); flex: none; border-radius: 10px; }
   video { display: block; border-radius: 10px; height: auto; }
+  .dense p, .dense li { font-size: 19px; }
+  .dense td { font-size: 18px; padding: 7px 10px; }
   body { font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif; color: #e8eef6; }
   .slide { width: 1280px; height: 720px; padding: 54px 64px 46px; position: relative; overflow: hidden;
            page-break-after: always; break-after: page; display: flex; flex-direction: column;
@@ -67,7 +69,7 @@
       <h2 class="accent" style="font-size:36px">Type a place. Watch the sky change.</h2>
       <div class="meta" style="margin-top:34px">
         <p><strong>Team Foxtrot Zulu Kilo Lima</strong></p>
-        <p>Yirmeyan, Nicolas, Daler</p>
+        <p>Yirmeyan Tommy Jose Ouedraogo, Nicolas Cool, Daler Ostanaev</p>
         <p>Local event: Montréal, Canada</p>
         <p style="margin-top:18px;color:#2dd4bf">fzkl-spaceapps-2026.pages.dev</p>
       </div>
@@ -84,7 +86,7 @@
   <div class="cols">
     <div class="text">
       <p class="kicker">The problem</p>
-      <h2>SPHEREx sees every place again and again. Nobody could watch it.</h2>
+      <h2>SPHEREx revisits the whole sky. No public tool showed what changed.</h2>
       <p>NASA's SPHEREx telescope photographs the whole sky every six months, in <strong>102 infrared colors</strong>. A moving star, a fading star or an unknown planet shows up as a change between two visits.</p>
       <ul>
         <li>Two images in a row are never the same color.</li>
@@ -101,12 +103,13 @@
   <div class="foot"><span>SPHEREx Explorer · project demo</span><span>2 / 7</span></div>
 </section>
 
-<section class="slide">
+<section class="slide dense">
   <p class="kicker">The tool</p>
   <h2>Type a name or coordinates, and watch the place move.</h2>
   <div class="cols" style="align-items:flex-start">
     <div class="shot">
-      <div class="frame"><video src="demo-assets/blink.mp4" width="330" autoplay loop muted playsinline preload="auto" aria-label="Barnard's Star jumps between its first and last visit in the tool"></video></div>
+      <div class="frame"><video src="demo-assets/modes.mp4" width="470" autoplay loop muted playsinline preload="auto" aria-label="The search bar and the four ways to compare visits, in the tool"></video></div>
+      <p class="caption">The search bar and the four ways to compare visits. A capture of the tool.</p>
       
     </div>
     <div class="text">
@@ -117,18 +120,19 @@
         <li><strong>Subtract</strong> erases what stayed put.</li>
         <li><strong>Average</strong> brings out faint objects.</li>
       </ul>
-      <p style="margin-top:14px">Any place in the sky works the same way, straight from NASA's public archive. A sentence under each button says what it does.</p>
+      <p>Type a name, degrees, or hours and degrees: any place in the sky works the same way, straight from NASA's public archive.</p>
     </div>
   </div>
   <div class="foot"><span>SPHEREx Explorer · project demo</span><span>3 / 7</span></div>
 </section>
 
-<section class="slide">
+<section class="slide dense">
   <p class="kicker">Beyond a viewer</p>
   <h2>It finds what moved or changed, by itself.</h2>
   <div class="cols" style="align-items:flex-start">
     <div class="shot">
-      <div class="frame"><video src="demo-assets/journal.mp4" width="318" autoplay loop muted playsinline preload="auto" aria-label="The journal of the tool lists what the search found"></video></div>
+      <div class="frame"><video src="demo-assets/found.mp4" width="360" autoplay loop muted playsinline preload="auto" aria-label="What the tool measured for three test targets of the challenge"></video></div>
+      <p class="caption">What the tool measured for three test targets. Captures of the tool.</p>
     </div>
     <div class="text">
       <p>The service follows every source of the field from visit to visit and lists the candidates, with a speed, a distance when it can be measured, and a confidence.</p>
@@ -192,8 +196,8 @@
       </div>
     </div>
     <div class="shot">
-      <div class="frame"><img src="demo-assets/synthetic.png" width="570" alt="The synthetic Planet X example in the tool"></div>
-      <p class="caption">The made-up example, labeled SYNTHETIC in the tool.</p>
+      <div class="frame"><video src="demo-assets/synthetic.mp4" width="400" autoplay loop muted playsinline preload="auto" aria-label="The synthetic Planet X example in the tool, between two visits"></video></div>
+      <p class="caption">The made-up example between two visits, labeled SYNTHETIC in the tool.</p>
     </div>
   </div>
   <div class="foot"><span>Every picture is a capture of the tool showing SPHEREx data.</span><span>7 / 7</span></div>
