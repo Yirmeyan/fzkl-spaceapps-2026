@@ -89,6 +89,7 @@ import {
 import { browserStorage, rememberWelcome, welcomesAtOpening } from "./state/welcome";
 import { AutoDemoBanner, DEMO_BEATS, type DemoPhase } from "./ui/AutoDemo";
 import { CandidatesPanel } from "./ui/CandidatesPanel";
+import { CatalogLegend } from "./ui/CatalogLegend";
 import {
   ADVANCED,
   COLORS,
@@ -2767,43 +2768,6 @@ export default function App() {
                     }
                     onFrameIndexChange={onPlayerFrame}
                   />
-                  {flightPath && (
-                    <fieldset className="flight-scrub">
-                      <legend className="sr-only">Scrub years along the AllWISE path</legend>
-                      <span className="flight-scrub-year">
-                        {Math.round(
-                          flightPath.fromYear +
-                            (flightPath.toYear - flightPath.fromYear) * flightScrub,
-                        )}
-                      </span>
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={flightScrub}
-                        onChange={(e) => {
-                          if (flightPlayRef.current != null) {
-                            window.clearInterval(flightPlayRef.current);
-                            flightPlayRef.current = null;
-                            setFlightPlaying(false);
-                          }
-                          setFlightScrub(Number(e.target.value));
-                        }}
-                        aria-label="Year along the flight path"
-                        title="Drag to slide from 2010 to now"
-                      />
-                      <button
-                        type="button"
-                        className={flightPlaying ? "active" : "primary"}
-                        onClick={() => playFlightYears()}
-                        disabled={flightPlaying}
-                        title="Animate the object from AllWISE 2010 to SPHEREx now"
-                      >
-                        {flightPlaying ? "Playing…" : SURVEYS.years.label}
-                      </button>
-                    </fieldset>
-                  )}
                   {(showGaia || showAllwise) && catalogFile && load.status === "ready" && (
                     <button
                       type="button"
@@ -2958,6 +2922,43 @@ export default function App() {
                 </p>
               )}
           </div>
+          {flightPath && (
+            <fieldset className="flight-scrub">
+              <legend className="sr-only">Scrub years along the AllWISE path</legend>
+              <span className="flight-scrub-year">
+                {Math.round(
+                  flightPath.fromYear + (flightPath.toYear - flightPath.fromYear) * flightScrub,
+                )}
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={flightScrub}
+                onChange={(e) => {
+                  if (flightPlayRef.current != null) {
+                    window.clearInterval(flightPlayRef.current);
+                    flightPlayRef.current = null;
+                    setFlightPlaying(false);
+                  }
+                  setFlightScrub(Number(e.target.value));
+                }}
+                aria-label="Year along the flight path"
+                title="Drag to slide from 2010 to now"
+              />
+              <button
+                type="button"
+                className={flightPlaying ? "active" : "primary"}
+                onClick={() => playFlightYears()}
+                disabled={flightPlaying}
+                title="Animate the object from AllWISE 2010 to SPHEREx now"
+              >
+                {flightPlaying ? "Playing…" : SURVEYS.years.label}
+              </button>
+            </fieldset>
+          )}
+          <CatalogLegend gaia={showGaia} wise={showAllwise} />
           {load.status === "ready" && liveProgress && liveProgress.loaded < liveProgress.total && (
             <div className="status-banner quiet" role="status">
               More images are arriving from the archive: {liveProgress.loaded} of{" "}

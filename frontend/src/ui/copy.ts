@@ -178,6 +178,12 @@ export const SURVEYS = {
   },
   path: { label: "Path since 2010", hint: "Draw the path from the 2010 position to today." },
   years: { label: "Play the years", hint: "Animate the years between 2010 and now." },
+  legendGaia:
+    "Purple ring: a star of the Gaia catalog, placed where it is at the date of this image.",
+  legendWise: "Green ring: an object of the WISE catalog, where it was in 2010.",
+  legendGap: "A green ring left behind its star means that the star has moved since 2010.",
+  legendBlank: "Gray hatching: no data in this image.",
+  legendMost: "Only the 100 brightest of each catalog are drawn.",
 } satisfies Record<string, Words | string>;
 
 export const FLAGS = {

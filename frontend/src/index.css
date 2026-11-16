@@ -4131,3 +4131,53 @@ body {
   font-size: 0.8rem;
   color: #fde68a;
 }
+
+/* What the rings drawn over the picture stand for. */
+.catalog-legend {
+  list-style: none;
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  max-width: 34rem;
+  margin: 0.5rem auto 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.catalog-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.catalog-legend-ring,
+.catalog-legend-blank {
+  flex: none;
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.catalog-legend-ring {
+  border: 2px solid;
+  border-radius: 50%;
+}
+
+.catalog-legend-blank {
+  border-radius: 2px;
+  background: repeating-linear-gradient(45deg, #585858 0 2px, #767676 2px 4px);
+}
+
+.catalog-legend-note {
+  opacity: 0.8;
+}
+
+/* The year slider sits under the picture: inside its box it was squeezed to a sliver. */
+.viewer-pane > .flight-scrub {
+  max-width: 34rem;
+  margin: 0.5rem auto 0;
+}

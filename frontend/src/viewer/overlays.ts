@@ -5,7 +5,7 @@ import type { Grid } from "../data/contract";
 import { skyToPixel, targetAt } from "../data/contract";
 
 /** Catalog ring colors — distinct from candidate yellow/cyan (Tommy F8). */
-const CATALOG_COLORS: Record<string, string> = {
+export const CATALOG_COLORS: Record<string, string> = {
   gaia: "#a78bfa",
   allwise: "#34d399",
 };
