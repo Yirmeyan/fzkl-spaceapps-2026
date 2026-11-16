@@ -7,7 +7,7 @@
 
 import "./sky.css";
 import { runTour } from "../tour/card";
-import { addressOfStep, stepFromSearch } from "../tour/steps";
+import { addressOfStep, stepFromSearch, TOUR_TARGET } from "../tour/steps";
 import { type Engine, loadEngine, MapUnavailable, type Place, SkyMap } from "./engine";
 import {
   type CubeAxis,
@@ -25,6 +25,8 @@ import { type MapView, mapViewToSearch, NARROWEST_FOV, readMapView } from "./vie
 
 // Address of the explorer: the map is a page beside it.
 const HOME = import.meta.env.BASE_URL;
+// The explorer on its first example. The bare address of the site opens this map instead.
+const EXPLORER = `${HOME}?target=${TOUR_TARGET}`;
 const REPOSITORY = "https://github.com/Yirmeyan/fzkl-spaceapps-2026";
 // Address of the service, as the explorer is given it. Empty when the site and the
 // service share an address, as on a developer's machine.
@@ -85,7 +87,7 @@ interface Page {
 function buildPage(root: HTMLElement): Page {
   const bar = make("header", "sky-bar");
   const home = make("a", "sky-home", "SPHEREx Explorer");
-  home.href = HOME;
+  home.href = EXPLORER;
   const title = make("h1", "sky-title", "Sky map");
   const lede = make(
     "p",
@@ -282,7 +284,7 @@ function say(page: Page, message: string, action?: { label: string; run: () => v
     button.type = "button";
     button.addEventListener("click", action.run);
     const explorer = make("a", "sky-notice-link", "Open SPHEREx Explorer");
-    explorer.href = HOME;
+    explorer.href = EXPLORER;
     page.notice.append(button, explorer);
   }
   page.notice.hidden = false;

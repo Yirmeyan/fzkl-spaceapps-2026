@@ -6,13 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Public SPHEREx sky viewer — watch near-infrared images change over time. NASA Space Apps Challenge 2026, team Foxtrot Zulu Kilo Lima."
+      content="Watch any place of the sky change in the infrared images of NASA's SPHEREx telescope. NASA Space Apps Challenge 2026, team Foxtrot Zulu Kilo Lima."
     />
     <meta
       name="ai-disclosure"
       content="Most of the code of this site was written by AI assistants directed by the team. See the README of the repository."
     />
     <title>SPHEREx Explorer · Watch the sky move</title>
+    <script>
+      // The site opens on the sky map. This page, the explorer, opens when its address
+      // names a place or a view, which every link to it does.
+      if (!window.location.search && !window.location.hash) {
+        window.location.replace("sky.html");
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

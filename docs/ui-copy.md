@@ -169,6 +169,10 @@ Closed at the first opening. Everything below lives there.
 | (new) | Guided tour | Nine short steps, from the sky map to this page. You only press Next. |
 | Technical details | Technical details | The raw numbers, for reviewers. The state of the service is here. |
 
+## Where the site opens
+
+The bare address of the site opens the sky map: a visitor first sees the whole sky and chooses a place. The explorer opens when its address names a place or a view, which every link to it does. The link "SPHEREx Explorer" of the map opens the explorer on Barnard's Star.
+
 ## Guided tour
 
 Nine cards, one after the other. The visitor only presses **Next**. Each card points at a real element of the page, with a ring around it, and never blocks the page. Back goes one card back, End tour and Escape close it. The words live in `frontend/src/tour/steps.ts`, where a test holds them to the rules of this page.
