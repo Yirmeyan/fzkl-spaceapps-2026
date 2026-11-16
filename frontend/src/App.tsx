@@ -2450,9 +2450,9 @@ export default function App() {
           Go
         </button>
       </form>
-      <div className="search-try">
-        <span className="search-try-label">{SEARCH_TRY.label}</span>
-        <div className="search-try-chips" role="group" aria-label={SEARCH_TRY.label}>
+      <fieldset className="search-try">
+        <legend className="search-try-label">{SEARCH_TRY.label}</legend>
+        <div className="search-try-chips">
           {SEARCH_TRY.examples.map((ex) => (
             <button
               key={ex.kind}
@@ -2470,7 +2470,7 @@ export default function App() {
           ))}
         </div>
         <p className="search-hint">{SEARCH_TRY.tip}</p>
-      </div>
+      </fieldset>
 
       <nav className="mode-tabs" aria-label="What do you want to do?">
         {(["watch", "compare", "difference", "more"] as const).map((id) => (
