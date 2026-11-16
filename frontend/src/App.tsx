@@ -5,6 +5,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   startTransition,
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -288,11 +289,13 @@ export default function App() {
       window.clearInterval(id);
     };
   }, []);
-  /** Live contrast for the slider/sky; URL + heavy overlays commit on pointer up. */
+  /** Live contrast for the slider; URL + heavy overlays commit on pointer up. */
   const [contrastLive, setContrastLive] = useState(view.contrast);
   useEffect(() => {
     setContrastLive(view.contrast);
   }, [view.contrast]);
+  /** Defer sky re-paint so the slider stays fluid while contrast changes. */
+  const contrastPaint = useDeferredValue(contrastLive);
   /** Sky context globe: open on desk, collapsed on narrow phones. */
   const [skyContextOpen, setSkyContextOpen] = useState(
     () => typeof window === "undefined" || !window.matchMedia("(max-width: 720px)").matches,
@@ -1179,10 +1182,10 @@ export default function App() {
     });
   }, []);
 
-  const display = useMemo(() => {
+  /** Stack / difference / track pixels — no contrast. Slider must not restack. */
+  const composed = useMemo(() => {
     if (load.status !== "ready") return null;
     const size = load.data.grid.size;
-
     if (view.mode === "difference") {
       const pool = forDifference;
       const nA = pool.filter((f) => f.exposure.pass === view.diffPassA).length;
@@ -1195,15 +1198,13 @@ export default function App() {
         };
       }
       const diff = differencePasses(pool, view.diffPassA, view.diffPassB);
-      const limits = applyContrast(computeDisplayLimits([diff]), contrastLive);
       const meta = pool.find((f) => f.exposure.pass === view.diffPassA) ?? pool[0]!;
       return {
         kind: "difference" as const,
         pixels: diff.pixels,
         mask: diff.mask,
         background: 0,
-        lo: limits.lo,
-        hi: limits.hi,
+        baseLimits: computeDisplayLimits([diff]),
         size,
         targetXy: meta.frame.target_xy,
         meta,
@@ -1211,21 +1212,16 @@ export default function App() {
         countB: nB,
       };
     }
-
     if (filtered.length === 0) return null;
     const active = filtered[Math.min(view.frameIndex, filtered.length - 1)]!;
-
     if (view.mode === "stack") {
-      // Tommy item 5: clean mean (mask === 0 only) when stacking a locked visit.
       const stacked = view.pass != null ? stackPassClean(filtered) : stackFrames(filtered);
-      const limits = applyContrast(computeDisplayLimits([stacked]), contrastLive);
       return {
         kind: "compose" as const,
         pixels: stacked.pixels,
         mask: stacked.mask,
         background: stacked.background,
-        lo: limits.lo,
-        hi: limits.hi,
+        baseLimits: computeDisplayLimits([stacked]),
         size,
         targetXy: active.frame.target_xy,
         meta: active,
@@ -1233,21 +1229,68 @@ export default function App() {
     }
     if (view.mode === "track") {
       const tracked = stackTrackingTarget(filtered);
-      const limits = applyContrast(computeDisplayLimits([tracked]), contrastLive);
       return {
         kind: "compose" as const,
         pixels: tracked.pixels,
         mask: tracked.mask,
         background: 0,
-        lo: limits.lo,
-        hi: limits.hi,
+        baseLimits: computeDisplayLimits([tracked]),
         size,
         targetXy: filtered[0]!.frame.target_xy,
         meta: active,
       };
     }
+    return null;
+  }, [
+    load,
+    filtered,
+    forDifference,
+    view.frameIndex,
+    view.mode,
+    view.pass,
+    view.diffPassA,
+    view.diffPassB,
+  ]);
 
-    const limits = applyContrast(load.data.limits, contrastLive);
+  const display = useMemo(() => {
+    if (load.status !== "ready") return null;
+    const size = load.data.grid.size;
+
+    if (view.mode === "difference" || view.mode === "stack" || view.mode === "track") {
+      if (!composed) return null;
+      if ("error" in composed && composed.error) {
+        return {
+          kind: "difference" as const,
+          error: composed.error,
+          size: composed.size,
+        };
+      }
+      if (!("baseLimits" in composed) || !composed.baseLimits || !composed.pixels) {
+        return {
+          kind: "difference" as const,
+          error: "error" in composed ? composed.error : "Missing compose data",
+          size,
+        };
+      }
+      const limits = applyContrast(composed.baseLimits, contrastPaint);
+      return {
+        kind: composed.kind,
+        pixels: composed.pixels,
+        mask: composed.mask!,
+        background: composed.background ?? 0,
+        lo: limits.lo,
+        hi: limits.hi,
+        size: composed.size,
+        targetXy: composed.targetXy!,
+        meta: composed.meta!,
+        countA: "countA" in composed ? composed.countA : undefined,
+        countB: "countB" in composed ? composed.countB : undefined,
+      };
+    }
+
+    if (filtered.length === 0) return null;
+    const active = filtered[Math.min(view.frameIndex, filtered.length - 1)]!;
+    const limits = applyContrast(load.data.limits, contrastPaint);
     return {
       kind: "single" as const,
       pixels: active.pixels,
@@ -1259,16 +1302,7 @@ export default function App() {
       targetXy: active.frame.target_xy,
       meta: active,
     };
-  }, [
-    load,
-    filtered,
-    forDifference,
-    view.frameIndex,
-    view.mode,
-    view.diffPassA,
-    view.diffPassB,
-    contrastLive,
-  ]);
+  }, [load, filtered, view.mode, view.frameIndex, composed, contrastPaint]);
 
   const passes = useMemo(
     () => (load.status === "ready" ? uniquePasses(load.data.frames) : []),
