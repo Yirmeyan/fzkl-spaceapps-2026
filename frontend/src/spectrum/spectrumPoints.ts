@@ -2,7 +2,7 @@ import type { PhotometryQuality, Target } from "../data/contract";
 import type { DecodedFrame } from "../data/decode";
 
 /**
- * Photometry-only spectrum point (Tommy B4 / spectrum file + GET /api/spectrum).
+ * Photometry-only spectrum point.
  * Same fields as a frame without pixels.
  */
 export interface SpectrumPoint {

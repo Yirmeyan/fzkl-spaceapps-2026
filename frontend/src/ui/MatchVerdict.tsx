@@ -94,7 +94,7 @@ function downloadSkyPostcard(targetName: string, verdictLine: string, agrees: bo
 }
 
 /**
- * Stage stamp: SPHEREx-measured proper motion next to Gaia (Tommy 19:00).
+ * Stage stamp: SPHEREx-measured proper motion next to Gaia.
  * WISE 0855: "Gaia: nothing here" is the challenge beat.
  */
 export function MatchVerdict({

@@ -17,9 +17,9 @@ interface CandidatesPanelProps {
   /** Catalog proper motion of the loaded target (mas/yr), legacy fallback. */
   catalogPmRa?: number | null;
   catalogPmDec?: number | null;
-  /** Gaia slice of the view catalog (Tommy 19:00 knownAs lines). */
+  /** Gaia slice of the view catalog. */
   gaiaCatalog?: CatalogSlice | null;
-  /** Tommy 19:40: show synthetic detection check (WISE 0855 / slide 6). */
+  /** Show the synthetic detection check (WISE 0855). */
   showDetectionTrust?: boolean;
   /** Extra cold-object limit sentence (WISE 0855). */
   coldDetectionNote?: boolean;
@@ -27,7 +27,7 @@ interface CandidatesPanelProps {
   onStudy: (index: number) => void;
 }
 
-/** Rail panel: service-measured movers and changers (Tommy addition A). */
+/** Rail panel: service-measured movers and changers. */
 export function CandidatesPanel({
   data,
   waiting,

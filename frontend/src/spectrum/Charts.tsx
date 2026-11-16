@@ -9,7 +9,7 @@ interface ChartsProps {
   spectrumWaiting?: boolean;
   /** Detector currently on the stage: those points are drawn brighter. */
   highlightDetector?: number | null;
-  /** Tommy SPIFF check: one-line trust mark under Spectrum (e.g. Epsilon Indi B). */
+  /** SPIFF check: one-line trust mark under Spectrum (e.g. Epsilon Indi B). */
   spiffLine?: string | null;
   /** Absorption band callouts on the spectrum (brown-dwarf fingerprint). */
   bandMarkers?: SpectrumBand[] | null;
@@ -65,7 +65,7 @@ export function Charts({
   const activeDet = active?.exposure.detector ?? null;
   const activeId = active?.frame.id;
 
-  // Light curve: one detector only (Tommy B4). Wavelength changes across detectors.
+  // Light curve: one detector only. Wavelength changes across detectors.
   const lightPool = activeDet != null ? withFlux.filter((p) => p.detector === activeDet) : withFlux;
   const lightPoints = [...lightPool].sort((a, b) => a.time_mjd - b.time_mjd);
 
@@ -267,7 +267,7 @@ interface FluxPoint {
   detector?: number;
   active: boolean;
   flagged: boolean;
-  /** Photometry quality tag; unknown values still plot (Tommy addition B). */
+  /** Photometry quality tag; unknown values still plot. */
   quality: string;
   id: string;
 }

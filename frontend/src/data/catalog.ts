@@ -38,7 +38,7 @@ export function julianYearFromMjd(mjd: number): number {
   return 2000 + (mjd - 51544.5) / 365.25;
 }
 
-/** Middle of the frames on screen — the epoch Tommy wants for the catalog call. */
+/** Middle of the frames on screen: the epoch asked for the catalog call. */
 export function middleFrameEpochYear(timeMjds: number[]): number {
   if (timeMjds.length === 0) return julianYearFromMjd(Date.now() / 86400000 + 40587);
   let lo = timeMjds[0]!;
@@ -58,7 +58,7 @@ export function catalogUnavailableMessage(err: unknown): string {
   return "Catalogs unavailable right now";
 }
 
-/** Tip line for a hovered catalog source (Tommy F8). */
+/** Tip line for a hovered catalog source. */
 export function catalogSourceTip(slice: CatalogSlice, source: CatalogSource): string {
   const mag = source.mags[slice.band];
   const magBit = mag != null ? `${slice.band} = ${mag.toFixed(1)}` : null;

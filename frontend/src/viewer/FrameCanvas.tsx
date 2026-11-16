@@ -19,7 +19,7 @@ export interface FrameCanvasProps {
   hi: number;
   background: number | null;
   colorMap?: ColorMap;
-  /** Tint pixels whose mask byte is not 0 (Tommy item 6). */
+  /** Tint pixels whose mask byte is not 0. */
   tintMask?: boolean;
   targetXy?: [number, number] | null;
   trail?: TrailPoint[];
@@ -35,7 +35,7 @@ export interface FrameCanvasProps {
   catalogTimeMjd?: number | null;
   flightPath?: FlightPath | null;
   flightScrub?: number;
-  /** Visitor / share mark on the sky (Tommy 23:00), ~12 px frame. */
+  /** Visitor / share mark on the sky, ~12 px frame. */
   markXy?: [number, number] | null;
   className?: string;
   displayPx?: number;

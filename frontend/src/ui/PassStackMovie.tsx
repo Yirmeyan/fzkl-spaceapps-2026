@@ -21,7 +21,7 @@ interface PassStackMovieProps {
   faintHint?: string;
 }
 
-/** Cycles clean per-pass mean stacks, then the last-minus-first difference (Tommy item 5). */
+/** Cycles clean per-pass mean stacks, then the last-minus-first difference. */
 export function PassStackMovie({
   stacks,
   diff,

@@ -134,7 +134,7 @@ import { SkyPlayer } from "./viewer/SkyPlayer";
 
 type UiMode = "watch" | "compare" | "difference" | "more";
 
-/** Tommy item 7: live archive FOV. Sample bundles stay at the default. */
+/** Field of view asked of the live archive. Sample bundles stay at the default. */
 const FIELD_PRESETS = {
   default: { fov: 0.1, size: 128, label: "0.1° · 128²" },
   wide: { fov: 0.3, size: 256, label: "0.3° · 256²" },
@@ -184,7 +184,7 @@ type LoadState =
 
 export default function App() {
   const [view, setView] = useState<ViewState>(() => readViewFromUrl());
-  /** One-shot: honor ?frame=&detector= from the address bar (Tommy 19:55). */
+  /** One-shot: honor ?frame=&detector= from the address bar. */
   const deepLinkBootRef = useRef(readViewFromUrl());
   const deepLinkAppliedRef = useRef(false);
   const [load, setLoad] = useState<LoadState>({ status: "idle" });
@@ -216,9 +216,9 @@ export default function App() {
     pass: number | null;
   } | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  /** Tommy item 6: tint non-zero mask pixels on the stage. */
+  /** Tint non-zero mask pixels on the stage. */
   const [tintMask, setTintMask] = useState(false);
-  /** Tommy F8: catalog overlay switches (off until first asked). */
+  /** Catalog overlay switches (off until first asked). */
   const [showGaia, setShowGaia] = useState(false);
   const [showAllwise, setShowAllwise] = useState(false);
   /** Soft upscale of 128² cutouts (default). Sharp = nearest-neighbor blocks. */
@@ -337,7 +337,7 @@ export default function App() {
   const [splitPassB, setSplitPassB] = useState<number | null>(null);
   const [ghostVisits, setGhostVisits] = useState(false);
   const [spotMover, setSpotMover] = useState(false);
-  /** Tommy item 5: cycle clean per-pass stacks (WISE default on). */
+  /** Cycle clean per-pass stacks (WISE default on). */
   const [passMovie, setPassMovie] = useState(false);
   const [demoPhase, setDemoPhase] = useState<DemoPhase>("idle");
   const [demoLine, setDemoLine] = useState("");
@@ -390,7 +390,7 @@ export default function App() {
 
   const [frameLinkCopied, setFrameLinkCopied] = useState(false);
 
-  /** Exact view for judges / journal: keeps frame, detector, λ (Tommy 19:55). */
+  /** Exact view for a shared link or the journal: keeps frame, detector and wavelength. */
   function copyFrameLink() {
     const url = new URL(window.location.href);
     url.search = `?${viewToSearchParams(view, skyTargetRef.current).toString()}`;
@@ -549,7 +549,7 @@ export default function App() {
         return;
       }
 
-      // Tommy bridge: prefer det 2 (det 6 for WISE 0855), then other detectors one at a time.
+      // Prefer detector 2 (detector 6 for WISE 0855), then the other detectors one at a time.
       const preferDet = targetKey === "wise0855" || /wise\s*0855/i.test(t.name ?? "") ? 6 : 2;
       const byDet = new Map<number, typeof exposures>();
       for (const e of exposures) {
@@ -834,7 +834,7 @@ export default function App() {
       setSkyTarget(null);
       clearSampleIndexCache();
 
-      // Tommy Need: target/grid come from index.json (correct epoch + PM), not stale targets.ts.
+      // Target and grid come from index.json (correct epoch and proper motion), not from targets.ts.
       let indexEntry: ReturnType<typeof sampleTargetByUiKey>;
       try {
         const index = await fetchSampleIndex(signal);
@@ -867,8 +867,8 @@ export default function App() {
         const entry = indexEntry;
         if (entry && entry.detectors.length > 0) {
           // Spectrum file in parallel with first bundle (tens of kB): chart can paint
-          // before multi-MB detector JSON finishes (Tommy Need item 2).
-          // Synthetic Planet X: spectrum file is empty sky at center — do not chart it (Tommy #79).
+          // before multi-MB detector JSON finishes.
+          // Synthetic Planet X: spectrum file is empty sky at center — do not chart it.
           if (entry.spectrum && !entry.synthetic && !known.synthetic) {
             void (async () => {
               try {
@@ -1062,7 +1062,7 @@ export default function App() {
     return filterNearWavelength(byPass, view.waveUm, view.waveTolUm);
   }, [load, view.pass, view.detector, view.waveUm, view.waveTolUm]);
 
-  // Tommy F8 / #59 / 19:00: load catalog for overlay OR candidates (knownAs).
+  // Load the catalog for the overlay or for the candidates (knownAs).
   // Prefer static preset file; otherwise GET /api/catalog.
   useEffect(() => {
     const need = showGaia || showAllwise || candidatesFile != null;
@@ -1122,7 +1122,7 @@ export default function App() {
     setCatalogError(null);
   }, [view.targetKey, fieldPreset]);
 
-  // Tommy 19:00: if Gaia is truncated and knownAs is null, ask a tight 0.02° field
+  // If Gaia is truncated and knownAs is null, ask a tight 0.02° field
   // around the candidate before saying "holds no source here".
   useEffect(() => {
     const base = gaiaSlice(catalogFile);
@@ -1436,7 +1436,7 @@ export default function App() {
     setSpotMover(kind === "spot");
   }
 
-  /** Tommy B4: each preset opens in the view that shows what it’s for. */
+  /** Each preset opens in the view that shows what it is for. */
   function applyPresetDefaults(key: string, label: string) {
     clearPresentationOverlays();
     setSearchInput(label);
@@ -1457,7 +1457,7 @@ export default function App() {
       return;
     }
     if (key === "synthx") {
-      // Made-up body: hop between visits on detector 6 (Tommy #79).
+      // Made-up body: hop between visits on detector 6.
       patchView({
         targetKey: key,
         query: label,

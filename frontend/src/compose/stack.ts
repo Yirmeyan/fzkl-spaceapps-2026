@@ -61,7 +61,7 @@ export function stackFrames(frames: DecodedFrame[]): StackResult {
 }
 
 /**
- * Tommy item 5 (WISE): mean of one pass, each frame minus background.
+ * Mean of one pass, each frame minus its background. Brings out WISE 0855.
  * Only pixels with mask === 0 and a finite value enter the mean.
  */
 export function stackPassClean(frames: DecodedFrame[]): StackResult {

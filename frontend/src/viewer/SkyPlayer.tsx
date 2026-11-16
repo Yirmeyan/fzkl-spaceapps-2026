@@ -21,7 +21,7 @@ export interface SkyPlayerProps {
   hi: number;
   size: number;
   colorMap?: ColorMap;
-  /** Tint pixels whose mask byte is not 0 (Tommy item 6). */
+  /** Tint pixels whose mask byte is not 0. */
   tintMask?: boolean;
   /** CSS display size in px (square). */
   displayPx?: number;

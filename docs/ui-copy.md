@@ -137,7 +137,7 @@ Closed at the first opening. Everything below lives there.
 | Single | One image | One image at a time. |
 | Stack | Average | Average the images of a visit. Faint objects come out of the noise. |
 | Difference | Subtract | Same as Subtract above, between the two visits you choose. |
-| Track | Follow the target | Average the images while following the motion of the target. A moving object stays sharp and the fixed stars smear. (Nicolas: correct this sentence if the tool does something else.) |
+| Track | Follow the target | Average the images while following the motion of the target. A moving object stays sharp and the fixed stars smear. |
 | WAVELENGTH | Infrared colors | |
 | All λ | All colors | Play every infrared color. |
 | Match this λ | This color only | Keep the images close to the color shown, so that visits compare like with like. |
