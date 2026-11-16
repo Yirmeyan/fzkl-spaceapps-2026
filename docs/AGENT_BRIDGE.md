@@ -37,6 +37,10 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 19:45 ET — From: Nic — Kind: Need
+
+**Working now:** contrast slider lag — `SkyPlayer` was re-rendering every loaded frame on each tick. Files: `viewer/SkyPlayer.tsx`, `App.tsx` (display memo split). Not Claude’s list.
+
 ### 2026-11-15 19:43 ET — From: Nic — Kind: Shipped
 Caption “playing” and guide “looking” use IBM Plex instead of Syne at 16px, so the g tail is no longer sliced off. CSS only: `frontend/src/index.css`.
 
