@@ -38,6 +38,9 @@ const OUT_OF_SIGHT = 40;
 const PROPERTIES_TIMEOUT_MS = 15_000;
 // A press that moved less than this many pixels is a click, more is a drag of the map.
 const CLICK_SLOP = 5;
+/** Width of sky shown around the place the guided tour picks, in degrees, and the seconds to get there. */
+const TOUR_FOV = 120;
+const TOUR_APPROACH_SECONDS = 1.2;
 // The address is written once the map has rested this long: browsers refuse a page
 // that rewrites its address at every frame of a drag.
 const ADDRESS_DELAY_MS = 350;
@@ -457,7 +460,13 @@ function start(page: Page, engine: Engine, axis: CubeAxis | null, asked: MapView
       if (pin.preset !== null && !pin.shared) {
         button.append(make("span", "sky-mark-name", pin.name));
       }
-      button.addEventListener("click", () => select(pin, pin));
+      button.addEventListener("click", () => {
+        select(pin, pin);
+        // In the guided tour the map comes closer to the place the tour has picked.
+        if (document.querySelector(".tour-card") !== null) {
+          map.approach(pin, TOUR_FOV, TOUR_APPROACH_SECONDS);
+        }
+      });
       page.pins.append(button);
       drawn.push({ pin, button });
     }

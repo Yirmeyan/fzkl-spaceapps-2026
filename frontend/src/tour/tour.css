@@ -105,3 +105,15 @@
   color: #14100a;
   font-weight: 600;
 }
+
+/* A card waits for its element, so that it does not show in one place and jump to another. */
+.tour-card.is-waiting {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* During the tour the card is the guide: the map's own invitation to open the place waits. */
+body:has(.tour-card) .sky-card-open,
+body:has(.tour-card) .sky-card-hint {
+  display: none;
+}
