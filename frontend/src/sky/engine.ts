@@ -40,6 +40,8 @@ interface EngineView {
   setBaseImageLayer(layer: EngineLayer): void;
   on(what: string, listener: () => void): void;
   setFoVRange?: (narrowest: number, widest: number) => void;
+  animateToRaDec?: (ra: number, dec: number, seconds: number) => void;
+  zoomToFoV?: (fov: number, seconds: number) => void;
   setBackgroundColor?: (color: string) => void;
 }
 
@@ -245,6 +247,12 @@ export class SkyMap {
   /** Width of the sky shown, in degrees. */
   fov(): number {
     return this.view.getFov()[0];
+  }
+
+  /** Move the map toward a place and show a narrower part of the sky around it. */
+  approach(place: Place, fov: number, seconds: number): void {
+    this.view.animateToRaDec?.(place.ra, place.dec, seconds);
+    this.view.zoomToFoV?.(fov, seconds);
   }
 
   /** The place under a point of the map, or null outside the sky. */

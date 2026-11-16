@@ -14,6 +14,8 @@ const LOOK_FOR_MS = 10_000;
 const LOOK_EVERY_MS = 200;
 /** How long the tour keeps following an element after finding it, while the page scrolls to it. */
 const FOLLOW_FOR_MS = 1200;
+/** How long a card stays out of sight while its element is not on the page yet. */
+const WAIT_FOR_MS = 2500;
 /** Time left to read the card before the tour presses a control for the visitor. */
 const PRESS_AFTER_MS = 600;
 /** Time between two controls pressed for the same card, so that the page follows. */
@@ -179,6 +181,8 @@ export function runTour(page: TourPage, first: number, home: string): () => void
         );
       }
       draw();
+      // A card waits for its element, so that it does not show in one place and jump to another.
+      card.classList.toggle("is-waiting", anchor === null && Date.now() - since < WAIT_FOR_MS);
       const settled = anchor !== null && pressed && Date.now() - foundAt > FOLLOW_FOR_MS;
       if (settled || Date.now() - since > LOOK_FOR_MS) {
         window.clearInterval(looking);
