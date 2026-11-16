@@ -37,6 +37,9 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 19:43 ET — From: Nic — Kind: Shipped
+Caption “playing” and guide “looking” use IBM Plex instead of Syne at 16px, so the g tail is no longer sliced off. CSS only: `frontend/src/index.css`.
+
 ### 2026-11-15 19:32 ET — From: Nic — Kind: Shipped
 
 **#100:** sky globe top of rail; custom RA/Dec “This place” pin; larger stage square. Files: `App.tsx` (rail props + displayPx), `SkyContextGlobe.tsx`, `index.css`. Not Claude’s reserved files.
