@@ -1710,11 +1710,6 @@ export default function App() {
         e.preventDefault();
         void toggleFullscreen();
       }
-      if (e.key === "j" || e.key === "J") {
-        e.preventDefault();
-        if (demoPhase === "idle") runAutoDemo();
-        else stopAutoDemo();
-      }
       if (e.key === "s" || e.key === "S") {
         e.preventDefault();
         setExclusiveOverlay(splitVisits ? null : "split");
@@ -2293,8 +2288,6 @@ export default function App() {
                 ? "track"
                 : "watch";
 
-  const cinema = load.status === "ready";
-
   return (
     <div className={`app app--classic${eyepiece ? " app--eyepiece" : ""}`}>
       <div className="sky-wash" aria-hidden="true" />
@@ -2340,36 +2333,14 @@ export default function App() {
           >
             {frameLinkCopied ? "Copied" : TOP.copyLink.label}
           </button>
-          <details className="jury-tools">
-            <summary title={TOP.tour.hint}>{TOP.tour.label}</summary>
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => startGuidedTour()}
-              title={TOP.guidedTour.hint}
-            >
-              {TOP.guidedTour.label}
-            </button>
-            <button
-              type="button"
-              className="ghost"
-              disabled={load.status !== "ready" || demoPhase !== "idle" || eyepiece}
-              onClick={() => runAutoDemo()}
-              title={TOP.example.hint}
-            >
-              {TOP.example.label}
-            </button>
-            {cinema && (
-              <button
-                type="button"
-                className={eyepiece ? "primary" : "ghost"}
-                onClick={() => setEyepiece((v) => !v)}
-                title={eyepiece ? TOP.leaveFullScreen.hint : TOP.fullScreen.hint}
-              >
-                {eyepiece ? TOP.leaveFullScreen.label : TOP.fullScreen.label}
-              </button>
-            )}
-          </details>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => startGuidedTour()}
+            title={TOP.guidedTour.hint}
+          >
+            {TOP.guidedTour.label}
+          </button>
         </div>
       </header>
 
