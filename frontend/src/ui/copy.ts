@@ -1,7 +1,7 @@
 /**
  * The words of the explorer, in one place.
  *
- * One vocabulary for a newcomer: visit, camera, infrared color. Each control has a label
+ * One vocabulary for a newcomer: visit, detector, infrared color. Each control has a label
  * and one sentence that says what it does. The sentence is the title of its button, and
  * the one of the selected option is shown under its group: a phone has no hover.
  * Reference: docs/ui-copy.md.
@@ -73,22 +73,22 @@ export const STRIP = {
   difference: "Difference",
 };
 
-/** What is worth knowing about a camera beyond its range of colors. */
-const CAMERA_NOTES: Record<number, string> = {
+/** What is worth knowing about a detector beyond its range of colors. */
+const DETECTOR_NOTES: Record<number, string> = {
   1: " The closest to visible light.",
   5: " Cold objects start to glow here.",
   6: " The coldest objects are brightest here.",
 };
 
-export const CAMERAS = {
-  label: "Infrared cameras",
-  all: { label: "All cameras", hint: "Use the images of all six cameras." },
+export const DETECTORS = {
+  label: "Detectors",
+  all: { label: "All detectors", hint: "Use the images of all six detectors." },
   group:
-    "SPHEREx has six cameras. Each sees a different range of infrared colors. The coldest objects show up mostly in cameras 5 and 6.",
-  /** Written before the number of a camera where there is room for it. */
-  word: "Camera",
-  hint: (camera: number, shortest: number, longest: number, images: number) =>
-    `Camera ${camera}: colors from ${shortest.toFixed(2)} to ${longest.toFixed(2)} µm, ${images} images of this place.${CAMERA_NOTES[camera] ?? ""}`,
+    "SPHEREx has six detectors, like six cameras behind one telescope. Each sees a different range of infrared colors. The coldest objects show up mostly in detectors 5 and 6.",
+  /** Written before the number of a detector where there is room for it. */
+  word: "Detector",
+  hint: (detector: number, shortest: number, longest: number, images: number) =>
+    `Detector ${detector}: colors from ${shortest.toFixed(2)} to ${longest.toFixed(2)} µm, ${images} images of this place.${DETECTOR_NOTES[detector] ?? ""}`,
 };
 
 export const VISITS = {
@@ -149,7 +149,7 @@ export const PALETTE = {
 export const LOOK = {
   label: "Look",
   smooth: { label: "Smooth", hint: "A smoothed picture, easier on the eye." },
-  pixels: { label: "Pixels", hint: "The true square pixels of the camera." },
+  pixels: { label: "Pixels", hint: "The true square pixels of the detector." },
   path: {
     hint: "Draw where the object was at each visit.",
     on: "The path shows where the object was at each visit.",

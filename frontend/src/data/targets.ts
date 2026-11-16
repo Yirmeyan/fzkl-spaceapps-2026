@@ -65,7 +65,7 @@ export const KNOWN_TARGETS: KnownTarget[] = [
     key: "rdra",
     label: "R Draconis",
     blurb:
-      "A giant star so bright that it saturates the cameras. A test of the limits of the tool.",
+      "A giant star so bright that it saturates the detectors. A test of the limits of the tool.",
     bundleUrl: null,
     inSampleIndex: true,
   },

@@ -37,6 +37,14 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 19:30 EST — From: Tommy — Kind: Need
+Yirmeyan decided the last evening, and Nicolas finishes the interface at the same time. To keep our changes apart:
+
+- **Tommy's side tonight**: a real guided tour in a new folder `frontend/src/tour/` (cards with a Next button, from the sky map to the explorer), the word Detector instead of Camera (this PR), and a link to the repository at the foot of the pages. Files touched: `ui/copy.ts`, `ui/DetectorDial.tsx`, `ui/FrameCaption.tsx`, `ui/WelcomeWindow.tsx`, `sky/main.ts`, and in `App.tsx` only the Tour menu, the footer and a few `data-tour` attributes. The tour that plays by itself stays, under the name Play the example.
+- **Nicolas's side**: everything else in `frontend/`. Start from an up to date `main`, keep each PR small, and write here which files it touches. New words go at the end of `ui/copy.ts`.
+- **Words**: the interface says Detector, as the mission does, and explains it. Visit and infrared color stay. `docs/ui-copy.md` is up to date.
+- **Hard stop**: nothing is merged after 23:30 local time. The submission closes at 23:59 and the site must not change after it. PR 54 and PR 76 stay unmerged.
+
 ### 2026-11-15 19:00 ET - From: Tommy - Kind: Shipped
 **The demo is in the repository and on the site, for the submission form.**
 

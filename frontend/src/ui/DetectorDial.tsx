@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { wavelengthHue } from "../spectrum/waveHue";
-import { CAMERAS } from "./copy";
+import { DETECTORS } from "./copy";
 
 export interface DetectorBand {
   detector: number;
@@ -17,27 +17,27 @@ interface DetectorDialProps {
 }
 
 /**
- * Stage-facing SPHEREx detector dial. one band per camera.
+ * Stage-facing SPHEREx detector dial. one band per detector.
  * Makes the six-wavelength story visible without opening Technical details.
  */
 export function DetectorDial({ bands, active, onPick }: DetectorDialProps) {
   if (bands.length < 2) return null;
   const chosen = bands.find((band) => band.detector === active);
   const hint = chosen
-    ? CAMERAS.hint(chosen.detector, chosen.waveMin, chosen.waveMax, chosen.frames)
-    : CAMERAS.group;
+    ? DETECTORS.hint(chosen.detector, chosen.waveMin, chosen.waveMax, chosen.frames)
+    : DETECTORS.group;
 
   return (
-    <section className="detector-dial" aria-label="SPHEREx infrared cameras">
+    <section className="detector-dial" aria-label="SPHEREx detectors">
       <div className="detector-dial-head">
-        <p className="detector-dial-kicker">{CAMERAS.label}</p>
+        <p className="detector-dial-kicker">{DETECTORS.label}</p>
         <button
           type="button"
           className={active == null ? "detector-dial-all active" : "detector-dial-all"}
           onClick={() => onPick(null)}
-          title={CAMERAS.all.hint}
+          title={DETECTORS.all.hint}
         >
-          {CAMERAS.all.label}
+          {DETECTORS.all.label}
         </button>
       </div>
       <div className="detector-dial-track">
@@ -51,13 +51,13 @@ export function DetectorDial({ bands, active, onPick }: DetectorDialProps) {
               type="button"
               className={isOn ? "detector-dial-band active" : "detector-dial-band"}
               style={{ "--band-hue": String(hue) } as CSSProperties}
-              title={CAMERAS.hint(b.detector, b.waveMin, b.waveMax, b.frames)}
+              title={DETECTORS.hint(b.detector, b.waveMin, b.waveMax, b.frames)}
               aria-pressed={isOn}
               onClick={() => onPick(b.detector)}
             >
               <span className="detector-dial-swatch" aria-hidden="true" />
               <span className="detector-dial-det">
-                <span className="detector-dial-word">{CAMERAS.word} </span>
+                <span className="detector-dial-word">{DETECTORS.word} </span>
                 {b.detector}
               </span>
               <span className="detector-dial-um">

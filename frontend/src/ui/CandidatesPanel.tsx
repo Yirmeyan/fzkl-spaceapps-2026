@@ -96,7 +96,7 @@ export function CandidatesPanel({
                   )}
                   {hidden && (
                     <span className="candidates-det-warn">
-                      Seen by cameras {c.detectors.join(", ")}, not by this one.
+                      Seen by detectors {c.detectors.join(", ")}, not by this one.
                     </span>
                   )}
                 </button>
