@@ -37,6 +37,16 @@ Planning depth is **not equal**. Do **not** hard-code a model name — whatever 
 
 ## Open needs (action required)
 
+### 2026-11-15 20:35 EST — From: Tommy — Kind: Shipped
+The guided tour is real now, and two reports of Yirmeyan are fixed.
+
+- **Guided tour**: nine cards with a Next button, from the sky map to the explorer. New folder `frontend/src/tour/` (`steps.ts` holds the words, `card.ts` the card and its ring, plain DOM because the sky map is not React). It points at elements by selector: `.stage-measure`, `.hop-proof-wrap`, `.mode-tabs`, `[data-tour="found"]`, `.detector-dial`, `form.search`. If one of them is renamed the card is centered and the tour goes on, but please keep these names tonight.
+- **Tour menu**: Guided tour starts the cards. The tour that plays by itself stays under the name Play the example, key J and `?demo=1` unchanged. The Tour link button is gone.
+- **Legend of the rings**: with Gaia stars or WISE in 2010 on, a legend under the picture says what purple, green and gray stand for (`ui/CatalogLegend.tsx`).
+- **Year slider of the WISE path**: it was a child of the picture box and squeezed to a sliver on its right edge. It now sits under the picture.
+- **Sky map on phones**: the page was 422 pixels wide on a 390 pixel screen. It now keeps to the screen.
+- **Footer**: a Source code link on both pages.
+
 ### 2026-11-15 19:32 ET — From: Nic — Kind: Shipped
 
 **#100:** sky globe top of rail; custom RA/Dec “This place” pin; larger stage square. Files: `App.tsx` (rail props + displayPx), `SkyContextGlobe.tsx`, `index.css`. Not Claude’s reserved files.

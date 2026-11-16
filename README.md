@@ -77,7 +77,7 @@ Nobody gave us the expected answer for the five targets, so each step was checke
 | Can it follow a star too bright to be measured? | Through the halo of light around it. R Draconis saturates the six detectors, and its halo says it faded by half between June 2025 and June 2026: a Mira variable going from its maximum to its minimum. Checked blind on 16 saturated stars chosen before the run: five of eight known long-period variables were flagged, each change in the direction the AAVSO index predicts, and none of eight steady giants |
 | How often is it wrong? | The one blind round, 21 fields chosen before the run, gave one false alarm in 16 quiet fields: a source cut by the edge of the view. Such positions are now refused. Every rule, and what it cost to find it, is in [the contract](docs/api-contract.md#how-it-was-checked) |
 
-The service has 634 automated tests and the site 83. Every pull request runs them, and checks the 55 static files against the contract. One of those checks is that the made-up body of the synthetic target is found at the distance it was drawn at.
+The service has 634 automated tests and the site 101. Every pull request runs them, and checks the 55 static files against the contract. One of those checks is that the made-up body of the synthetic target is found at the distance it was drawn at.
 
 ## How it works
 

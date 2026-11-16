@@ -385,3 +385,24 @@ body {
   font-size: 12px;
   margin: 0;
 }
+
+/* The way into the guided tour, and the way to the code. */
+.sky-tour,
+.sky-source {
+  color: var(--action);
+  font-size: 0.9rem;
+}
+
+.sky-tour {
+  margin-left: auto;
+}
+
+/* The page keeps to the width of a phone: one bounded column, and controls that wrap. */
+#sky-root {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sky-field {
+  flex-wrap: wrap;
+  max-width: 100%;
+}

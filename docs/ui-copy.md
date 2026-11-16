@@ -55,7 +55,7 @@ The two buttons stay in sight while the text scrolls, so the window closes at on
 | Share (menu) | Copy link | Copy the address of exactly what you see, to send it to someone. |
 | Help | How it works | Reopen the introduction. |
 
-The guided tour, its link and the full screen view are in a small menu named **Tour**, next to Copy link.
+The guided tour, the example that plays by itself and the full screen view are in a small menu named **Tour**, next to Copy link.
 
 ## Examples
 
@@ -165,5 +165,35 @@ Closed at the first opening. Everything below lives there.
 | Infrared timeline | Colors and brightness over time | The spectrum is the brightness in each infrared color. The light curve is the brightness at each visit. |
 | Copy verdict, Save postcard | unchanged | Copy the result as text. Save the picture with its result. |
 | Eyepiece | Full screen | Show only the sky. |
-| Timed walkthrough | Guided tour | A short tour that plays by itself. |
+| Timed walkthrough | Play the example | A short demonstration that plays by itself (J). |
+| (new) | Guided tour | Nine short steps, from the sky map to this page. You only press Next. |
 | Technical details | Technical details | The raw numbers, for reviewers. The state of the service is here. |
+
+## Guided tour
+
+Nine cards, one after the other. The visitor only presses **Next**. Each card points at a real element of the page, with a ring around it, and never blocks the page. Back goes one card back, End tour and Escape close it. The words live in `frontend/src/tour/steps.ts`, where a test holds them to the rules of this page.
+
+The tour starts on the sky map and goes on in the explorer, on Barnard's Star, which loads at once from the files of the site. The address carries the step from one page to the other (`?tour=4`).
+
+| Step | Page | Points at | Title |
+| --- | --- | --- | --- |
+| 1 | Sky map | The map | The whole sky, seen by SPHEREx |
+| 2 | Sky map | The controls | Move around the sky |
+| 3 | Sky map | The map, with the pin of Barnard's Star pressed | Choose any place |
+| 4 | Explorer | The picture | A film of one place |
+| 5 | Explorer | First visit, difference, last visit | Visits, six months apart |
+| 6 | Explorer | The four tabs, with Blink pressed | Four ways to compare visits |
+| 7 | Explorer | What the tool found here | What the tool measured by itself |
+| 8 | Explorer | The detectors | Six detectors, six ranges of color |
+| 9 | Explorer | The search box | Your turn |
+
+The cards name the words of the mission and explain them: an exposure gives six images, one for each detector, and a visit comes with each survey of the whole sky.
+
+## Legend of the rings
+
+Shown under the picture while Gaia stars or WISE in 2010 is on.
+
+- Purple ring: a star of the Gaia catalog, placed where it is at the date of this image.
+- Green ring: an object of the WISE catalog, where it was in 2010.
+- Gray hatching: no data in this image.
+- A green ring left behind its star means that the star has moved since 2010. Only the 100 brightest of each catalog are drawn.

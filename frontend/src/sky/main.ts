@@ -6,6 +6,8 @@
  */
 
 import "./sky.css";
+import { runTour } from "../tour/card";
+import { addressOfStep, stepFromSearch } from "../tour/steps";
 import { type Engine, loadEngine, MapUnavailable, type Place, SkyMap } from "./engine";
 import {
   type CubeAxis,
@@ -23,6 +25,7 @@ import { type MapView, mapViewToSearch, NARROWEST_FOV, readMapView } from "./vie
 
 // Address of the explorer: the map is a page beside it.
 const HOME = import.meta.env.BASE_URL;
+const REPOSITORY = "https://github.com/Yirmeyan/fzkl-spaceapps-2026";
 // Address of the service, as the explorer is given it. Empty when the site and the
 // service share an address, as on a developer's machine.
 const SERVICE = ((import.meta.env.VITE_API_BASE as string | undefined) ?? "").replace(/\/$/, "");
@@ -89,7 +92,10 @@ function buildPage(root: HTMLElement): Page {
     "sky-lede",
     "The whole sky as SPHEREx sees it. Drag to move, scroll to zoom, click a place to watch it change over time.",
   );
-  bar.append(home, title, lede);
+  const tour = make("a", "sky-tour", "Guided tour");
+  tour.href = addressOfStep(0, HOME);
+  tour.title = "Nine short steps, from this map to the explorer. You only press Next.";
+  bar.append(home, title, lede, tour);
 
   const stage = make("main", "sky-stage");
   const map = make("div", "sky-map");
@@ -164,7 +170,9 @@ function buildPage(root: HTMLElement): Page {
 
   const center = make("a", "sky-center", "Open the explorer at the center of the map");
   const credit = make("p", "sky-credit");
-  controls.append(layerLabel, wave, pinsField, center, credit);
+  const source = make("a", "sky-source", "Source code");
+  source.href = REPOSITORY;
+  controls.append(layerLabel, wave, pinsField, center, credit, source);
 
   root.replaceChildren(bar, stage, controls);
   return {
@@ -545,4 +553,7 @@ async function open(page: Page): Promise<void> {
 const root = document.getElementById("sky-root");
 if (root) {
   void open(buildPage(root));
+  // The cards of the guided tour that belong to the map, when the address asks for them.
+  const step = stepFromSearch(location.search);
+  if (step !== null) runTour("sky", step, HOME);
 }
